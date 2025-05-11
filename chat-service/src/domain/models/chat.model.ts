@@ -15,3 +15,4 @@ export class Chat extends Document {
 
 
 export const ChatSchema = SchemaFactory.createForClass(Chat);
+export const CHAT_MODEL = 'CHAT_MODEL';
