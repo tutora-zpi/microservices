@@ -1,9 +1,14 @@
-import { SchemaFactory } from "@nestjs/mongoose";
-import { Prop, Schema } from "@nestjs/mongoose/dist/decorators";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
+import { Model } from "./model";
 
-@Schema()
-export class User extends Document {
+export type UserDocument = User & Document;
+
+@Schema({ timestamps: true })
+export class User extends Model {
+    @Prop({ required: true })
+    _id: string;
+
     @Prop({ required: false })
     avatarURL?: string;
 
@@ -15,4 +20,5 @@ export class User extends Document {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
 export const USER_MODEL = 'USER_MODEL';

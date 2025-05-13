@@ -1,12 +1,12 @@
 import { Inject, Logger } from "@nestjs/common";
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { SendMessageCommand } from "src/domain/commands/send-message.command";
+import { ReactMessageOnCommand } from "src/domain/commands/react-on-message.command";
 import { MessageDTO } from "src/domain/dto/message.dto";
 import { IMessageRepository, MESSAGE_REPOSITORY } from "src/domain/repository/message.repository";
 
-@CommandHandler(SendMessageCommand)
-export class SendMessageHandler implements ICommandHandler<SendMessageCommand> {
-    private readonly logger = new Logger(SendMessageHandler.name);
+@CommandHandler(ReactMessageOnCommand)
+export class ReactOnMessageHandler implements ICommandHandler<ReactMessageOnCommand> {
+    private readonly logger = new Logger(ReactMessageOnCommand.name);
 
     constructor(
         @Inject(MESSAGE_REPOSITORY)
@@ -14,11 +14,11 @@ export class SendMessageHandler implements ICommandHandler<SendMessageCommand> {
     ) {
     }
 
-    async execute(command: SendMessageCommand): Promise<MessageDTO | string> {
-        const newMessage = await this.repo.save(command);
+    async execute(command: ReactMessageOnCommand): Promise<MessageDTO | string> {
+        const newMessage = await this.repo.react(command);
 
         if (!newMessage) {
-            this.logger.log("Failed to save message");
+            this.logger.log("Failed to set reaction");
             return "Failed to save message";
         }
 

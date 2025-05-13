@@ -1,28 +1,35 @@
 import { ICommand } from "@nestjs/cqrs";
-import { IsNotEmpty, IsString, Length } from "class-validator";
+import { IsNotEmpty, IsString, Length, IsUUID } from "class-validator";
 
 export class SendMessageCommand implements ICommand {
     @IsString()
     @IsNotEmpty()
     @Length(1, 400)
-    content: string;
+    readonly content: string;
 
-    @IsString()
+    @IsUUID()
     @IsNotEmpty()
-    senderID: string;
+    readonly senderID: string;
 
-    @IsString()
+    // czy to bedzie potrzebne
+    @IsUUID()
     @IsNotEmpty()
-    receiverID: string;
+    readonly receiverID: string;
+
+    @IsUUID()
+    @IsNotEmpty()
+    readonly meetingID: string;
 
     constructor(
         receiverID: string,
         senderID: string,
-        content: string
+        chatID: string,
+        content: string,
     ) {
         this.content = content;
         this.senderID = senderID;
         this.receiverID = receiverID;
+        this.meetingID = chatID;
     }
 
 }

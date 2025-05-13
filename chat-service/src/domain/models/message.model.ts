@@ -1,33 +1,35 @@
-import { SchemaFactory } from "@nestjs/mongoose";
-import { Prop, Schema } from "@nestjs/mongoose/dist/decorators";
-import { Schema as MongooseSchema, Document } from "mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Schema as MongooseSchema } from "mongoose";
 import { User } from "./user.model";
+import { Model } from "./model";
+import { Reaction } from "./reaction.model";
+
+export type MessageDocument = Message & Document;
 
 @Schema({ timestamps: { createdAt: 'sentAt' } })
-export class Message extends Document {
-    @Prop()
+export class Message extends Model {
+    @Prop({ required: true })
     content: string;
 
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-    sender: User;
+    @Prop({ type: String, ref: 'User', required: true })
+    sender: User | string;
 
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
-    receiver: User;
+    @Prop({ type: String, ref: 'User', required: true })
+    receiver: User | string;
 
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Chat' })
-    chat: string;
+    chatID: MongooseSchema.Types.ObjectId;
 
     @Prop({ default: false })
     isRead: boolean;
 
-    // emojis
-    @Prop({ type: [{ id: String, emoji: String }], default: [] })
-    reacts: { id: string; emoji: string }[];
+    // message has a lot of reactions 
+    @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Reaction' }], default: [] })
+    reactions: Reaction[] | MongooseSchema.Types.ObjectId[];
 
     @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Message' }], default: [] })
-    answers: Message[];
+    answers: Message[] | MongooseSchema.Types.ObjectId[];
 }
-
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
 export const MESSAGE_MODEL = 'MESSAGE_MODEL';

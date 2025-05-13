@@ -5,14 +5,16 @@ import { MESSAGE_REPOSITORY } from 'src/domain/repository/message.repository';
 import { MessageRepositoryImpl } from '../database/repositories/message.repository.impl';
 import { SendMessageHandler } from 'src/app/commands/send-message.command.handler';
 import { DatabaseModule } from '../database/database.module';
+import { ReactMessageOnCommand } from 'src/domain/commands/react-on-message.command';
+import { ReplyOnMessageCommand } from 'src/domain/commands/reply-on-message.command';
 
-const CommandHandlers = [SendMessageHandler];
+const handlers = [SendMessageHandler, ReplyOnMessageCommand, ReactMessageOnCommand,];
 
 @Module({
     imports: [CqrsModule, DatabaseModule],
     providers: [
         ChatGateway,
-        ...CommandHandlers,
+        ...handlers,
         {
             provide: MESSAGE_REPOSITORY,
             useClass: MessageRepositoryImpl
