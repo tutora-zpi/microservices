@@ -9,6 +9,6 @@ export const getRmqOptions = (configService: ConfigService): RmqOptions => ({
         urls: [configService.get<string>('RABBITMQ_URL') || 'amqp://user:user@localhost:5672'],
         queue: queueName,
         queueOptions: { durable: true },
-        noAck: false,
+        noAck: true,
     },
 });

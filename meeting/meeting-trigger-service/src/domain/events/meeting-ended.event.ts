@@ -1,8 +1,10 @@
 import { Type } from "class-transformer";
 import { IsUUID, IsNotEmpty, IsArray, ArrayMinSize, ValidateNested } from "class-validator";
 import { UserDTO } from "../dto/user.dto";
+import { IEvent } from "./event";
+import { EndMeetingDTO } from "../dto/end-meeting.dto";
 
-export class MeetingEndedEvent {
+export class MeetingEndedEvent implements IEvent {
     @IsUUID()
     @IsNotEmpty()
     readonly meetingID: string;
@@ -17,5 +19,11 @@ export class MeetingEndedEvent {
     @IsNotEmpty()
     @Type(() => Date)
     readonly endedTime: Date;
+
+    constructor(dto: EndMeetingDTO) {
+        this.meetingID = dto.meetingID;
+        this.members = dto.members;
+        this.endedTime = new Date();
+    }
 }
 
