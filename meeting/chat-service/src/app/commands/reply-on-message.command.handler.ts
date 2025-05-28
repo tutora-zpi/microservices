@@ -15,17 +15,12 @@ export class ReplyOnMessageHandler implements ICommandHandler<ReplyOnMessageComm
     ) {
     }
 
-    async execute(command: ReplyOnMessageCommand): Promise<MessageDTO | string> {
+    async execute(command: ReplyOnMessageCommand): Promise<MessageDTO> {
         const newMessage = await this.repo.reply(command);
-
-        if (!newMessage) {
-            this.logger.log("Failed to reply");
-            return "Failed to save message";
-        }
 
         // call other services
 
-        this.logger.log("Command successfully excectued")
+        this.logger.log("Command excectued")
         return newMessage;
     }
 }

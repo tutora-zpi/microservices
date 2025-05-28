@@ -14,17 +14,12 @@ export class SendMessageHandler implements ICommandHandler<SendMessageCommand> {
     ) {
     }
 
-    async execute(command: SendMessageCommand): Promise<MessageDTO | string> {
+    async execute(command: SendMessageCommand): Promise<MessageDTO> {
         const newMessage = await this.repo.save(command);
-
-        if (!newMessage) {
-            this.logger.log("Failed to save message");
-            return "Failed to save message";
-        }
 
         // call other services
 
-        this.logger.log("Command successfully excectued")
+        this.logger.log("Command excectued")
         return newMessage;
     }
 }

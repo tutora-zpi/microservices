@@ -14,17 +14,10 @@ export class ReactOnMessageHandler implements ICommandHandler<ReactMessageOnComm
     ) {
     }
 
-    async execute(command: ReactMessageOnCommand): Promise<MessageDTO | string> {
+    async execute(command: ReactMessageOnCommand): Promise<MessageDTO> {
         const newMessage = await this.repo.react(command);
 
-        if (!newMessage) {
-            this.logger.log("Failed to set reaction");
-            return "Failed to save message";
-        }
-
-        // call other services
-
-        this.logger.log("Command successfully excectued")
+        this.logger.log("Command excectued")
         return newMessage;
     }
 }
