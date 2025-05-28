@@ -15,28 +15,10 @@ export class GetChatHandler implements IQueryHandler<GetChatQuery> {
     ) { }
 
     async execute(query: GetChatQuery): Promise<ChatDTO> {
-        try {
-            this.logger.log("Getting chat history...");
+        this.logger.log(`Executing GetChatQuery with id: ${query.id}`);
 
-            const res = await this.repo.getChat(query);
+        const res = await this.repo.getChat(query);
 
-            if (!res) {
-                const msg = "Chat not found or failed to retrieve chat history";
-                this.logger.warn(msg);
-                throw new NotFoundException(msg);
-            }
-
-            this.logger.log("Successfully retrieved chat history");
-            return res;
-
-        } catch (error) {
-            if (error instanceof NotFoundException) {
-                this.logger.warn(`Chat not found: ${error.message}`);
-            } else {
-                this.logger.error(`Error retrieving chat: ${error.message}`, error.stack);
-            }
-
-            throw error;
-        }
+        return res;
     }
 }
