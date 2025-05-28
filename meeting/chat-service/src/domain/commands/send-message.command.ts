@@ -18,7 +18,7 @@ export class SendMessageCommand implements ICommand {
 
     @IsUUID()
     @IsNotEmpty()
-    readonly meetingID: string;
+    readonly meetingID: string; // chatID !!!
 
     constructor(
         receiverID: string,

@@ -1,10 +1,10 @@
 import { DTO } from "./dto";
 import { ReactionDTO } from "./reaction.dto";
 import { UserDTO } from "./user.dto";
-import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsOptional, IsString, IsMongoId } from 'class-validator';
+import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class MessageDTO extends DTO {
-    @IsMongoId()
+    @IsUUID()
     readonly id: string;
 
     @IsDate()
@@ -14,12 +14,12 @@ export class MessageDTO extends DTO {
     @IsNotEmpty()
     readonly content: string;
 
-    readonly sender: UserDTO;
+    readonly sender: UserDTO | string;
 
     @IsOptional()
-    readonly receiver?: UserDTO;
+    readonly receiver?: UserDTO | string;
 
-    @IsMongoId()
+    @IsUUID()
     readonly chatID: string;
 
     @IsBoolean()

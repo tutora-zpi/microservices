@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Schema as MongooseSchema } from "mongoose";
+import { Document } from "mongoose";
 import { User } from "./user.model";
 import { Model } from "./model";
 import { Reaction } from "./reaction.model";
@@ -17,18 +17,20 @@ export class Message extends Model {
     @Prop({ type: String, ref: 'User', required: true })
     receiver: User | string;
 
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Chat' })
-    chatID: MongooseSchema.Types.ObjectId;
+    @Prop({ type: String, ref: 'Chat' })
+    chatID: string;
 
     @Prop({ default: false })
     isRead: boolean;
 
     // message has a lot of reactions 
-    @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Reaction' }], default: [] })
-    reactions: Reaction[] | MongooseSchema.Types.ObjectId[];
+    @Prop({ type: [{ type: String, ref: 'Reaction' }], default: [] })
+    reactions: Reaction[] | string[];
 
-    @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Message' }], default: [] })
-    answers: Message[] | MongooseSchema.Types.ObjectId[];
+    @Prop({ type: [{ type: String, ref: 'Message' }], default: [] })
+    answers: Message[] | string[];
+
+    sentAt: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

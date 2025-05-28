@@ -1,9 +1,9 @@
-import { IsString, IsNotEmpty, IsMongoId, IsOptional, IsUUID } from "class-validator";
+import { IsString, IsNotEmpty, IsUUID } from "class-validator";
 import { DTO } from "./dto";
 import { UserDTO } from "./user.dto";
 
 export class ReactionDTO extends DTO {
-    @IsMongoId()
+    @IsUUID()
     readonly id: string;
 
     @IsNotEmpty()

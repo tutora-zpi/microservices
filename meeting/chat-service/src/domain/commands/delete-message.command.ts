@@ -1,5 +1,5 @@
 import { ICommand } from "@nestjs/cqrs";
-import { IsMongoId, IsNotEmpty, IsString, IsUUID } from "class-validator";
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class DeleteMessageCommand implements ICommand {
     @IsUUID()

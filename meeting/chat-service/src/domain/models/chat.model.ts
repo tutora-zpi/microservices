@@ -10,7 +10,7 @@ export type ChatDocument = Chat & Document;
 export class Chat extends Model {
     /// generated from entrypoint which starts meeting
     @Prop({ required: true })
-    _id: string; // meetingID
+    id: string; // meetingID
 
     @Prop({ type: [{ type: String, ref: 'User' }], default: [] })
     members: User[] | string[];

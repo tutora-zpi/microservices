@@ -7,8 +7,8 @@ import { MessageDTO } from "../dto/message.dto";
 export const MESSAGE_REPOSITORY = 'IMessageRepository';
 
 export interface IMessageRepository {
-    save(message: SendMessageCommand): Promise<MessageDTO | null>;
-    react(react: ReactMessageOnCommand): Promise<MessageDTO | null>;
-    reply(reply: ReplyOnMessageCommand): Promise<MessageDTO | null>;
+    save(message: SendMessageCommand): Promise<MessageDTO>;
+    react(react: ReactMessageOnCommand): Promise<MessageDTO>;
+    reply(reply: ReplyOnMessageCommand): Promise<MessageDTO>;
     delete(body: DeleteMessageCommand): Promise<boolean>;
 }

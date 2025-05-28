@@ -19,9 +19,10 @@ describe("UserMapper", () => {
             };
 
             const result = userMapper.toDoc(userDTO);
+            console.log('result', result)
 
             expect(result).toEqual({
-                id: "123",
+                _id: "123",
                 avatarURL: "http://example.com/avatar.jpg",
                 firstName: "John",
                 lastName: "Doe",
@@ -32,7 +33,7 @@ describe("UserMapper", () => {
     describe("toDto", () => {
         it("should map User & Document to UserDTO", () => {
             const userDoc = {
-                id: "123",
+                _id: "123",
                 avatarURL: "http://example.com/avatar.jpg",
                 firstName: "John",
                 lastName: "Doe",
@@ -50,7 +51,7 @@ describe("UserMapper", () => {
 
         it("should handle missing fields gracefully", () => {
             const userDoc = {
-                id: "123",
+                _id: "123",
                 firstName: "John",
             } as UserDocument;
 

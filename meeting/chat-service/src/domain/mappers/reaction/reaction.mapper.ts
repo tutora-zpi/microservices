@@ -13,7 +13,7 @@ export class ReactionMapper implements IMapper<ReactionDTO, Reaction> {
 
         return {
             emoji: dto.emoji,
-            user: user.id,
+            user: user._id,
         };
     }
 

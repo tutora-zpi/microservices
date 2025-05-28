@@ -6,7 +6,7 @@ import { IMapper } from "../mapper";
 export class UserMapper implements IMapper<UserDTO, User> {
     toDoc(dto: UserDTO): Partial<User> {
         return {
-            id: dto.id,
+            _id: dto.id,
             avatarURL: dto.avatarURL,
             firstName: dto.firstName,
             lastName: dto.lastName,
@@ -15,7 +15,7 @@ export class UserMapper implements IMapper<UserDTO, User> {
 
     toDto(doc: User & Document): UserDTO {
         return {
-            id: doc.id,
+            id: doc._id,
             avatarURL: doc.avatarURL,
             firstName: doc.firstName,
             lastName: doc.lastName,

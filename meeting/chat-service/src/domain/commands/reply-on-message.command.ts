@@ -1,10 +1,10 @@
-import { IsMongoId, IsNotEmpty, IsString, IsUUID } from "class-validator";
+import { IsNotEmpty, IsUUID } from "class-validator";
 import { SendMessageCommand } from "./send-message.command";
 
 export class ReplyOnMessageCommand extends SendMessageCommand {
     @IsNotEmpty()
     @IsUUID()
-    readonly replyToMessageID: string; // parent message id 
+    readonly replyToMessageID: string;
 
     constructor(replyToMessageID: string, content: string, senderID: string, receiverID: string, chatID: string) {
         super(receiverID, senderID, chatID, content);

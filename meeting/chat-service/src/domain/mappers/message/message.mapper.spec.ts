@@ -1,8 +1,6 @@
 import { MessageMapper } from "./message.mapper";
-import { MessageDTO } from "../../dto/message.dto";
-import { Message, MessageDocument } from "../../models/message.model";
+import { MessageDocument } from "../../models/message.model";
 import { SendMessageCommand } from "../../commands/send-message.command";
-import { Document } from "mongoose";
 
 describe("MessageMapper", () => {
     let messageMapper: MessageMapper;
@@ -42,7 +40,6 @@ describe("MessageMapper", () => {
 
         it("should handle undefined reactions and answers gracefully", () => {
             const mockDoc = {
-                id: "1",
                 chatID: "chat123",
                 content: "Hello, world!",
                 sender: "user1",
@@ -79,4 +76,6 @@ describe("MessageMapper", () => {
             });
         });
     });
+
+
 });
