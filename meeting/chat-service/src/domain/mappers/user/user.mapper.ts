@@ -1,12 +1,12 @@
-import { UserDTO } from "../dto/user.dto";
-import { User } from "../models/user.model";
-import { IMapper } from "./mapper";
 import { Document } from "mongoose";
+import { UserDTO } from "src/domain/dto/user.dto";
+import { User } from "src/domain/models/user.model";
+import { IMapper } from "../mapper";
 
 export class UserMapper implements IMapper<UserDTO, User> {
     toDoc(dto: UserDTO): Partial<User> {
         return {
-            _id: dto.id,
+            id: dto.id,
             avatarURL: dto.avatarURL,
             firstName: dto.firstName,
             lastName: dto.lastName,
@@ -15,7 +15,7 @@ export class UserMapper implements IMapper<UserDTO, User> {
 
     toDto(doc: User & Document): UserDTO {
         return {
-            id: doc._id,
+            id: doc.id,
             avatarURL: doc.avatarURL,
             firstName: doc.firstName,
             lastName: doc.lastName,
