@@ -9,6 +9,7 @@ import { DATABASE_CONNECTION } from "../database.provider";
 import { MESSAGE_REPOSITORY } from "src/domain/repository/message.repository";
 import { CHAT_REPOSITORY } from "src/domain/repository/chat.repository";
 import { USER_REPOSITORY } from "src/domain/repository/user.repository";
+import { REACTION_MODEL, ReactionSchema } from "src/domain/models/reaction.model";
 
 export const repoProviders = [
     {
@@ -26,6 +27,12 @@ export const repoProviders = [
         provide: MESSAGE_MODEL,
         useFactory: (connection: Connection) =>
             connection.model('Message', MessageSchema),
+        inject: [DATABASE_CONNECTION],
+    },
+    {
+        provide: REACTION_MODEL,
+        useFactory: (connection: Connection) =>
+            connection.model('Reaction', ReactionSchema),
         inject: [DATABASE_CONNECTION],
     },
     {
