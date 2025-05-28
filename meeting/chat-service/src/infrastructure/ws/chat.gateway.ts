@@ -5,6 +5,11 @@ import { Server, Socket } from 'socket.io';
 import { ReactMessageOnCommand } from 'src/domain/commands/react-on-message.command';
 import { ReplyOnMessageCommand } from 'src/domain/commands/reply-on-message.command';
 import { SendMessageCommand } from 'src/domain/commands/send-message.command';
+import { UserTyping } from 'src/domain/ws-event/user-typing';
+
+class ErrorResponse {
+    constructor(public error: string, public details?: string) { }
+}
 
 @WebSocketGateway({
     cors: {
@@ -37,28 +42,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     @SubscribeMessage('sendMessage')
     async handleSendMessage(@MessageBody() data: SendMessageCommand): Promise<void> {
+        this.logger.log('Handling send command:', data);
 
         const command = new SendMessageCommand(data.receiverID, data.senderID, data.meetingID, data.content);
 
-        const result = await this.commandBus.execute(command);
+        try {
+            const result = await this.commandBus.execute(command);
+            this.server.to(data.meetingID).emit('message', result);
+        } catch (error) {
+            const err = new ErrorResponse('Failed to send message', error.message);
+            this.server.to(data.meetingID).emit('message', err);
+        }
 
-        this.server.to(data.meetingID).emit('message', result);
     }
 
     @SubscribeMessage('react')
     async handleReact(@MessageBody() data: ReactMessageOnCommand): Promise<void> {
-        // this.server.to(data.chatID).emit('message', result);
+        this.logger.log('Handling react command:', data);
+
+        const command = new ReactMessageOnCommand(data.messageID, data.userID, data.emoji, data.chatID);
+
+        try {
+            const result = await this.commandBus.execute(command);
+            this.server.to(data.chatID).emit('message', result);
+        } catch (error) {
+            const err = new ErrorResponse('Failed to react on message', error.message);
+            this.server.to(data.chatID).emit('message', err);
+        }
+
     }
 
     @SubscribeMessage('reply')
     async handleReply(@MessageBody() data: ReplyOnMessageCommand): Promise<void> {
-        // this.server.to(data.chatID).emit('message', result);
+        this.logger.log('Handling react command:', data);
+
+        const command = new ReplyOnMessageCommand(data.replyToMessageID, data.receiverID, data.senderID, data.meetingID, data.content);
+
+        try {
+            const result = await this.commandBus.execute(command);
+            this.server.to(data.meetingID).emit('message', result);
+        } catch (error) {
+            const err = new ErrorResponse('Failed to reply on message', error.message);
+            this.server.to(data.meetingID).emit('message', err);
+        }
     }
 
+    @SubscribeMessage('userTyping')
+    handleTyping(@MessageBody() data: UserTyping, client: Socket): void {
+        this.logger.debug(`User ${data.userID} is ${data.isTyping ? 'typing' : 'not typing'} in chat ${data.chatID}`);
 
-
-    // @SubscribeMessage('userTyping')
-    // async handleTyping(@MessageBody() data: any): Promise<void> {
-    //     this.server.to(data.chatID).emit('message', result);
-    // }
+        client.to(data.chatID).emit('userTyping', data);
+    }
 }
