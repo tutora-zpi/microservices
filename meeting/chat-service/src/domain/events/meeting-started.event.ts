@@ -1,8 +1,9 @@
 import { Type } from "class-transformer";
 import { IsUUID, IsNotEmpty, IsArray, ArrayMinSize, ValidateNested } from "class-validator";
 import { UserDTO } from "../dto/user.dto";
+import { IEvent } from "@nestjs/cqrs";
 
-export class MeetingStartedEvent {
+export class MeetingStartedEvent implements IEvent {
     @IsUUID()
     @IsNotEmpty()
     readonly meetingID: string;

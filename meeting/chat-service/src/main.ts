@@ -6,6 +6,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { MeetingStartedEvent } from './domain/events/meeting-started.event';
+import { getRmqOptions } from './config/rabbit.config';
 
 
 const appName = `${process.env.APP_NAME || "PROVIDE APP NAME"} - Chat Service`;
@@ -30,22 +31,13 @@ async function bootstrap() {
     }),
     cors: true,
   });
-  const configService = app.get(ConfigService);
 
   swag(app);
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [configService.get<string>('RABBITMQ_URL') || 'amqp://user:user@localhost:5672'],
-      queue: MeetingStartedEvent.name,
-      queueOptions: {
-        durable: true,
-      },
-      noAck: false,
-    },
-  });
+  app.connectMicroservice<MicroserviceOptions>(
+    getRmqOptions(app.get(ConfigService))
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
