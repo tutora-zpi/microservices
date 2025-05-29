@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, HttpCode, Inject, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, HttpCode, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
 import { IMeetingService } from "src/app/meeting.service.interface";
 import { EndMeetingDTO } from "src/domain/dto/end-meeting.dto";
 import { StartMeetingDTO } from "src/domain/dto/start-meeting.dto";
@@ -11,9 +12,11 @@ export class MeetingController {
     ) { }
 
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('start')
     @HttpCode(201)
     async startMeeting(@Body() meeting: StartMeetingDTO): Promise<void> {
+
         try {
             await this.meetingService.start(meeting);
         } catch (error) {
@@ -21,6 +24,7 @@ export class MeetingController {
         }
     }
 
+    @UseGuards(AuthGuard('jwt'))
     @Post('end')
     @HttpCode(200)
     async endMeeting(@Body() meeting: EndMeetingDTO): Promise<void> {

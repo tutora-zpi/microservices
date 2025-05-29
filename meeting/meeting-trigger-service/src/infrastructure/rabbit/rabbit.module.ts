@@ -1,7 +1,7 @@
+import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ClientsModule } from "@nestjs/microservices";
-import { Module } from "@nestjs/common";
-import { getRmqOptions } from "src/config /rabbit.config";
+import { getRmqOptions } from "src/config/rabbit.config";
 
 export const RABBITMQ_SERVICE = 'RABBITMQ_SERVICE';
 

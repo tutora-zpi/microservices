@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { MeetingController } from 'src/infrastrucutre/rest/meeting.controller';
+import { MeetingController } from 'src/infrastructure/rest/meeting.controller';
 import { MeetingService } from './meeting.service';
-import { RabbitModule } from 'src/infrastrucutre/rabbit/rabbit.module';
+import { RabbitModule } from 'src/infrastructure/rabbit/rabbit.module';
 
 @Module({
     imports: [

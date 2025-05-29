@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { StartMeetingDTO } from 'src/domain/dto/start-meeting.dto';
 import { EndMeetingDTO } from 'src/domain/dto/end-meeting.dto';
 import { FailedToPublishEvent } from 'src/domain/exceptions/publish-event-fail.exception';
-import { RABBITMQ_SERVICE } from 'src/infrastrucutre/rabbit/rabbit.module';
+import { RABBITMQ_SERVICE } from 'src/infrastructure/rabbit/rabbit.module';
 
 @Injectable()
 export class MeetingService implements IMeetingService {
