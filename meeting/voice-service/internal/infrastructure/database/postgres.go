@@ -3,59 +3,91 @@ package database
 import (
 	"fmt"
 	"log"
-	"voice-service/internal/domain/model"
+	"voice-service/internal/infrastructure/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-type PostgresConfig struct {
-	connstr string
-	retries int
-	options *gorm.Config
-}
-
 type Postgres interface {
-	Connect(config PostgresConfig) error
-	Migrate([]model.Model) error
+	Connect(config config.PostgresConfig) error
+
+	Migrate(models []any) error
+
 	Close() error
 }
 
-type PostgresDb struct {
+type postgresDatabaseImpl struct {
 	gorm *gorm.DB
 }
 
-// Close implements Postgres.
-func (p *PostgresDb) Close() error {
-	sqlDB, err := p.gorm.DB()
-	if err != nil {
-		log.Fatalln(err)
-
-		return fmt.Errorf("failed to get sql.DB: %w", err)
+func (p *postgresDatabaseImpl) Migrate(models []any) error {
+	if len(models) == 0 {
+		log.Println("No models provided for migration")
+		return nil
 	}
 
-	defer sqlDB.Close()
+	if err := p.gorm.AutoMigrate(models...); err != nil {
+		log.Printf("Failed to migrate models: %v", err)
+		return fmt.Errorf("failed to migrate models: %w", err)
+	}
 
+	log.Println("Models migrated successfully")
 	return nil
 }
 
-// Connect implements Postgres.
-func (p *PostgresDb) Connect(config PostgresConfig) error {
+func NewPostgres(cfg config.PostgresConfig) Postgres {
+	db := &postgresDatabaseImpl{}
+	if err := db.Connect(cfg); err != nil {
+		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
+		return nil
+	}
+	log.Println("PostgreSQL connection established")
+
+	models := []any{}
+
+	if err := db.Migrate(models); err != nil {
+		log.Fatalf("Failed to migrate models: %v", err)
+		return nil
+	}
+	log.Println("PostgreSQL models migrated successfully")
+
+	return db
+}
+
+func (p *postgresDatabaseImpl) Close() error {
+	sqlDB, err := p.gorm.DB()
+	if err != nil {
+		log.Printf("Failed to get sql.DB: %v", err)
+		return fmt.Errorf("failed to get sql.DB: %w", err)
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		log.Printf("Failed to close DB: %v", err)
+		return fmt.Errorf("failed to close DB: %w", err)
+	}
+
+	log.Println("Database connection closed")
+	return nil
+}
+
+func (p *postgresDatabaseImpl) Connect(config config.PostgresConfig) error {
 	var err error
 	var db *gorm.DB
 
-	for err != nil && config.retries > 0 {
-		log.Printf("Failed to connect to PostgreSQL, retries left: %d\n", config.retries)
-		config.retries--
-		db, err = gorm.Open(postgres.Open(config.connstr), config.options)
+	if config.Options == nil {
+		config.Options = &gorm.Config{}
 	}
 
-	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
-		return fmt.Errorf("failed to connect to PostgreSQL: %w", err)
+	for attempts := config.Retries; attempts > 0; attempts-- {
+		db, err = gorm.Open(postgres.Open(config.Connstr), config.Options)
+		if err == nil {
+			p.gorm = db
+			log.Println("Connected to PostgreSQL successfully")
+			return nil
+		}
+		log.Printf("Failed to connect to PostgreSQL, retries left: %d, error: %v\n", attempts-1, err)
 	}
 
-	p.gorm = db
-	log.Println("Connected to PostgreSQL successfully")
-	return nil
+	return fmt.Errorf("failed to connect to PostgreSQL after %d retries: %w", config.Retries, err)
 }
