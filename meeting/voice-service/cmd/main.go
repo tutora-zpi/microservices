@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-	"net/http"
 	"os"
 	"voice-service/internal/domain/model"
 	"voice-service/internal/infrastructure/config"
@@ -22,10 +20,10 @@ func init() {
 }
 
 func main() {
-	postgres := database.NewPostgres(database.NewPostgresConfig(os.Getenv(config.POSTGRES_URL), 4, nil, model.VoiceSession{}))
+	postgres := database.NewPostgres(config.NewPostgresConfig(os.Getenv(config.POSTGRES_URL), 4, nil, model.VoiceSession{}))
 	defer postgres.Close()
 
-	broker := messaging.NewRabbitBroker(messaging.NewRabbitConfig(os.Getenv(config.RABBITMQ_URL), "meeting", 4))
+	broker := messaging.NewRabbitBroker(config.NewRabbitConfig(os.Getenv(config.RABBITMQ_URL), "meeting", 4))
 	defer broker.Close()
 
 	gw := ws.NewGateway(os.Getenv(config.JWT_SECRET))
@@ -38,13 +36,12 @@ func main() {
 		Gateway:  gw,
 	}
 
-	rest.NewRouter(&incjectable)
+	router := rest.NewRouter(&incjectable)
+	server := rest.NewServer(router)
+
+	server.StartAndListen()
 
 	// to inject
 	// recorder := recorder.NewRecorder(nil)
 
-	http.HandleFunc("/ws", gw.Handle)
-
-	log.Println("Signaling server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
 }

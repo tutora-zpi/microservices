@@ -23,6 +23,10 @@ type Server struct {
 // It reads the port from APP_PORT and host name from APP_ENV environment variables.
 func NewServer(router *mux.Router) *Server {
 	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	host := os.Getenv("APP_ENV")
 	if host == "" {
 		host = "localhost"
@@ -70,7 +74,7 @@ func (apiServer *Server) GracefulShutdown(done chan bool) {
 // StartAndListen starts the HTTP server and listens for incoming requests.
 // If the server encounters a critical error (other than shutdown), it panics.
 func (apiServer *Server) StartAndListen() {
-	log.Printf("Server is listening on: http://%s%s", os.Getenv("APP_ENV"), apiServer.s.Addr)
+	log.Printf("Server is listening on: %s", apiServer.s.Addr)
 	err := apiServer.s.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		panic(fmt.Sprintf("HTTP server error: %s", err))

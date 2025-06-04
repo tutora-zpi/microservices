@@ -6,6 +6,7 @@ import (
 	"time"
 	"voice-service/internal/app/interfaces"
 	"voice-service/internal/domain/event"
+	"voice-service/internal/infrastructure/config"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -101,7 +102,7 @@ func (r *Rabbit) Publish(event event.EventWrapper) error {
 	panic("unimplemented")
 }
 
-func NewRabbitBroker(cfg RabbitConfig) interfaces.Broker {
+func NewRabbitBroker(cfg config.RabbitConfig) interfaces.Broker {
 
 	conn, ch, err := connect(cfg.Connstr, cfg.Retries)
 

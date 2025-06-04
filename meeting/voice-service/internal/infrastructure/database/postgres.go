@@ -3,13 +3,14 @@ package database
 import (
 	"fmt"
 	"log"
+	"voice-service/internal/infrastructure/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Postgres interface {
-	Connect(config PostgresConfig) error
+	Connect(config config.PostgresConfig) error
 
 	Migrate(models []any) error
 
@@ -46,7 +47,7 @@ func (p *postgresDatabaseImpl) Orm() *gorm.DB {
 	return p.gorm
 }
 
-func NewPostgres(cfg PostgresConfig) Postgres {
+func NewPostgres(cfg config.PostgresConfig) Postgres {
 	db := &postgresDatabaseImpl{}
 	if err := db.Connect(cfg); err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
@@ -54,9 +55,7 @@ func NewPostgres(cfg PostgresConfig) Postgres {
 	}
 	log.Println("PostgreSQL connection established")
 
-	models := []any{}
-
-	if err := db.Migrate(models); err != nil {
+	if err := db.Migrate(cfg.ModelsToMigrate); err != nil {
 		log.Fatalf("Failed to migrate models: %v", err)
 		return nil
 	}
@@ -81,7 +80,7 @@ func (p *postgresDatabaseImpl) Close() error {
 	return nil
 }
 
-func (p *postgresDatabaseImpl) Connect(config PostgresConfig) error {
+func (p *postgresDatabaseImpl) Connect(config config.PostgresConfig) error {
 	var err error
 	var db *gorm.DB
 
@@ -100,31 +99,4 @@ func (p *postgresDatabaseImpl) Connect(config PostgresConfig) error {
 	}
 
 	return fmt.Errorf("failed to connect to PostgreSQL after %d retries: %w", config.Retries, err)
-}
-
-type PostgresConfig struct {
-	// Connection string to PostgreSQL server
-	Connstr string
-
-	// How many times to retry connection
-	Retries int
-
-	// Models to migrate
-	ModelsToMigrate []any
-
-	// Optional GORM configuration
-	Options *gorm.Config
-}
-
-func NewPostgresConfig(connstr string, retries int, options *gorm.Config, models ...any) PostgresConfig {
-	if connstr == "" {
-		panic("Postgres connection string cannot be empty")
-	}
-
-	return PostgresConfig{
-		Connstr:         connstr,
-		Retries:         retries,
-		Options:         options,
-		ModelsToMigrate: models,
-	}
 }

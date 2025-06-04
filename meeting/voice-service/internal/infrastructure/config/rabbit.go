@@ -1,4 +1,4 @@
-package messaging
+package config
 
 type RabbitConfig struct {
 	// Connection string to RabbitMQ server
