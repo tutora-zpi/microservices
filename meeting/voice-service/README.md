@@ -1,20 +1,23 @@
-jak bedzie wygladac rozmo (bez uwzględnienia czatu i canvy)
+web rtc jest i tak na froncie a ten server jest sygnalizatorem i tworzy pokoje itp
 
-**bez nauczyciela** nie ma meetingu 
+dodanie token jwt do eventow po stronie ws zeby dekodowac
 
-poloczenie - entrypoint do komunikacji glosowej 
+flow meetingu 
 
-// reprezentacja tego co "wchodzi"
+1. nauczyciel klika start meeting (wyoknuje requesta do triggera on tworzy event), sam nauczyciel bedzie przekierwoany na pod strone czy cos gdzie bedzie mial juz podpiete websockety 3 serwisow, czyli ten evnet po prostu powoduje jakies inicjancje tabel czy cos dla userow 
 
-1. scheduler
-rozmo moze sie otwierac wtedy kiedy zostalo zaplanowane -> prosty scheduler (schedule service) puszcza event, ze mozna otworzyc pokój
+ten trigger zwraca id meetingu i ono jest uzywane zeby zarejstrowac sie w odpowienim pokoju 
 
-2. reczne otwardzie poloczenia przez nauczyciela
-nauczyciel klika trigger czy cos co otworzy poloczenie, system przenosi go do innego widoku
+2. 
 
-3. *uczen requestuje meeting to sie wiąze z wyslaniem powiadomienia nauczycielowi np. w formie mail'a bo moze nie byc na kompie (w sensie przegladarki, jesli mielibysmy aplikacje to wtedy apka moze obsluzyc powiadomienie, ale nie wiem jak to dziala jeszcze) to powiadomienie to "{uczen} requests a meeting"
+---
+
+1. bot nagrywa cala `rozmo`
+2. wrzuca plik na s3 i dostaje url , narazie bedziemy przechowywac tutaj 
+3. tworzy event gdzie podaje url do pliku 
+
+4. event jest odbierany przez note service i magic
 
 
 
-
-
+https://www.youtube.com/watch?v=GzzTlnssP2E

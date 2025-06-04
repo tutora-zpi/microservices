@@ -5,8 +5,7 @@ type EventWrapper struct {
 	Data    Event  `json:"data"`
 }
 
-type Event interface {
-}
+type Event any
 
 func NewEventWrapper(pattern string, event Event) EventWrapper {
 	return EventWrapper{

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, HttpCode, Inject, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, HttpCode, Inject, Post, Put, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { IMeetingService } from "src/app/meeting.service.interface";
 import { EndMeetingDTO } from "src/domain/dto/end-meeting.dto";
@@ -15,17 +15,20 @@ export class MeetingController {
     @UseGuards(AuthGuard('jwt'))
     @Post('start')
     @HttpCode(201)
-    async startMeeting(@Body() meeting: StartMeetingDTO): Promise<void> {
+    async startMeeting(@Body() meeting: StartMeetingDTO): Promise<string> {
 
         try {
-            await this.meetingService.start(meeting);
+            const id = await this.meetingService.start(meeting);
+
+            return id;
         } catch (error) {
             throw new BadRequestException(`Failed to start meeting: ${error.message}`);
         }
     }
 
+    // maybe change it end/meetingID, we might not need enitre dto  
     @UseGuards(AuthGuard('jwt'))
-    @Post('end')
+    @Put('end')
     @HttpCode(200)
     async endMeeting(@Body() meeting: EndMeetingDTO): Promise<void> {
         try {

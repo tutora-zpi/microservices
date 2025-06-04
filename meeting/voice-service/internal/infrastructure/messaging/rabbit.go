@@ -1,10 +1,11 @@
 package messaging
 
 import (
+	"bytes"
 	"log"
+	"time"
 	"voice-service/internal/app/interfaces"
 	"voice-service/internal/domain/event"
-	"voice-service/internal/infrastructure/config"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -60,7 +61,39 @@ func (r *Rabbit) Close() {
 
 // ConsumeEvent implements Broker.
 func (r *Rabbit) Consume(event.EventWrapper) error {
-	panic("unimplemented")
+	msgs, err := r.channel.Consume(
+		r.queueName, // queue
+		"",          // consumer
+		true,        // auto-ack
+		false,       // exclusive
+		false,       // no-local
+		false,       // no-wait
+		nil,         // args
+	)
+
+	if err != nil {
+		log.Println("Failed to register a consumer:", err)
+		return err
+	}
+
+	forever := make(chan struct{})
+
+	go preprocess(msgs)
+
+	log.Printf(" [*] Camping on %s for messages.", r.queueName)
+	<-forever
+
+	return nil
+}
+
+func preprocess(messages <-chan amqp.Delivery) {
+	for d := range messages {
+		log.Printf("Received a message: %s", d.Body)
+		dotCount := bytes.Count(d.Body, []byte("."))
+		t := time.Duration(dotCount)
+		time.Sleep(t * time.Second)
+		log.Printf("Done")
+	}
 }
 
 // Publish implements Broker.
@@ -68,7 +101,7 @@ func (r *Rabbit) Publish(event event.EventWrapper) error {
 	panic("unimplemented")
 }
 
-func NewRabbitBroker(cfg config.RabbitConfig) interfaces.Broker {
+func NewRabbitBroker(cfg RabbitConfig) interfaces.Broker {
 
 	conn, ch, err := connect(cfg.Connstr, cfg.Retries)
 

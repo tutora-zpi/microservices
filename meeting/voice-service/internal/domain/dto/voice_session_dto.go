@@ -8,3 +8,7 @@ type VoiceSessionDTO struct {
 	MemberIDs []string `json:"memberIDs"`
 	AudioURL  *string  `json:"audioURL,omitempty"`
 }
+
+func (v *VoiceSessionDTO) IsFinished() bool {
+	return v.EndedAt != nil
+}

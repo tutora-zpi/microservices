@@ -17,13 +17,17 @@ export class MeetingService implements IMeetingService {
         @Inject(RABBITMQ_SERVICE) private readonly client: ClientProxy,
     ) { }
 
-    async start(dto: StartMeetingDTO): Promise<void> {
+    async start(dto: StartMeetingDTO): Promise<string> {
         try {
+            const event = new MeetingStartedEvent(dto);
+
             await firstValueFrom(this.client.emit<MeetingStartedEvent>(
                 MeetingStartedEvent.name,
-                new MeetingStartedEvent(dto),
+                event,
             ));
             this.logger.log('MeetingStartedEvent sent');
+
+            return event.meetingID;
         } catch (err) {
             this.logger.error('Failed to emit MeetingStartedEvent', err);
             throw new FailedToPublishEvent("Failed to publish MeetingStartedEvent");

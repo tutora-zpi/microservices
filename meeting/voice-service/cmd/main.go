@@ -8,6 +8,8 @@ import (
 	"voice-service/internal/infrastructure/config"
 	"voice-service/internal/infrastructure/database"
 	"voice-service/internal/infrastructure/messaging"
+	repoimpl "voice-service/internal/infrastructure/repo-impl"
+	"voice-service/internal/infrastructure/rest"
 	"voice-service/internal/infrastructure/ws"
 
 	"github.com/joho/godotenv"
@@ -20,18 +22,28 @@ func init() {
 }
 
 func main() {
-	postgres := database.NewPostgres(config.NewPostgresConfig(os.Getenv("POSTGRES_URL"), 4, nil, model.VoiceSession{}))
+	postgres := database.NewPostgres(database.NewPostgresConfig(os.Getenv(config.POSTGRES_URL), 4, nil, model.VoiceSession{}))
 	defer postgres.Close()
 
-	broker := messaging.NewRabbitBroker(config.NewRabbitConfig(os.Getenv("RABBITMQ_URL"), "meeting", 4))
+	broker := messaging.NewRabbitBroker(messaging.NewRabbitConfig(os.Getenv(config.RABBITMQ_URL), "meeting", 4))
 	defer broker.Close()
 
-	gw := ws.NewGateway()
+	gw := ws.NewGateway(os.Getenv(config.JWT_SECRET))
+	repo := repoimpl.NewVoiceMeetingRepository(postgres)
+
+	incjectable := config.Incjectable{
+		Broker:   broker,
+		Recorder: nil,
+		Repo:     repo,
+		Gateway:  gw,
+	}
+
+	rest.NewRouter(&incjectable)
 
 	// to inject
 	// recorder := recorder.NewRecorder(nil)
 
-	http.HandleFunc("/ws", gw.HandleWS)
+	http.HandleFunc("/ws", gw.Handle)
 
 	log.Println("Signaling server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -6,5 +6,5 @@ type Broker interface {
 	Close()
 
 	Publish(event event.EventWrapper) error
-	Consume(event.EventWrapper) error
+	Consume(event event.EventWrapper) error
 }
