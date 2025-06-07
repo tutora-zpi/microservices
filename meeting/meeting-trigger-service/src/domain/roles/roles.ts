@@ -1,3 +1,0 @@
-enum Role {
-    TEACHER, STUDENT
-}

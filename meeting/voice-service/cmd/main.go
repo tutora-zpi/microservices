@@ -29,14 +29,14 @@ func main() {
 	gw := ws.NewGateway(os.Getenv(config.JWT_SECRET))
 	repo := repoimpl.NewVoiceMeetingRepository(postgres)
 
-	incjectable := config.Incjectable{
+	incjectable := &config.Incjectable{
 		Broker:   broker,
 		Recorder: nil,
 		Repo:     repo,
 		Gateway:  gw,
 	}
 
-	router := rest.NewRouter(&incjectable)
+	router := rest.NewRouter(incjectable)
 	server := rest.NewServer(router)
 
 	server.StartAndListen()
