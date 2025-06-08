@@ -1,21 +1,17 @@
 package messaging
 
 import (
-	"bytes"
+	"context"
+	"fmt"
 	"log"
-	"time"
+	"sync"
+
 	"voice-service/internal/app/interfaces"
 	"voice-service/internal/domain/event"
 	"voice-service/internal/infrastructure/config"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
-
-type Rabbit struct {
-	connection *amqp.Connection
-	channel    *amqp.Channel
-	queueName  string
-}
 
 func connect(connstr string, retries int) (*amqp.Connection, *amqp.Channel, error) {
 	var err error
@@ -24,16 +20,14 @@ func connect(connstr string, retries int) (*amqp.Connection, *amqp.Channel, erro
 
 	for attempts := retries; attempts > 0; attempts-- {
 		conn, err = amqp.Dial(connstr)
-
 		if err != nil {
-			log.Printf("Failed to connect to RabbitMQ: %v. Retrying (%d/%d)...", err, retries-attempts+1, retries)
+			log.Printf("Failed to connect: %v. Retrying (%d/%d)...", err, retries-attempts+1, retries)
 			continue
 		}
 
 		ch, err = conn.Channel()
-
 		if err != nil {
-			log.Printf("Failed to open a channel: %v. Retrying (%d/%d)...", err, retries-attempts+1, retries)
+			log.Printf("Failed to open channel: %v. Retrying (%d/%d)...", err, retries-attempts+1, retries)
 			conn.Close()
 			continue
 		}
@@ -46,73 +40,161 @@ func connect(connstr string, retries int) (*amqp.Connection, *amqp.Channel, erro
 	}
 
 	return conn, ch, nil
-
 }
 
-// Close implements Broker.
-func (r *Rabbit) Close() {
+type RabbitMQBroker struct {
+	connection *amqp.Connection
+	channel    *amqp.Channel
+	mu         sync.Mutex
+}
+
+func (r *RabbitMQBroker) Close() {
 	if err := r.channel.Close(); err != nil {
-		log.Println("Failed to close channel")
+		log.Println("Failed to close channel:", err)
 	}
-
 	if err := r.connection.Close(); err != nil {
-		log.Println("Failed to close connection")
+		log.Println("Failed to close connection:", err)
 	}
 }
 
-// ConsumeEvent implements Broker.
-func (r *Rabbit) Consume(event.EventWrapper) error {
-	msgs, err := r.channel.Consume(
-		r.queueName, // queue
-		"",          // consumer
-		true,        // auto-ack
-		false,       // exclusive
-		false,       // no-local
-		false,       // no-wait
-		nil,         // args
-	)
-
+func (r *RabbitMQBroker) Publish(event event.EventWrapper, opts config.PublishOptions) error {
+	r.mu.Lock()
+	ch, err := r.connection.Channel()
+	r.mu.Unlock()
 	if err != nil {
-		log.Println("Failed to register a consumer:", err)
-		return err
+		return fmt.Errorf("failed to open channel: %w", err)
+	}
+	defer ch.Close()
+
+	err = ch.ExchangeDeclare(
+		opts.ExchangeName,
+		opts.ExchangeType,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare exchange: %w", err)
 	}
 
-	forever := make(chan struct{})
+	body, err := event.ToJson()
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
 
-	go preprocess(msgs)
-
-	log.Printf(" [*] Camping on %s for messages.", r.queueName)
-	<-forever
+	err = ch.Publish(
+		opts.ExchangeName,
+		opts.RoutingKey,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
 
 	return nil
 }
 
-func preprocess(messages <-chan amqp.Delivery) {
-	for d := range messages {
-		log.Printf("Received a message: %s", d.Body)
-		dotCount := bytes.Count(d.Body, []byte("."))
-		t := time.Duration(dotCount)
-		time.Sleep(t * time.Second)
-		log.Printf("Done")
+func (r *RabbitMQBroker) Consume(ctx context.Context, options config.ConsumeOptions, dispacher interfaces.Dispatcher) error {
+	r.mu.Lock()
+	ch, err := r.connection.Channel()
+	r.mu.Unlock()
+	if err != nil {
+		return fmt.Errorf("failed to open channel: %w", err)
 	}
+	defer ch.Close()
+
+	if options.ExchangeName != "" {
+		err = ch.ExchangeDeclare(
+			options.ExchangeName,
+			options.ExchangeType,
+			true,
+			false,
+			false,
+			false,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to declare exchange: %w", err)
+		}
+	}
+
+	q, err := ch.QueueDeclare(
+		options.QueueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	if options.ExchangeName != "" {
+		err = ch.QueueBind(
+			q.Name,
+			options.RoutingKey,
+			options.ExchangeName,
+			false,
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to bind queue: %w", err)
+		}
+	}
+
+	msgs, err := ch.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register consumer: %w", err)
+	}
+
+	go preprocess(ctx, msgs, dispacher.Dispatch)
+
+	return nil
 }
 
-// Publish implements Broker.
-func (r *Rabbit) Publish(event event.EventWrapper) error {
-	panic("unimplemented")
+func preprocess(ctx context.Context, msgs <-chan amqp.Delivery, executor func(string, []byte) error) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Consumer shutting down via context")
+			return
+		case msg, ok := <-msgs:
+			if !ok {
+				return
+			}
+
+			pattern := msg.RoutingKey
+
+			if err := executor(pattern, msg.Body); err != nil {
+				log.Printf("Handler error for pattern '%s': %v", pattern, err)
+			}
+		}
+	}
 }
 
 func NewRabbitBroker(cfg config.RabbitConfig) interfaces.Broker {
-
 	conn, ch, err := connect(cfg.Connstr, cfg.Retries)
-
 	if err != nil {
-		panic("Failed to connect to RabbitMQ, check your config or RabbitMQ")
+		log.Fatalf("Failed to connect: %v", err)
 	}
-
-	return &Rabbit{
+	return &RabbitMQBroker{
 		connection: conn,
 		channel:    ch,
-		queueName:  cfg.Queue,
 	}
 }

@@ -21,3 +21,5 @@ ten trigger zwraca id meetingu i ono jest uzywane zeby zarejstrowac sie w odpowi
 
 
 https://www.youtube.com/watch?v=GzzTlnssP2E
+
+

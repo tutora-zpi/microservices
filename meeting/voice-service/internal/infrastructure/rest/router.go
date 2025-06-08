@@ -1,17 +1,24 @@
 package rest
 
 import (
-	"voice-service/internal/infrastructure/config"
+	"net/http"
+	"voice-service/internal/infrastructure/handlers"
+	"voice-service/internal/infrastructure/ws"
 
 	"github.com/gorilla/mux"
 )
 
-func NewRouter(i *config.Incjectable) *mux.Router {
-	router := &mux.Router{}
+func NewRouter(gateway ws.Gateway) *mux.Router {
+	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
 
-	router.HandleFunc("/ws", i.Gateway.Handle)
+	// swagger
 
-	// router.HandleFunc("/health")
+	router.HandleFunc("/ws", gateway.Handle)
+
+	api := router.PathPrefix("/api/v1/").Subrouter()
+
+	api.HandleFunc("/health", handlers.HandleHealth)
 
 	return router
 }

@@ -28,10 +28,10 @@ func (w *LocalWriter) Write(packet *rtp.Packet) error {
 	return w.ow.WriteRTP(packet)
 }
 
-func NewLocalWriter(filename string, track *webrtc.TrackRemote) (Writer, error) {
+func NewLocalWriter(track *webrtc.TrackRemote, meetingID string) (Writer, error) {
 	codec := track.Codec()
 
-	path := generateNewPath(filename)
+	path := generateNewPath(meetingID)
 
 	ow, err := oggwriter.New(path, codec.ClockRate, codec.Channels)
 	if err != nil {
@@ -45,8 +45,8 @@ func (w *LocalWriter) GetPath() string {
 	return w.path
 }
 
-// fc051836-45a0-4acf-bdbf-82f57220a3db-3485398456798346.ogg
 // Generates new path for voice recording files if the structure does not exists creates it.
+// Please provide meeting id as a filename
 func generateNewPath(filename string) string {
 	src := path.Join("voice", "recordings")
 
@@ -54,7 +54,7 @@ func generateNewPath(filename string) string {
 		creatDirs(src)
 	}
 
-	name := fmt.Sprintf("%s-%d.ogg", filename, time.Now().UnixNano()/int64(time.Millisecond))
+	name := fmt.Sprintf("%s_%d.ogg", filename, time.Now().UnixNano()/int64(time.Millisecond))
 	return path.Join(src, name)
 }
 

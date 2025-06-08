@@ -13,6 +13,8 @@ import (
 
 func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
+
 	router.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 
 	api := router.PathPrefix("/api/v1/meeting").Subrouter()

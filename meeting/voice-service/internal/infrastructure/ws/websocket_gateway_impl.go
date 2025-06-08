@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"sync"
+	"voice-service/internal/app/interfaces"
+	"voice-service/internal/domain/dto"
 	"voice-service/internal/infrastructure/security"
 
 	"github.com/gorilla/websocket"
 )
 
-// Query string ws://host:port/ws?token=...&room_id=...
 type InitMessage struct {
 	Token  string `json:"token"`
 	RoomID string `json:"room_id"`
@@ -26,15 +26,18 @@ type gatewayImpl struct {
 	mutex sync.Mutex
 
 	jwtSecretKey []byte
+
+	dispatcher interfaces.Dispatcher
 }
 
-func NewGateway(secret string) Gateway {
+func NewGateway(secret string, dispatcher interfaces.Dispatcher) Gateway {
 	return &gatewayImpl{
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		},
 		rooms:        make(map[string]map[string]Client),
 		jwtSecretKey: []byte(secret),
+		dispatcher:   dispatcher,
 	}
 }
 
@@ -93,18 +96,15 @@ func (g *gatewayImpl) readPump(client Client) {
 			break
 		}
 
-		to := extractTargetClientID(msg)
-
-		g.mutex.Lock()
-		targetRoom, ok := g.rooms[client.Room()]
-		targetClient, found := targetRoom[to]
-		g.mutex.Unlock()
-
-		if ok && found {
-			targetClient.Send(msg)
-		} else {
-			log.Printf("Target client %s not found in room %s", to, client.Room())
+		action, err := getActionFromMsg(msg)
+		if err != nil {
+			log.Println("Failed to get action")
 		}
+
+		if err := g.dispatcher.Dispatch(action, msg); err != nil {
+			log.Printf("Dispatch error [%s]: %v", action, err)
+		}
+
 	}
 }
 
@@ -149,12 +149,12 @@ func (g *gatewayImpl) disconnect(client Client) {
 	}
 }
 
-func extractTargetClientID(msg []byte) string {
-	type message struct {
-		To string `json:"to"`
-	}
+func getActionFromMsg(msg []byte) (string, error) {
 
-	var m message
-	_ = json.Unmarshal(msg, &m)
-	return strings.TrimSpace(m.To)
+	var m dto.WsMessageDTO
+	err := json.Unmarshal(msg, &m)
+	if err != nil {
+		return "", err
+	}
+	return m.Action, nil
 }

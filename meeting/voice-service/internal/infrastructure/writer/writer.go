@@ -2,6 +2,7 @@ package writer
 
 import (
 	"github.com/pion/rtp"
+	"github.com/pion/webrtc/v3"
 )
 
 type Writer interface {
@@ -13,3 +14,5 @@ type Writer interface {
 
 	GetPath() string
 }
+
+type WriterFactory func(track *webrtc.TrackRemote, meetingID string) (Writer, error)
