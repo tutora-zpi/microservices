@@ -1,6 +1,7 @@
 package org.example.userservice.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,11 +12,15 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(
-        name = "users"
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"provider", "providerId"})
+        }
 )
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     @Id
@@ -23,11 +28,17 @@ public class User {
     private Long id;
 
     @Column(nullable = false)
+    private String provider;
+
+    @Column(nullable = false)
+    private String providerId;
+
+    @Column(nullable = false)
     private String email;
 
     @ManyToMany
     @JoinTable(
-            name = "user_roles",
+            name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"),
             uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"})
