@@ -1,13 +1,13 @@
 package org.example.userservice.config;
 
-import org.example.userservice.security.RsaKeyProperties;
-import org.example.userservice.security.RsaKeyPaths;
+import org.example.userservice.security.key.RsaKeyProperties;
+import org.example.userservice.security.key.RsaKeyPaths;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -21,16 +21,22 @@ public class RsaKeysConfig {
 
     @Bean
     public RsaKeyProperties rsaKeyProperties(RsaKeyPaths rsaKeyPaths) throws Exception {
-        var publicKeyBytes = Files.readAllBytes(Paths.get(ClassLoader.getSystemResource(rsaKeyPaths.publicKeyPath().replace("classpath:", "")).toURI()));
-        var privateKeyBytes = Files.readAllBytes(Paths.get(ClassLoader.getSystemResource(rsaKeyPaths.privateKeyPath().replace("classpath:", "")).toURI()));
+        Resource privateKeyResource = new ClassPathResource(rsaKeyPaths.privateKeyPath().replace("classpath:", ""));
+        Resource publicKeyResource = new ClassPathResource(rsaKeyPaths.publicKeyPath().replace("classpath:", ""));
 
-        var publicKeySpec = new X509EncodedKeySpec(stripHeadersAndDecode(new String(publicKeyBytes)));
-        var privateKeySpec = new PKCS8EncodedKeySpec(stripHeadersAndDecode(new String(privateKeyBytes)));
+        byte[] privateKeyBytes = privateKeyResource.getInputStream().readAllBytes();
+        byte[] publicKeyBytes = publicKeyResource.getInputStream().readAllBytes();
+
+        String privateKeyPem = new String(privateKeyBytes);
+        String publicKeyPem = new String(publicKeyBytes);
 
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 
-        RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(stripHeadersAndDecode(privateKeyPem));
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(stripHeadersAndDecode(publicKeyPem));
+
         RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privateKeySpec);
+        RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
 
         return new RsaKeyProperties(publicKey, privateKey);
     }

@@ -1,4 +1,4 @@
-package org.example.userservice.security;
+package org.example.userservice.security.key;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;

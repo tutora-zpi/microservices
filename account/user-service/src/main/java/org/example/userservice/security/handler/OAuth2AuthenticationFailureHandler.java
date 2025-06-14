@@ -1,4 +1,4 @@
-package org.example.userservice.security;
+package org.example.userservice.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

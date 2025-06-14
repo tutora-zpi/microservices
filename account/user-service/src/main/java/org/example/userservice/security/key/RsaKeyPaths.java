@@ -1,4 +1,4 @@
-package org.example.userservice.security;
+package org.example.userservice.security.key;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

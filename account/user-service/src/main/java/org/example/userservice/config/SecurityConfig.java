@@ -1,10 +1,11 @@
 package org.example.userservice.config;
 
 import lombok.RequiredArgsConstructor;
-import org.example.userservice.security.CustomOAuth2UserService;
-import org.example.userservice.security.JwtAuthenticationFilter;
-import org.example.userservice.security.OAuth2AuthenticationFailureHandler;
-import org.example.userservice.security.OAuth2AuthenticationSuccessHandler;
+import org.example.userservice.security.handler.OAuth2AuthenticationFailureHandler;
+import org.example.userservice.security.handler.OAuth2AuthenticationSuccessHandler;
+import org.example.userservice.security.jwt.JwtAuthenticationFilter;
+import org.example.userservice.security.service.CustomOAuth2UserService;
+import org.example.userservice.security.service.CustomOidcUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
@@ -44,7 +46,10 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth.baseUri("/oauth2/authorization"))
                         .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code/*"))
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)
+                                .oidcUserService(customOidcUserService)
+                        )
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
