@@ -117,3 +117,15 @@ docker-compose up --build
 | `GET` | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. Wymaga nagłówka `Authorization: Bearer <JWT>`. | Chroniony |
 
 ---
+
+Przykładowy response dla /auth/me
+
+```
+{
+    "id": 1,
+    "email": "igopood33@gmail.com",
+    "roles": [
+        "USER"
+    ]
+}
+```
