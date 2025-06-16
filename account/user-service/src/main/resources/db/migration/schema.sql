@@ -2,7 +2,7 @@
 --changeset igor:1-create-schema
 
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     provider VARCHAR(20) NOT NULL,
     provider_id VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL
@@ -17,7 +17,7 @@ CREATE TABLE roles (
 );
 
 CREATE TABLE users_roles (
-    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role_id BIGINT REFERENCES roles(id),
     PRIMARY KEY (user_id, role_id)
 );

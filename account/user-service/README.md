@@ -117,3 +117,34 @@ docker-compose up --build
 | `GET` | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. Wymaga nagłówka `Authorization: Bearer <JWT>`. | Chroniony |
 
 ---
+
+## Przykładowy response dla /auth/me
+
+```
+{
+    "id": "b7542757-3b91-4fd0-8e59-473a341f1a3b",
+    "email": "igopood33@gmail.com",
+    "roles": [
+        "USER"
+    ]
+}
+```
+
+## Przykładowy response dla /.well-known/jwks.json
+
+```
+{
+    "keys": [
+        {
+            "kty": "RSA",
+            "e": "AQAB",
+            "kid": "rsa-key-1",
+            "n": "hRYrhO4ERL4UUdIEYygve2eamUWI10VNMdCcKvjTJ2-ByLKaoE60EEIcNN1cI79821Qu8gJyiHXcJmYpndHdQXQiXhNHl6HrRDdupEf-tUINkMcFiCAX2tDmMzcxR3D6c8zKf04VbdDtRILoZC51d32vMhKnOT8guahKqBaFIaWcRMukDZfkWjWgWZuy1ITLd4cpCLTfbmZXflOoYNVAZBBlYxbFKcSR4DKxsntJZMS38TDP-tzUKJyy8ksqaEKtaD1-_SswewrWTjd4R5AimPwrtY57ANgtD8vWiTMw_KY66NZoB_Feqtpn2wy-Rhc5KLYRBgi4x4CR-M2g72CchQ"
+        }
+    ]
+}
+```
+Opis pól:
+- kty (Key Type): Typ algorytmu kryptograficznego. Najczęściej będzie to "RSA".
+- kid (Key ID): NAJWAŻNIEJSZE POLE. Jest to unikalny identyfikator klucza. Każdy token JWT, który podpisujemy, ma w swoim nagłówku (header) pole kid, które odpowiada jednemu z kluczy na tej liście.
+- e (Exponent) i n (Modulus): Te dwa pola razem tworzą klucz publiczny RSA. Twoja biblioteka do obsługi JWT użyje ich do zbudowania klucza publicznego potrzebnego do weryfikacji.

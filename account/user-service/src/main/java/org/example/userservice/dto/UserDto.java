@@ -1,9 +1,10 @@
 package org.example.userservice.dto;
 
 import java.util.Set;
+import java.util.UUID;
 
 public record UserDto(
-        Long id,
+        UUID id,
         String email,
         Set<String> roles
 ) {}

@@ -12,13 +12,14 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Getter
 public class CustomUserDetails implements OidcUser, UserDetails {
 
     // Dane z naszej bazy danych
-    private final Long id;
+    private final UUID id;
     private final String email;
     private final Collection<? extends GrantedAuthority> authorities;
 
