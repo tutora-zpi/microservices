@@ -36,6 +36,8 @@ public class JwtTokenProvider {
                 .collect(Collectors.joining(","));
 
         return Jwts.builder()
+                .header().add("kid", "rsa-key-1")
+                .and()
                 .subject(userPrincipal.getId().toString())
                 .claim("email", userPrincipal.getUsername())
                 .claim("roles", roles)
