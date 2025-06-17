@@ -21,7 +21,6 @@ func init() {
 	}
 
 	security.FetchSignKey()
-
 }
 
 func main() {

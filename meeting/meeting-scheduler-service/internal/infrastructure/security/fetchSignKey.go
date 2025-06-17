@@ -24,6 +24,7 @@ func FetchSignKey() {
 		},
 		RefreshUnknownKID: true,
 	})
+
 	if err != nil {
 		log.Fatalf("Failed to get JWKS from %s: %v", jwksURL, err)
 	}

@@ -45,8 +45,6 @@ Otwórz terminal w głównym katalogu projektu i wykonaj poniższe komendy. Stwo
 ```bash
 mkdir -p src/main/resources/keys
 
-cd src/main/resources/keys
-
 # Generowanie klucza prywatnego
 openssl genpkey -algorithm RSA -out src/main/resources/keys/private_key.pem -pkeyopt rsa_keygen_bits:2048
 
