@@ -7,11 +7,12 @@ import { SendMessageHandler } from 'src/app/commands/send-message.command.handle
 import { DatabaseModule } from '../database/database.module';
 import { ReactMessageOnCommand } from 'src/domain/commands/react-on-message.command';
 import { ReplyOnMessageCommand } from 'src/domain/commands/reply-on-message.command';
+import { SecurityModule } from '../security/security.module';
 
 const handlers = [SendMessageHandler, ReplyOnMessageCommand, ReactMessageOnCommand,];
 
 @Module({
-    imports: [CqrsModule, DatabaseModule],
+    imports: [CqrsModule, DatabaseModule, SecurityModule],
     providers: [
         ChatGateway,
         ...handlers,

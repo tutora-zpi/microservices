@@ -1,9 +1,10 @@
-import { Controller, Get, HttpCode, Logger, NotFoundException, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, HttpCode, Logger, NotFoundException, Param, BadRequestException, UseGuards } from '@nestjs/common';
 import { IQuery, QueryBus } from '@nestjs/cqrs';
 import { ChatDTO } from 'src/domain/dto/chat.dto';
 import { GetChatQuery } from 'src/domain/queries/get-chat.query';
+import { AuthGuard } from 'src/infrastructure/security/guards/auth.guard';
 
-@Controller('chats')
+@Controller('api/v1/chats')
 export class ChatController {
     private readonly logger: Logger = new Logger(ChatController.name);
 
@@ -11,6 +12,7 @@ export class ChatController {
         private readonly queryBus: QueryBus<IQuery>,
     ) { }
 
+    @UseGuards(AuthGuard)
     @Get(':id')
     @HttpCode(200)
     async findOne(@Param('id') id: string): Promise<ChatDTO> {
