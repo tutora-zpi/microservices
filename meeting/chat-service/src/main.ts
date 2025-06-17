@@ -1,27 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { ConsoleLogger, INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ConsoleLogger,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { getRmqOptions } from './infrastructure/config/rabbit.config';
 
-
-const appName = `${process.env.APP_NAME || "PROVIDE APP NAME"} - Chat Service`;
-
+const appName = `${process.env.APP_NAME || 'PROVIDE APP NAME'} - Chat Service`;
 
 function swag(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle(appName)
-    .setDescription('Description for service with all endpoints and sockets evnets.')
+    .setDescription(
+      'Description for service with all endpoints and sockets evnets.',
+    )
     .setVersion('1.0')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, documentFactory);
 }
-
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -35,7 +38,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   app.connectMicroservice<MicroserviceOptions>(
-    getRmqOptions(app.get(ConfigService))
+    getRmqOptions(app.get(ConfigService)),
   );
 
   app.useGlobalPipes(
