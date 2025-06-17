@@ -1,20 +1,27 @@
 package main
 
 import (
+	"log"
 	"meeting-scheduler-service/internal/app/usecase"
 	"meeting-scheduler-service/internal/infrastructure/config"
 	"meeting-scheduler-service/internal/infrastructure/handlers"
 	"meeting-scheduler-service/internal/infrastructure/messaging"
 	"meeting-scheduler-service/internal/infrastructure/rest"
+	"meeting-scheduler-service/internal/infrastructure/security"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		panic("Error loading .env file")
+	if os.Getenv(config.APP_ENV) != "docker" {
+		if err := godotenv.Load(); err != nil {
+			log.Panicln(".env file not found")
+		}
 	}
+
+	security.FetchSignKey()
+
 }
 
 func main() {

@@ -6,6 +6,7 @@ import (
 	"meeting-scheduler-service/internal/app/interfaces"
 	"meeting-scheduler-service/internal/domain/event"
 	"meeting-scheduler-service/internal/infrastructure/config"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -27,6 +28,7 @@ func connect(connstr string, retries int) (*amqp.Connection, *amqp.Channel, erro
 
 		if err != nil {
 			log.Printf("Failed to connect to RabbitMQ: %v. Retrying (%d/%d)...", err, retries-attempts+1, retries)
+			time.Sleep(time.Second * 3) // sleep 3sec
 			continue
 		}
 

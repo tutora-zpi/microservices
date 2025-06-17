@@ -2,29 +2,36 @@ package security
 
 import (
 	"fmt"
-	"log"
+	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/MicahParks/keyfunc"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
 
-func DecodeJWT(tokenStr string, secret []byte) (string, error) {
-	log.Println("Decoding token", tokenStr)
+var JWKS *keyfunc.JWKS
 
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return secret, nil
-	})
+func DecodeJWT(tokenStr string) (string, error) {
+	if JWKS == nil {
+		return "", fmt.Errorf("JWKS not initialized")
+	}
 
+	token, err := jwt.Parse(tokenStr, JWKS.Keyfunc)
 	if err != nil {
 		return "", fmt.Errorf("token parse error: %w", err)
 	}
 
+	if !token.Valid {
+		return "", fmt.Errorf("invalid token signature")
+	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return "", fmt.Errorf("invalid token claims or signature")
+	if !ok {
+		return "", fmt.Errorf("invalid claims format")
+	}
+
+	if exp, ok := claims["exp"].(float64); ok && int64(exp) < time.Now().Unix() {
+		return "", fmt.Errorf("token expired")
 	}
 
 	id, ok := claims["sub"].(string)
