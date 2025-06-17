@@ -6,6 +6,7 @@ import (
 	"meeting-scheduler-service/internal/app/interfaces"
 	"meeting-scheduler-service/internal/domain/event"
 	"meeting-scheduler-service/internal/infrastructure/config"
+	"os"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -86,7 +87,7 @@ func (r *RabbitMQBroker) Publish(event event.EventWrapper) error {
 	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
-		config.EVENT_EXCHANGE_QUEUE_NAME,
+		os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME),
 		"fanout", // type
 		true,
 		false,
@@ -103,11 +104,13 @@ func (r *RabbitMQBroker) Publish(event event.EventWrapper) error {
 		return fmt.Errorf("failed to marshal event: %w", err)
 	}
 
+	exchangeName := os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME)
+
 	err = ch.Publish(
-		config.EVENT_EXCHANGE_QUEUE_NAME, // exchange
-		"",                               // routing key
-		false,                            // mandatory
-		false,                            // immediate
+		exchangeName, // exchange
+		"",           // routing key
+		false,        // mandatory
+		false,        // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
@@ -116,6 +119,8 @@ func (r *RabbitMQBroker) Publish(event event.EventWrapper) error {
 	if err != nil {
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
+
+	log.Printf("Published event to exchange %s: %s", exchangeName, string(body))
 
 	return nil
 }
