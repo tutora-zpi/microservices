@@ -25,7 +25,7 @@ export class ChatRepositoryImpl implements IChatRepository {
 
     async getChat(q: GetChatQuery): Promise<ChatDTO> {
         try {
-            const chat = await this.chatModel.findById(q.id)
+            const chat = await this.chatModel.findOne({ id: q.id })
                 .populate<User>({
                     path: 'members',
                 })

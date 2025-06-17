@@ -6,7 +6,8 @@ import { QueryHandlerModule } from './app/queries/query.handler.module';
 import { ChatModule } from './infrastructure/ws/chat.module';
 import { EventHandlerModule } from './app/events/event.handler.module';
 import { ChatControllerModule } from './infrastructure/rest/chat/chat.controller.module';
-import { getRmqOptions } from './config/rabbit.config';
+import { getRmqOptions } from './infrastructure/config/rabbit.config';
+import { RabbitMQModule } from './infrastructure/messaging/rabbitmq.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { getRmqOptions } from './config/rabbit.config';
     QueryHandlerModule,
     EventHandlerModule,
     ChatControllerModule,
+    RabbitMQModule,
   ],
   controllers: [],
   providers: [],

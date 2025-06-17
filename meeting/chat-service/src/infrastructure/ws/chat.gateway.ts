@@ -1,16 +1,20 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ReactMessageOnCommand } from 'src/domain/commands/react-on-message.command';
 import { ReplyOnMessageCommand } from 'src/domain/commands/reply-on-message.command';
 import { SendMessageCommand } from 'src/domain/commands/send-message.command';
-import { UserTyping } from 'src/domain/ws-event/user-typing';
+import { JoinToRoomEvent as JoinToRoomSocketEvent } from 'src/domain/ws-event/join-room.socket.event';
+import { UserTyping as UserTypingSocketEvent } from 'src/domain/ws-event/user-typing.socket.event';
+import { WsAuthGuard } from '../security/guards/ws.auth.guard';
 
 class ErrorResponse {
     constructor(public error: string, public details?: string) { }
 }
 
+
+@UseGuards(WsAuthGuard)
 @WebSocketGateway({
     cors: {
         origin: "*",
@@ -34,8 +38,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.log('Client disconnected: ' + client.id);
     }
 
+
     @SubscribeMessage('joinRoom')
-    handleJoinRoom(@MessageBody() data: { roomId: string }, client: Socket) {
+    handleJoinRoom(@MessageBody() data: JoinToRoomSocketEvent, client: Socket) {
         client.join(data.roomId);
         this.logger.log(`Client ${client.id} joined room ${data.roomId}`);
     }
@@ -88,7 +93,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @SubscribeMessage('userTyping')
-    handleTyping(@MessageBody() data: UserTyping, client: Socket): void {
+    handleTyping(@MessageBody() data: UserTypingSocketEvent, client: Socket): void {
         this.logger.debug(`User ${data.userID} is ${data.isTyping ? 'typing' : 'not typing'} in chat ${data.chatID}`);
 
         client.to(data.chatID).emit('userTyping', data);
