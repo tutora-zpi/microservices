@@ -3,10 +3,9 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ConsoleLogger, INestApplication, ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { MeetingStartedEvent } from './domain/events/meeting-started.event';
-import { getRmqOptions } from './config/rabbit.config';
+import { getRmqOptions } from './infrastructure/config/rabbit.config';
 
 
 const appName = `${process.env.APP_NAME || "PROVIDE APP NAME"} - Chat Service`;
@@ -49,6 +48,6 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8002);
 }
 bootstrap();
