@@ -91,6 +91,9 @@ OAUTH_GITHUB_CLIENT_SECRET=
 # OAuth2 (Google) 
 OAUTH_GOOGLE_CLIENT_ID=
 OAUTH_GOOGLE_CLIENT_SECRET=
+
+FRONTEND_URL_CALLBACK=http://localhost:3000/auth/callback
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 Następnie **otwórz plik `.env` i uzupełnij go** swoimi danymi uzyskanymi w poprzednim kroku oraz danymi do bazy danych.
 

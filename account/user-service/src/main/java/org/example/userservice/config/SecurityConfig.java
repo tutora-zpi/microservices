@@ -6,6 +6,7 @@ import org.example.userservice.security.handler.OAuth2AuthenticationSuccessHandl
 import org.example.userservice.security.jwt.JwtAuthenticationFilter;
 import org.example.userservice.security.service.CustomOAuth2UserService;
 import org.example.userservice.security.service.CustomOidcUserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,24 +34,23 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF protection as we are using stateless authentication (JWT)
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Add CORS configuration
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // Disable standard form login and HTTP Basic authentication
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // Configure session management to be stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Configure authorization rules for HTTP requests
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/code/*").permitAll() // Consolidated OAuth2 paths
@@ -69,24 +69,16 @@ public class SecurityConfig {
                         .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
 
-                // Add the custom JWT filter before the standard UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Bean to configure CORS settings.
-     * This allows web clients from different origins to interact with the API.
-     * @return CorsConfigurationSource
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // IMPORTANT: In production, you should restrict this to your frontend's domain
-        // Example: configuration.setAllowedOrigins(Arrays.asList("https://your-frontend-domain.com"));
-        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(allowedOrigins);
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
