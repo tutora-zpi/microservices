@@ -11,7 +11,7 @@ import { BoardEntity, BoardSchema } from './schemas/board.schema';
             }),
             inject: [ConfigService],
         }),
-            MongooseModule.forFeature([
+        MongooseModule.forFeature([
             { name: BoardEntity.name, schema: BoardSchema },
         ]),
     ],
