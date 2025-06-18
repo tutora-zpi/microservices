@@ -36,8 +36,8 @@ export class MeetingStartedHandler implements IEventHandler<MeetingStartedEvent>
             while (retries < this.MAX_RETIRES && newChat == null) {
                 try {
                     newChat = await this.repo.initChat(event);
-                } catch {
-                    this.logger.warn("An error occured:")
+                } catch (err) {
+                    this.logger.warn("An error occured:", err.message)
                 }
 
                 if (!newChat) {
@@ -47,14 +47,14 @@ export class MeetingStartedHandler implements IEventHandler<MeetingStartedEvent>
             }
 
             if (!newChat) {
+                // call the meeting-scheduler service to stop in future
                 this.logger.log("Error during creating chat. Emitting event to stop meeting.")
                 return;
             }
 
             this.logger.log("Successfully created chat.");
-        } catch {
-            this.logger.error('Error handling message');
-
+        } catch (err) {
+            this.logger.debug('Error:', err.message);
         }
     }
 }

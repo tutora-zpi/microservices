@@ -1,6 +1,7 @@
-import { Inject, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Logger, NotFoundException } from "@nestjs/common";
 import { IQueryHandler, QueryHandler } from "@nestjs/cqrs";
 import { ChatDTO } from "src/domain/dto/chat.dto";
+import { RecordNotFound } from "src/domain/exceptions/not-found.exception";
 import { GetChatQuery } from "src/domain/queries/get-chat.query";
 import { CHAT_REPOSITORY, IChatRepository } from "src/domain/repository/chat.repository";
 
@@ -18,6 +19,9 @@ export class GetChatHandler implements IQueryHandler<GetChatQuery> {
         this.logger.log(`Executing GetChatQuery with id: ${query.id}`);
 
         const res = await this.repo.getChat(query);
+        if (!res) {
+            throw new RecordNotFound()
+        }
 
         return res;
     }

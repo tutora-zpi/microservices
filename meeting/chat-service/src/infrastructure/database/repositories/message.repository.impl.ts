@@ -5,6 +5,7 @@ import { ReactMessageOnCommand } from "src/domain/commands/react-on-message.comm
 import { ReplyOnMessageCommand } from "src/domain/commands/reply-on-message.command";
 import { SendMessageCommand } from "src/domain/commands/send-message.command";
 import { MessageDTO } from "src/domain/dto/message.dto";
+import { RecordNotFound } from "src/domain/exceptions/not-found.exception";
 import { UnknownException } from "src/domain/exceptions/unknown.exception";
 import { FailedToValidate } from "src/domain/exceptions/validation.exception";
 import { MessageMapper } from "src/domain/mappers/message/message.mapper";

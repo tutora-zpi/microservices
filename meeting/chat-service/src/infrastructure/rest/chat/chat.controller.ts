@@ -1,6 +1,7 @@
 import { Controller, Get, HttpCode, Logger, NotFoundException, Param, BadRequestException, UseGuards } from '@nestjs/common';
 import { IQuery, QueryBus } from '@nestjs/cqrs';
 import { ChatDTO } from 'src/domain/dto/chat.dto';
+import { RecordNotFound } from 'src/domain/exceptions/not-found.exception';
 import { GetChatQuery } from 'src/domain/queries/get-chat.query';
 import { AuthGuard } from 'src/infrastructure/security/guards/auth.guard';
 
@@ -24,9 +25,8 @@ export class ChatController {
 
             return data;
         } catch (error) {
-            this.logger.error(`Error while fetching chat with id: ${id}`);
-
-            if (error instanceof RecordNotFound) {
+            this.logger.debug(error.message, error.name)
+            if (error.name === RecordNotFound.name) {
                 throw new NotFoundException(`Chat with id ${id} not found`);
             }
 

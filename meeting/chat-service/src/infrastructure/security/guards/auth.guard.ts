@@ -1,10 +1,13 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtStrategy } from '../jwt.strategy';
 import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+    private readonly userKey = 'user';
+    private readonly logger = new Logger(AuthGuard.name);
+
     constructor(private readonly jwtStrategy: JwtStrategy) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,7 +43,10 @@ export class AuthGuard implements CanActivate {
             });
 
             const validatedPayload = await this.jwtStrategy.validate(payload);
-            request['user'] = validatedPayload;
+
+            this.logger.debug("Saving user data under 'user'")
+            request[this.userKey] = validatedPayload;
+
             return true;
         } catch (error) {
             console.log('error', error)

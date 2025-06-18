@@ -3,30 +3,13 @@ import { PassportStrategy } from '@nestjs/passport';
 import { JwksService } from './jwks.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { IsUUID, IsEmail, IsString, IsNumber, IsOptional, validateOrReject } from 'class-validator';
-import { plainToClass } from 'class-transformer';
 
-export class Payload {
-    @IsUUID()
-    sub: string;
-
-    @IsEmail()
+export type PayloadUser = {
+    userID: string;
     email: string;
+    role: string;
+};
 
-    @IsString()
-    roles: string;
-
-    @IsNumber()
-    @IsOptional()
-    iat?: number;
-
-    @IsNumber()
-    exp: number;
-
-    constructor(partial: Partial<Payload>) {
-        Object.assign(this, partial);
-    }
-}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -49,19 +32,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: any) {
-        const payloadInstance = plainToClass(Payload, payload);
-
-        try {
-            await validateOrReject(payloadInstance);
-        } catch (errors) {
-            throw new UnauthorizedException('Invalid token payload');
+    async validate(payload: any): Promise<PayloadUser> {
+        if (!payload?.sub || !payload?.email || !payload?.roles) {
+            throw new UnauthorizedException('Invalid JWT payload');
         }
 
         return {
-            userId: payloadInstance.sub,
-            email: payloadInstance.email,
-            roles: payloadInstance.roles,
-        };
+            userID: payload.sub,
+            email: payload.email,
+            role: payload.roles
+        }
     }
 }

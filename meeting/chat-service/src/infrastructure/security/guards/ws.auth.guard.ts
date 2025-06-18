@@ -1,60 +1,55 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 import { JwtStrategy } from '../jwt.strategy';
 
 @Injectable()
 export class WsAuthGuard implements CanActivate {
+    private readonly logger = new Logger(WsAuthGuard.name);
+    private readonly algorithms: jwt.Algorithm[] = ['RS256'];
+
     constructor(private readonly jwtStrategy: JwtStrategy) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const client: Socket = context.switchToWs().getClient();
-
         const token = this.extractToken(client);
+
         if (!token) {
+            this.logger.warn('Token not found');
             throw new UnauthorizedException('Token not provided');
         }
 
         try {
             const decoded: any = jwt.decode(token, { complete: true });
             if (!decoded?.header?.kid) {
+                this.logger.warn('No kid in JWT header');
                 throw new UnauthorizedException('Invalid token header');
             }
 
             const key = await this.jwtStrategy.jwksService.getSigningKey(decoded.header.kid);
 
-            return new Promise((resolve, reject) => {
-                jwt.verify(token, key, { algorithms: ['RS256'] }, async (err, payload) => {
-                    if (err) {
-                        return reject(new UnauthorizedException('Token verification failed'));
-                    }
+            const payload = jwt.verify(token, key, { algorithms: this.algorithms }) as any;
 
-                    try {
-                        const validatedPayload = await this.jwtStrategy.validate(payload);
-                        client.data.user = validatedPayload;
-                        resolve(true);
-                    } catch (error) {
-                        reject(new UnauthorizedException('Invalid token payload'));
-                    }
-                });
-            });
-        } catch (error) {
-            throw new UnauthorizedException('Token processing failed');
+            const validatedPayload = await this.jwtStrategy.validate(payload);
+
+            client.data.user = validatedPayload;
+            return true;
+        } catch (err) {
+            this.logger.error('Token verification failed', err);
+            throw new UnauthorizedException('Invalid token');
         }
     }
 
     private extractToken(client: Socket): string | null {
-        const authHeader = client.handshake.headers.authorization as string | undefined;
-        if (authHeader?.startsWith('Bearer ')) {
-            return authHeader.slice(7);
+        const header = client.handshake.headers.authorization;
+        if (typeof header === 'string' && header.startsWith('Bearer ')) {
+            return header.slice(7);
         }
 
-        const tokenFromQuery = client.handshake.query?.token as string | undefined;
-        if (tokenFromQuery) {
-            return tokenFromQuery;
-        }
-
-        const authFromQuery = client.handshake.auth?.token as string | undefined;
-        return authFromQuery ?? null;
+        return (
+            (client.handshake.query?.token as string | undefined) ||
+            (client.handshake.auth?.token as string | undefined) ||
+            null
+        );
     }
 }

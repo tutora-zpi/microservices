@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Model } from "mongoose";
 import { ChatDTO } from "src/domain/dto/chat.dto";
 import { MeetingStartedEvent } from "src/domain/events/meeting-started.event";
+import { RecordNotFound } from "src/domain/exceptions/not-found.exception";
 import { UnknownException } from "src/domain/exceptions/unknown.exception";
 import { ChatMapper } from "src/domain/mappers/chat/chat.mapper";
 import { Chat, CHAT_MODEL } from "src/domain/models/chat.model";
@@ -23,7 +24,7 @@ export class ChatRepositoryImpl implements IChatRepository {
     ) {
     }
 
-    async getChat(q: GetChatQuery): Promise<ChatDTO> {
+    async getChat(q: GetChatQuery): Promise<ChatDTO | null> {
         try {
             const chat = await this.chatModel.findOne({ id: q.id })
                 .populate<User>({
@@ -37,7 +38,7 @@ export class ChatRepositoryImpl implements IChatRepository {
 
             if (!chat) {
                 this.logger.log("Could not find chat with", q.id);
-                throw new RecordNotFound(`Chat with id ${q.id} not found`);
+                return null;
             }
 
             this.logger.debug(chat);
@@ -47,11 +48,11 @@ export class ChatRepositoryImpl implements IChatRepository {
             return dto;
         } catch (error) {
             this.logger.error("Failed to retrieve chat", error);
-            throw new UnknownException(`Failed to get chat with id ${q.id}`);
+            throw new RecordNotFound(`Chat with id ${q.id} not found`);
         }
     }
 
-    async initChat(event: MeetingStartedEvent): Promise<ChatDTO> {
+    async initChat(event: MeetingStartedEvent): Promise<ChatDTO | null> {
         try {
             const newChat = this.mapper.fromEvent(event);
 
@@ -59,7 +60,8 @@ export class ChatRepositoryImpl implements IChatRepository {
             const users = await this.userRepo.saveUsers(newChat.members as User[]);
 
             if (!users) {
-                throw new SaveError("Failed to save users");
+                this.logger.debug("Failed to save users");
+                return null;
             }
 
             const fks = users.map(u => u.id);
