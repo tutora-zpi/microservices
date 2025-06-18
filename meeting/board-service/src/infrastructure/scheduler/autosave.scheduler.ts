@@ -30,4 +30,30 @@ export class AutosaveScheduler {
 
         this.boardBuffer.clear();
     }
+
+    getBuffer(sessionId: string): any {
+        return this.boardBuffer.get(sessionId);
+    }
+
+    async flushSingle(sessionId: string): Promise<void> {
+        const data = this.boardBuffer.get(sessionId);
+        if (!data) return;
+
+        await this.boardService.saveBoard(sessionId, data);
+        this.boardBuffer.delete(sessionId);
+    }
+
+    async getBoard(sessionId: string) {
+        return await this.boardService.getBoard(sessionId);
+    }
+
+    async saveNow(sessionId: string, data: any) {
+        try {
+            await this.boardService.saveBoard(sessionId, data);
+            this.logger.log(`💾 Immediate save for session ${sessionId}`);
+            this.boardBuffer.delete(sessionId); 
+        } catch (err) {
+            this.logger.error(`❌ Immediate save failed for session ${sessionId}`, err);
+        }
+    }
 }
