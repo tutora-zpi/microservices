@@ -5,12 +5,11 @@ import {
     SubscribeMessage,
     MessageBody,
     ConnectedSocket,
+    WebSocketServer,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Socket } from 'socket.io';
-import { AutosaveScheduler } from '../scheduler/autosave.scheduler'
-import { WebSocketServer } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { Socket, Server } from 'socket.io';
+import { AutosaveScheduler } from '../scheduler/autosave.scheduler';
 
 @WebSocketGateway({ cors: true })
 export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -25,7 +24,7 @@ export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.log(`🟢 Client connected: ${client.id}`);
     }
 
-    async handleDisconnect(client: Socket) {
+    handleDisconnect(client: Socket) {
         this.logger.log(`🔴 Client disconnected: ${client.id}`);
 
         this.server.sockets.adapter.rooms.forEach((clients, sessionId) => {
@@ -45,11 +44,13 @@ export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
         const { sessionId } = payload;
 
-        client.join(sessionId);
+        await client.join(sessionId);
         this.logger.log(`👥 ${client.id} joined session ${sessionId}`);
 
         const room = this.server.sockets.adapter.rooms.get(sessionId);
-        this.logger.debug(`🔍 Room "${sessionId}" has ${room?.size || 0} clients`);
+        this.logger.debug(
+            `🔍 Room "${sessionId}" has ${room?.size || 0} clients`,
+        );
 
         const bufferedData = this.autosave.getBuffer(sessionId);
         if (bufferedData) {
@@ -86,7 +87,9 @@ export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
         @ConnectedSocket() client: Socket,
     ) {
         const { sessionId, data } = payload;
-        this.logger.debug(`📥 board:update from ${client.id} (session: ${sessionId})`);
+        this.logger.debug(
+            `📥 board:update from ${client.id} (session: ${sessionId})`,
+        );
 
         this.autosave.bufferBoard(sessionId, data);
 
