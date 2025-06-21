@@ -1,26 +1,26 @@
 version: '3.8'
 
 services:
-  board-service:
-    build: .
-    container_name: board-service
-    ports:
-      - '3000:3000'
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/board
-    depends_on:
-      - mongo
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+    board-service:
+        build: .
+        container_name: board-service
+        ports:
+            - '3005:3005'
+        environment:
+            - MONGO_URI=mongodb://mongo:27017/board
+        depends_on:
+            - mongo
+        volumes:
+            - .:/usr/src/app
+            - /usr/src/app/node_modules
 
-  mongo:
-    image: mongo
-    container_name: mongo
-    ports:
-      - '27017:27017'
-    volumes:
-      - mongo_data:/data/db
+    mongo:
+        image: mongo
+        container_name: mongo
+        ports:
+            - '27018:27017'
+        volumes:
+            - mongo_data:/data/db
 
 volumes:
-  mongo_data:
+    mongo_data:
