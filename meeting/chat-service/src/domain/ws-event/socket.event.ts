@@ -1,1 +1,1 @@
-export interface SocketEvent { }
+export class SocketEvent {}

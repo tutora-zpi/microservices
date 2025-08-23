@@ -6,17 +6,26 @@ import { DatabaseModule } from 'src/infrastructure/database/database.module';
 import { MessageRepositoryImpl } from 'src/infrastructure/database/repositories/message.repository.impl';
 import { ReactOnMessageHandler } from './react-on-message.command.handler';
 import { ReplyOnMessageHandler } from './reply-on-message.command.handler';
+import { CreateGeneralChatHandler } from './create-general-chat.command.handler';
+import { DeleteChatHandler } from './delete-chat.command.handler';
 
-const handlers = [ReactOnMessageHandler, SendMessageHandler, ReplyOnMessageHandler]
+const handlers = [
+  ReactOnMessageHandler,
+  SendMessageHandler,
+  ReplyOnMessageHandler,
+  CreateGeneralChatHandler,
+  DeleteChatHandler
+];
 
 @Module({
-    imports: [CqrsModule, DatabaseModule],
-    providers: [
-        ...handlers,
-        {
-            provide: MESSAGE_REPOSITORY,
-            useClass: MessageRepositoryImpl,
-        },
-    ],
+  imports: [CqrsModule, DatabaseModule],
+  providers: [
+    ...handlers,
+    {
+      provide: MESSAGE_REPOSITORY,
+      useClass: MessageRepositoryImpl,
+    },
+  ],
+  exports: [...handlers]
 })
 export class CommandHandlerModule { }

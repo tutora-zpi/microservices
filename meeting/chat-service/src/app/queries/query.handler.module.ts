@@ -5,14 +5,17 @@ import { CHAT_REPOSITORY } from 'src/domain/repository/chat.repository';
 import { DatabaseModule } from 'src/infrastructure/database/database.module';
 import { ChatRepositoryImpl } from 'src/infrastructure/database/repositories/chat.repository.impl';
 
+const handlers = [GetChatHandler];
+
 @Module({
-    imports: [CqrsModule, DatabaseModule],
-    providers: [
-        GetChatHandler,
-        {
-            provide: CHAT_REPOSITORY,
-            useClass: ChatRepositoryImpl,
-        },
-    ],
+  imports: [CqrsModule, DatabaseModule],
+  providers: [
+    ...handlers,
+    {
+      provide: CHAT_REPOSITORY,
+      useClass: ChatRepositoryImpl,
+    },
+  ],
+  exports: [...handlers]
 })
 export class QueryHandlerModule { }

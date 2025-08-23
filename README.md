@@ -16,3 +16,5 @@
     - **notification-service** sending notifications to users.
     - **status-service** tracking users activity in app. 
 
+
+Nice to have: every service will have `.env.local` file to easily run it locally.

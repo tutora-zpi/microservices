@@ -9,7 +9,8 @@ import {
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { getRmqOptions } from './infrastructure/config/rabbit.config';
+import { RabbitMQConfig } from './infrastructure/config/rabbitmq.config';
+import { ServiceResponseWrapperInterceptor } from './domain/response/response.wrapper';
 
 const appName = `${process.env.APP_NAME || 'PROVIDE APP NAME'} - Chat Service`;
 
@@ -37,8 +38,10 @@ async function bootstrap() {
   swag(app);
   app.useWebSocketAdapter(new IoAdapter(app));
 
+  const rabbitmqConfig = new RabbitMQConfig(app.get(ConfigService));
+
   app.connectMicroservice<MicroserviceOptions>(
-    getRmqOptions(app.get(ConfigService)),
+    rabbitmqConfig.options(),
   );
 
   app.useGlobalPipes(
@@ -50,6 +53,8 @@ async function bootstrap() {
   );
 
   await app.startAllMicroservices();
+
+  app.useGlobalInterceptors(new ServiceResponseWrapperInterceptor());
 
   await app.listen(process.env.PORT ?? 8002);
 }

@@ -1,9 +1,21 @@
-import { SocketEvent } from "./socket.event";
+import { IsUUID, IsNotEmpty, IsBoolean } from 'class-validator';
+import { SocketEvent } from './socket.event';
 
 export class UserTyping implements SocketEvent {
-    constructor(
-        public readonly chatID: string,
-        public readonly userID: string,
-        public readonly isTyping: boolean
-    ) { }
+  @IsUUID()
+  @IsNotEmpty()
+  readonly chatID: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  readonly userID: string;
+
+  @IsBoolean()
+  readonly isTyping: boolean;
+
+  constructor(chatID: string, userID: string, isTyping: boolean) {
+    this.chatID = chatID;
+    this.isTyping = isTyping;
+    this.userID = userID;
+  }
 }

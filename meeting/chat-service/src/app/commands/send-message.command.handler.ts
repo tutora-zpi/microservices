@@ -14,13 +14,12 @@ export class SendMessageHandler implements ICommandHandler<SendMessageCommand> {
   constructor(
     @Inject(MESSAGE_REPOSITORY)
     private readonly repo: IMessageRepository,
-  ) {}
+  ) { }
 
   async execute(command: SendMessageCommand): Promise<MessageDTO> {
+    this.logger.log('Executing command:', command);
     const newMessage = await this.repo.save(command);
 
-    // call other services
-    this.logger.log('Command excectued', newMessage);
     return newMessage;
   }
 }

@@ -1,21 +1,28 @@
-import { Type } from "class-transformer";
-import { IsUUID, IsNotEmpty, IsArray, ArrayMinSize, ValidateNested } from "class-validator";
-import { UserDTO } from "../dto/user.dto";
-import { IEvent } from "@nestjs/cqrs";
+import { Type } from 'class-transformer';
+import {
+  IsUUID,
+  IsNotEmpty,
+  IsArray,
+  ArrayMinSize,
+  ValidateNested,
+} from 'class-validator';
+import { UserDTO } from '../dto/user.dto';
+import { IEvent } from '@nestjs/cqrs';
+import { Optional } from '@nestjs/common';
 
 export class MeetingStartedEvent implements IEvent {
-    @IsUUID()
-    @IsNotEmpty()
-    readonly meetingID: string;
+  @IsUUID()
+  @IsNotEmpty()
+  readonly meetingID: string;
 
-    @IsArray()
-    @ArrayMinSize(2)
-    @ValidateNested({ each: true })
-    @Type(() => UserDTO)
-    @IsNotEmpty({ each: true })
-    readonly members: UserDTO[];
+  @IsArray()
+  @ArrayMinSize(2)
+  @ValidateNested({ each: true })
+  @Type(() => UserDTO)
+  @IsNotEmpty({ each: true })
+  readonly members: UserDTO[];
 
-    @IsNotEmpty()
-    @Type(() => Date)
-    readonly startedTime: Date;
+  @Optional()
+  @Type(() => Date)
+  readonly startedTime?: Date;
 }

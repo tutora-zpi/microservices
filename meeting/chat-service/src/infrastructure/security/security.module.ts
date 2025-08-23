@@ -6,8 +6,8 @@ import { WsAuthGuard } from './guards/ws.auth.guard';
 import { AuthGuard } from './guards/auth.guard';
 
 @Module({
-    imports: [ConfigModule],
-    providers: [JwtStrategy, JwksService, WsAuthGuard, AuthGuard],
-    exports: [WsAuthGuard, AuthGuard, JwtStrategy, JwksService],
+  imports: [ConfigModule],
+  providers: [JwtStrategy, JwksService, WsAuthGuard, AuthGuard],
+  exports: [WsAuthGuard, AuthGuard, JwtStrategy, JwksService],
 })
-export class SecurityModule { }
+export class SecurityModule {}

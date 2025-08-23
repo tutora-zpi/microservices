@@ -1,9 +1,23 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { RabbitMQSetupService } from './rabbitmq.setup.service';
+import { ClientsModule } from '@nestjs/microservices';
+import { ConfigModule } from '../config/config.module';
+import { RabbitMQConfig } from '../config/rabbitmq.config';
+
 
 @Module({
-    imports: [ConfigModule],
-    providers: [RabbitMQSetupService],
+  imports: [
+    ConfigModule,
+    ClientsModule.registerAsync([
+      {
+        imports: [ConfigModule],
+        name: 'RABBITMQ_SERVICE',
+        useFactory: (config: RabbitMQConfig) => config.options(),
+        inject: [RabbitMQConfig],
+      },
+    ]),
+  ],
+  providers: [ClientsModule],
+  exports: [ClientsModule],
 })
+
 export class RabbitMQModule { }

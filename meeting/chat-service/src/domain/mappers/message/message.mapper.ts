@@ -18,7 +18,6 @@ export class MessageMapper implements IMapper<MessageDTO, Message> {
             chatID: doc.chatID,
             content: doc.content,
             sender: doc.sender as string,
-            receiver: doc.receiver as string,
             reactions: doc.reactions ? doc.reactions.map(reaction => this.reactionMapper.toDto(reaction)) : [],
             answers: doc.answers ? doc.answers.map(answer => this.toDto(answer)) : [],
             isRead: doc.isRead,
@@ -30,7 +29,6 @@ export class MessageMapper implements IMapper<MessageDTO, Message> {
         return {
             content: command.content,
             chatID: command.meetingID,
-            receiver: command.receiverID,
             sender: command.senderID,
         }
     }
