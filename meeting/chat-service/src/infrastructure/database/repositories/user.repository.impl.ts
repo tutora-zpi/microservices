@@ -37,11 +37,11 @@ export class UserRepositoryImpl implements IUserRepository {
       this.logger.debug('Bulk write result:', res);
 
       const savedUsers = await this.userModel.find({
-        _id: { $in: members.map((u) => u._id) },
+        _id: { $in: members.map((user) => user._id) },
       });
 
       this.logger.log(`Successfully saved ${savedUsers.length} users`);
-      const users = savedUsers.map((u) => this.mapper.toDto(u));
+      const users = savedUsers.map((user) => this.mapper.toDto(user));
 
       return users;
     } catch {
