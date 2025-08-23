@@ -95,7 +95,7 @@ export class ChatRepositoryImpl implements IChatRepository {
         return null;
       }
 
-      const fks = users.map((u) => u.id);
+      const usersForeignKeys = users.map((u) => u.id);
 
       const chat = await this.chatModel
         .findOneAndUpdate(
@@ -106,7 +106,7 @@ export class ChatRepositoryImpl implements IChatRepository {
               ...(newChat.messages && { messages: newChat.messages }),
             },
             $addToSet: {
-              members: { $each: fks },
+              members: { $each: usersForeignKeys },
             },
           },
           {
