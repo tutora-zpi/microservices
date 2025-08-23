@@ -1,33 +1,34 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
+import { RabbitMQConfig } from '../config/rabbitmq.config';
 
-// Used to bind queue
 @Injectable()
 export class RabbitMQSetupService implements OnModuleInit {
-    private readonly logger = new Logger(RabbitMQSetupService.name);
+  private readonly logger = new Logger(RabbitMQSetupService.name);
 
-    constructor(private readonly configService: ConfigService) { }
+  constructor(
+    private readonly rabbitmqConfig: RabbitMQConfig,
+  ) { }
 
-    async onModuleInit() {
-        const url = this.configService.get<string>('RABBITMQ_URL') || 'amqp://user:user@localhost:5672';
-        const exchange = this.configService.get<string>('EVENT_EXCHANGE_QUEUE_NAME') || 'meeting_events_exchange';
-        const queue = this.configService.get<string>('QUEUE_NAME') || 'meeting';
+  async onModuleInit() {
+    try {
+      const url = this.rabbitmqConfig.url();
 
-        try {
-            const connection = await amqp.connect(url);
-            const channel = await connection.createChannel();
+      this.logger.log(`Connecting with URL: ${url}`);
+      const connection = await amqp.connect(url);
 
-            await channel.assertExchange(exchange, 'fanout', { durable: true });
-            await channel.assertQueue(queue, { durable: true });
-            await channel.bindQueue(queue, exchange, '');
+      const channel = await connection.createChannel();
 
-            this.logger.log(`Queue "${queue}" bound to exchange "${exchange}"`);
+      await channel.assertExchange(this.rabbitmqConfig.exchange, 'fanout', { durable: true });
+      await channel.assertQueue(this.rabbitmqConfig.queue, { durable: true });
+      await channel.bindQueue(this.rabbitmqConfig.queue, this.rabbitmqConfig.exchange, '');
 
-            await channel.close();
-            await connection.close();
-        } catch (error) {
-            this.logger.error('Failed to setup RabbitMQ bindings', error);
-        }
+      this.logger.log(`Queue "${this.rabbitmqConfig.queue}" bound to exchange "${this.rabbitmqConfig.exchange}"`);
+
+      await channel.close();
+      await connection.close();
+    } catch (error) {
+      this.logger.error('Failed to setup RabbitMQ bindings', error);
     }
+  }
 }

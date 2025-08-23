@@ -1,18 +1,15 @@
-import { IsBoolean, IsOptional, IsString, ValidateNested } from "class-validator";
 import { DTO } from "../dto/dto";
-import { Type } from "class-transformer";
 
 export class ServiceResponse<T extends DTO> {
+  readonly success: boolean;
 
-    @IsBoolean()
-    success: boolean;
+  readonly data?: T;
 
-    @IsOptional()
-    @ValidateNested()
-    @Type(() => DTO)
-    data?: T;
+  readonly error?: string;
 
-    @IsOptional()
-    @IsString()
-    error?: string;
+  constructor(data?: T, error?: string) {
+    this.success = !!data && !error;
+    this.data = data;
+    this.error = error;
+  }
 }

@@ -24,6 +24,7 @@ export class ReactionMapper implements IMapper<ReactionDTO, Reaction> {
             id: doc.id,
             emoji: doc.emoji,
             user: this.userMapper.toDto(user),
+            messageID: doc.messageID,
         };
     }
 
@@ -31,6 +32,7 @@ export class ReactionMapper implements IMapper<ReactionDTO, Reaction> {
         return {
             emoji: command.emoji,
             user: command.userID,
+            messageID: command.messageID,
         };
     }
 }
