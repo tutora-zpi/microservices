@@ -27,7 +27,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AvatarService avatarService;
-    private final UserMapper userMapper;
 
     @Override
     public User findById(UUID id) {
@@ -49,6 +48,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User registerUser(OAuth2UserInfo userInfo) {
         User newUser = new User();
+        newUser.setId(UUID.randomUUID());
         newUser.setProvider(userInfo.getProvider());
         newUser.setProviderId(userInfo.getId());
         newUser.setEmail(userInfo.getEmail());
@@ -90,11 +90,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User updateUserData(UUID userId, UpdateUserDto dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        userMapper.updateUserFromDto(dto, user);
+        user.setEmail(dto.getEmail() == null ? user.getEmail() : dto.getEmail());
+        user.setName(dto.getName() == null ? user.getName() : dto.getName());
+        user.setSurname(dto.getSurname() == null ? user.getSurname() : dto.getSurname());
 
         return userRepository.save(user);
     }

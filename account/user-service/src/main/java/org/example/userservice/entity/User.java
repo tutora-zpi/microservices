@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
