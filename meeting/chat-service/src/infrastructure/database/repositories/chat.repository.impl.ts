@@ -19,7 +19,7 @@ import {
 @Injectable()
 export class ChatRepositoryImpl implements IChatRepository {
   private readonly logger: Logger = new Logger(ChatRepositoryImpl.name);
-  private readonly mapper: ChatMapper = new ChatMapper(); // in future we can change it to injectable mapper
+  private readonly mapper: ChatMapper = new ChatMapper();
 
   private readonly messageLimitInChat = 10;
 
@@ -87,7 +87,6 @@ export class ChatRepositoryImpl implements IChatRepository {
     try {
       const newChat = this.mapper.fromEvent(event);
 
-      // save users
       const users = await this.userRepo.saveUsers(newChat.members as User[]);
 
       if (!users) {
@@ -95,7 +94,7 @@ export class ChatRepositoryImpl implements IChatRepository {
         return null;
       }
 
-      const usersForeignKeys = users.map((u) => u.id);
+      const usersForeignKeys = users.map((user) => user.id);
 
       const chat = await this.chatModel
         .findOneAndUpdate(

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { DeleteMessageCommand } from 'src/domain/commands/delete-message.command';
 import { ReactMessageOnCommand } from 'src/domain/commands/react-on-message.command';
 import { ReplyOnMessageCommand } from 'src/domain/commands/reply-on-message.command';
@@ -12,6 +12,7 @@ import { ReactionMapper } from 'src/domain/mappers/reaction/reaction.mapper';
 import { Chat, CHAT_MODEL } from 'src/domain/models/chat.model';
 import { Message, MESSAGE_MODEL } from 'src/domain/models/message.model';
 import { Reaction, REACTION_MODEL } from 'src/domain/models/reaction.model';
+import { GetMoreMessagesQuery } from 'src/domain/queries/get-more-messages.query';
 import { IMessageRepository } from 'src/domain/repository/message.repository';
 
 @Injectable()
@@ -26,6 +27,42 @@ export class MessageRepositoryImpl implements IMessageRepository {
     @Inject(REACTION_MODEL) private readonly reactionModel: Model<Reaction>,
   ) { }
 
+  async get(query: GetMoreMessagesQuery): Promise<MessageDTO[]> {
+
+    this.logger.log('Getting messages from', query.id);
+
+    const findOption = { chatID: query.id }
+
+    try {
+      const messages = await this.messageModel
+        .find(findOption)
+        .select(['_id', 'sentAt', 'content', 'sender'])
+        .sort({ sentAt: 1 })
+        .limit(query.limit)
+        .skip(query.limit * query.page)
+        .populate({
+          path: 'reactions',
+          options: { sort: { sentAt: 1 } },
+          populate: {
+            path: 'user',
+            select: '_id avatarURL firstName lastName',
+          },
+        })
+        .populate({
+          path: 'answers',
+          select: '_id',
+          options: { sort: { sentAt: 1 } },
+        })
+        .exec();
+
+      return messages.map(message => this.mapper.toDto(message));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error('Error while saving message:', msg);
+      return [];
+    }
+  }
+
   async delete(body: DeleteMessageCommand): Promise<boolean> {
     const res = await this.messageModel.deleteOne({ _id: body.messageID }).exec();
     this.logger.log('Rows affected:', res.deletedCount);
@@ -37,14 +74,18 @@ export class MessageRepositoryImpl implements IMessageRepository {
     const newMessage = this.mapper.fromCommand(message);
     try {
       const added = await this.messageModel.create(newMessage);
+
       await this.chatModel.updateOne(
         { id: newMessage.chatID },
         { $push: { messages: added._id } },
       );
+
       return this.populateAndMap(added.id);
     } catch (error: unknown) {
+
       const msg = error instanceof Error ? error.message : String(error);
       this.logger.error('Error while saving message:', msg);
+
       if (error instanceof mongoose.Error.ValidationError) {
         throw new FailedToValidate(`Failed to validate message: ${msg}`);
       }
@@ -107,8 +148,6 @@ export class MessageRepositoryImpl implements IMessageRepository {
       .exec();
 
     if (!message) throw new UnknownException(`Message ${messageID} not found`);
-
-    this.logger.log('Populated', message);
 
     return this.mapper.toDto(message);
   }
