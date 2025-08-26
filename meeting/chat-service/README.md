@@ -270,38 +270,40 @@ You can find docs on **/api/v1/docs** but down below is additional example respo
   "success": true,
   "data": [
     {
-      "id": "68a6f72b267ac499a8ff3434",
-      "content": "czesvc",
-      "sender": "550e8400-e29b-41d4-a716-446655440001",
+      "id": "68a980f3e0caf5831d37c86d",
+      "content": "asdasdsd",
+      "sender": "f3ab2bc9-8e22-4f52-b2b4-1b3d73fd6c1d",
       "reactions": [],
       "answers": [],
-      "sentAt": "2025-08-21T10:38:35.962Z"
+      "sentAt": "2025-08-23T08:50:59.626Z"
     },
     {
-      "id": "68a6f745d8bf675669c3ae17",
-      "content": "czesc",
-      "sender": "550e8400-e29b-41d4-a716-446655440001",
+      "id": "68a98127e0caf5831d37c895",
+      "content": "asdasd",
+      "sender": "f3ab2bc9-8e22-4f52-b2b4-1b3d73fd6c1d",
+      "reactions": [],
+      "answers": [],
+      "sentAt": "2025-08-23T08:51:51.882Z"
+    },
+    {
+      "id": "68a98253e0caf5831d37c899",
+      "content": "asdasd",
+      "sender": "9b7d4d3e-2c36-411c-b90c-d51a5f038bce",
       "reactions": [
         {
-          "id": "68a6f747d8bf675669c3ae1b",
+          "id": "68a98255e0caf5831d37c89e",
           "emoji": "❤️",
           "user": {
-            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "id": "9b7d4d3e-2c36-411c-b90c-d51a5f038bce",
             "avatarURL": "https://example.com/avatar1.png",
-            "firstName": "Jan",
-            "lastName": "Kowalski"
+            "firstName": "Johna",
+            "lastName": "Doea"
           },
-          "messageID": "68a6f745d8bf675669c3ae17"
+          "messageID": "68a98253e0caf5831d37c899"
         }
       ],
-      "answers": [
-        {
-          "id": "68a6f770d8bf675669c3ae24",
-          "reactions": [],
-          "answers": []
-        }
-      ],
-      "sentAt": "2025-08-21T10:39:01.386Z"
+      "answers": [],
+      "sentAt": "2025-08-23T08:56:51.885Z"
     }
   ]
 }
