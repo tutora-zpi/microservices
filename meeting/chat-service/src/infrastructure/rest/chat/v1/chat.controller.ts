@@ -10,13 +10,16 @@ import {
   Post,
   Body,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { CommandBus, ICommand, IQuery, QueryBus } from '@nestjs/cqrs';
 import { CreateGeneralChatCommand } from 'src/domain/commands/create-general-chat.command';
 import { DeleteChatCommand } from 'src/domain/commands/delete-chat.command';
 import { ChatDTO } from 'src/domain/dto/chat.dto';
+import { MessageDTO } from 'src/domain/dto/message.dto';
 import { RecordNotFound } from 'src/domain/exceptions/not-found.exception';
 import { GetChatQuery } from 'src/domain/queries/get-chat.query';
+import { GetMoreMessagesQuery } from 'src/domain/queries/get-more-messages.query';
 import { AuthGuard } from 'src/infrastructure/security/guards/auth.guard';
 
 @Controller('api/v1/chats')
@@ -59,20 +62,7 @@ export class ChatController {
     this.logger.log(`Deleting chat with id: ${id}`);
     const command = new DeleteChatCommand(id);
 
-    try {
-      await this.commandBus.execute<DeleteChatCommand, ChatDTO>(command);
-
-    } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : 'Something went wrong';
-      this.logger.debug('An error ocurred: ', msg);
-
-      if (error instanceof RecordNotFound) {
-        throw new NotFoundException(`Chat with id ${id} not found`);
-      }
-
-      throw new BadRequestException('Invalid request parameters');
-    }
+    await this.commandBus.execute<DeleteChatCommand, ChatDTO>(command);
   }
 
   @UseGuards(AuthGuard)
@@ -90,4 +80,25 @@ export class ChatController {
       throw new BadRequestException('Invalid request parameters');
     }
   }
+
+  @UseGuards(AuthGuard)
+  @Get('/:id/messages')
+  @HttpCode(200)
+  async getMoreMessages(@Param('id') id: string, @Query('page') page: string = '1', @Query('limit') limit: string = '10',
+  ): Promise<MessageDTO[]> {
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+
+    const query = new GetMoreMessagesQuery(id, pageNumber, limitNumber);
+
+    const data = await this.queryBus.execute<GetMoreMessagesQuery, MessageDTO[]>(query);
+
+    if (data.length > 0) {
+      return data;
+    }
+
+    throw new NotFoundException('No more messages');
+  }
+
+
 }
