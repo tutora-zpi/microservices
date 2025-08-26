@@ -11,6 +11,6 @@ public interface UserService {
     User findByNameAndSurname(String name, String surname);
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
     User save(User user);
-    String updateUserAvatar(User user, String contentType);
+    String updateUserAvatar(UUID userId, String contentType);
     User updateUserData(UUID userId, UpdateUserDto dto);
 }

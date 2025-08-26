@@ -47,7 +47,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String updateUserAvatar(User user, String contentType) {
+    public String updateUserAvatar(UUID userId, String contentType) {
+        User user = findById(userId);
+
         if (user.getAvatarKey() != null) {
             avatarService.deleteAvatar(user.getAvatarKey());
         }

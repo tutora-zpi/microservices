@@ -35,9 +35,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private final UserService userService;
     private final AvatarService avatarService;
     private final RoleRepository roleRepository;
-    private final RestTemplate restTemplate;
-
-    private static final String GITHUB_EMAILS_URL = "https://api.github.com/user/emails";
 
     @Override
     @Transactional
