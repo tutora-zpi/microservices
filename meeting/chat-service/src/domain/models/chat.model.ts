@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import mongoose, { Document, Schema as MongooseSchema, Model as MongooseModel } from 'mongoose';
 import { Message } from './message.model';
 import { User } from './user.model';
 import { Model } from './model';
@@ -8,9 +8,8 @@ export type ChatDocument = Chat & Document;
 
 @Schema({ timestamps: true })
 export class Chat extends Model {
-  /// generated from entrypoint which starts meeting
   @Prop({ required: true })
-  id: string; // meetingID
+  id: string;
 
   @Prop({ type: [{ type: String, ref: 'User' }], default: [] })
   members: User[] | string[];
@@ -25,3 +24,12 @@ export class Chat extends Model {
 export const ChatSchema = SchemaFactory.createForClass(Chat);
 
 export const CHAT_MODEL = 'CHAT_MODEL';
+
+ChatSchema.pre('findOneAndDelete', async function () {
+  const filter = this.getFilter();
+  const id = filter.id;
+
+  // removing message related to chat
+  const messageModel: MongooseModel<Message> = mongoose.model<Message>('Message');
+  await messageModel.deleteMany({ chatID: id });
+});
