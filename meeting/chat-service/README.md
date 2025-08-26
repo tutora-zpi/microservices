@@ -15,7 +15,6 @@ Responsible for chats and messages in class and during meetings. Real-time commu
 - [Environment Variables](#environment-variables)
 - [Websocket Documentation](#ws-documentation)
 - [API Documentation](#api-documentation)
-- [Find chat endpoint example response](#find-chat-endpoint-example-response)
 
 
 ## Running the app
@@ -193,3 +192,153 @@ _Note_: ping-pong behaviour.
 **Takes**: [JoinToRoomSocketEvent](/src/domain/ws-event/join-room.socket.event.ts)
 
 **Action**: adds client to room from payload (meetingID or classID).
+
+
+## API Documentation
+
+You can find docs on **/api/v1/docs** but down below is additional example responses.
+
+**Note**: every response is wrapped in special response and looks like it:
+
+```json
+{
+  "success":true, // or false
+  "data": {}, // optional dto type
+  "error": "", // optional string
+}
+```
+
+### Creating chat using HTTP (general chat)
+
+**Path**: /api/v1/chats/general
+
+**Exmaple body**: 
+```json
+{
+  "roomID": "4fa0c4f2-3b52-4e61-91a5-bbbd1b2e0a0f",
+  "members": [
+    {
+      "id": "9b7d4d3e-2c36-419c-b90c-d51a5f038bce",
+      "firstName": "John",
+      "lastName": "Doe",
+      "avatarURL": "https://example.com/avatar1.png"
+    },
+    {
+      "id": "f3ab2bc9-8e22-4f52-b2b4-1b3d73fd6c1c",
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "avatarURL": "https://example.com/avatar2.png"
+    }
+  ]
+}
+```
+
+**Returns**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "4fa0c4f2-3b52-4e61-91a5-bbbd1b2e0a0f",
+    "members": [
+      {
+        "id": "9b7d4d3e-2c36-419c-b90c-d51a5f038bce",
+        "avatarURL": "https://example.com/avatar1.png",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      {
+        "id": "f3ab2bc9-8e22-4f52-b2b4-1b3d73fd6c1c",
+        "avatarURL": "https://example.com/avatar2.png",
+        "firstName": "Jane",
+        "lastName": "Doe"
+      }
+    ],
+    "messages": []
+  }
+}
+```
+
+
+### Getting more messages
+
+**Path**: /api/v1/chats/{id}/messages?limit={limit}&page={page}
+
+**Returns**:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "68a6f72b267ac499a8ff3434",
+      "content": "czesvc",
+      "sender": "550e8400-e29b-41d4-a716-446655440001",
+      "reactions": [],
+      "answers": [],
+      "sentAt": "2025-08-21T10:38:35.962Z"
+    },
+    {
+      "id": "68a6f745d8bf675669c3ae17",
+      "content": "czesc",
+      "sender": "550e8400-e29b-41d4-a716-446655440001",
+      "reactions": [
+        {
+          "id": "68a6f747d8bf675669c3ae1b",
+          "emoji": "❤️",
+          "user": {
+            "id": "550e8400-e29b-41d4-a716-446655440000",
+            "avatarURL": "https://example.com/avatar1.png",
+            "firstName": "Jan",
+            "lastName": "Kowalski"
+          },
+          "messageID": "68a6f745d8bf675669c3ae17"
+        }
+      ],
+      "answers": [
+        {
+          "id": "68a6f770d8bf675669c3ae24",
+          "reactions": [],
+          "answers": []
+        }
+      ],
+      "sentAt": "2025-08-21T10:39:01.386Z"
+    }
+  ]
+}
+```
+
+### Finding chat information
+
+**Path**: /api/v1/chats/{id}
+
+**Returns**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "4fa0c4f2-3b52-4e61-91a5-bbbd1b2e0a1a",
+    "members": [
+      {
+        "id": "9b7d4d3e-2c36-419c-b90c-d51a5f038bce",
+        "avatarURL": "https://example.com/avatar1.png",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      {
+        "id": "f3ab2bc9-8e22-4f52-b2b4-1b3d73fd6c1c",
+        "avatarURL": "https://example.com/avatar2.png",
+        "firstName": "Jane",
+        "lastName": "Doe"
+      }
+    ],
+    "messages": []
+  }
+}
+```
+
+### Deleting chat
+
+**Path**: /api/v1/chats/{id}
+
+**Returns**: nothing
