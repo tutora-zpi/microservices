@@ -9,6 +9,7 @@ import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.security.CustomUserDetails;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.security.userinfo.OAuth2UserInfoFactory;
+import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
@@ -25,7 +26,6 @@ import java.util.Set;
 public class CustomOidcUserService extends OidcUserService {
 
     private final UserService userService;
-    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -41,21 +41,8 @@ public class CustomOidcUserService extends OidcUserService {
 
         User user = userService
                 .findByProviderAndProviderId(oAuth2UserInfo.getProvider(), oAuth2UserInfo.getId())
-                .orElseGet(() -> registerNewUser(oAuth2UserInfo));
+                .orElseGet(() -> userService.registerUser(oAuth2UserInfo));
 
         return CustomUserDetails.create(user, oidcUser);
-    }
-
-    private User registerNewUser(OAuth2UserInfo oAuth2UserInfo) {
-        User newUser = new User();
-        newUser.setProvider(oAuth2UserInfo.getProvider());
-        newUser.setProviderId(oAuth2UserInfo.getId());
-        newUser.setEmail(oAuth2UserInfo.getEmail());
-
-        Role userRole = roleRepository.findByName(RoleName.USER)
-                .orElseThrow(() -> new RuntimeException("Error: Default role USER not found."));
-        newUser.setRoles(Set.of(userRole));
-
-        return userService.save(newUser);
     }
 }

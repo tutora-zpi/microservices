@@ -2,16 +2,21 @@ package org.example.userservice.service.implementation;
 
 import lombok.RequiredArgsConstructor;
 import org.example.userservice.dto.UpdateUserDto;
+import org.example.userservice.entity.Role;
+import org.example.userservice.entity.RoleName;
 import org.example.userservice.entity.User;
 import org.example.userservice.exception.ResourceNotFoundException; // Zmieniony import
 import org.example.userservice.mapper.UserMapper;
+import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.repository.UserRepository;
+import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -20,6 +25,7 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final AvatarService avatarService;
     private final UserMapper userMapper;
 
@@ -38,6 +44,25 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<User> findByProviderAndProviderId(String provider, String providerId) {
         return userRepository.findByProviderAndProviderId(provider, providerId);
+    }
+
+    @Override
+    public User registerUser(OAuth2UserInfo userInfo) {
+        User newUser = new User();
+        newUser.setProvider(userInfo.getProvider());
+        newUser.setProviderId(userInfo.getId());
+        newUser.setEmail(userInfo.getEmail());
+        newUser.setName(userInfo.getName());
+        newUser.setSurname(userInfo.getSurname());
+
+        Role userRole = roleRepository.findByName(RoleName.USER)
+                .orElseThrow(() -> new RuntimeException("Default role USER not found"));
+        newUser.setRoles(Set.of(userRole));
+
+        String avatarKey = avatarService.saveAvatarFromUrl(newUser.getId(), userInfo.getImageUrl());
+        newUser.setAvatarKey(avatarKey);
+
+        return save(newUser);
     }
 
     @Override

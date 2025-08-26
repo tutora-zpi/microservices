@@ -1,6 +1,7 @@
 package org.example.userservice.security.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.userservice.entity.Role;
 import org.example.userservice.entity.RoleName;
 import org.example.userservice.entity.User;
@@ -30,16 +31,19 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserService userService;
-    private final AvatarService avatarService;
-    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        log.info(userRequest.toString());
+
         OAuth2User oAuth2User = super.loadUser(userRequest);
+
+        log.info(oAuth2User.toString());
 
         String provider = userRequest.getClientRegistration().getRegistrationId();
 
@@ -56,28 +60,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         User user = userService
                 .findByProviderAndProviderId(provider, providerId)
-                .orElseGet(() -> registerNewUser(oAuth2UserInfo));
+                .orElseGet(() -> userService.registerUser(oAuth2UserInfo));
 
         return CustomUserDetails.create(user, oAuth2User);
-    }
-
-    private User registerNewUser(OAuth2UserInfo oAuth2UserInfo) {
-        User newUser = new User();
-        newUser.setProvider(oAuth2UserInfo.getProvider());
-        newUser.setProviderId(oAuth2UserInfo.getId());
-        newUser.setEmail(oAuth2UserInfo.getEmail());
-        newUser.setName(oAuth2UserInfo.getName());
-        newUser.setSurname(oAuth2UserInfo.getSurname());
-
-        Role userRole = roleRepository.findByName(RoleName.USER)
-                .orElseThrow(() -> new RuntimeException("Error: Default role USER not found in database."));
-        newUser.setRoles(Set.of(userRole));
-
-        String pictureUrl = oAuth2UserInfo.getImageUrl();
-        String avatarKey = avatarService.saveAvatarFromUrl(newUser.getId(), pictureUrl);
-
-        newUser.setAvatarKey(avatarKey);
-
-        return userService.save(newUser);
     }
 }
