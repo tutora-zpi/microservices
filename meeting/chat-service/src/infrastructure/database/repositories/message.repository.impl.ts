@@ -37,9 +37,9 @@ export class MessageRepositoryImpl implements IMessageRepository {
       const messages = await this.messageModel
         .find(findOption)
         .select(['_id', 'sentAt', 'content', 'sender'])
-        .sort({ sentAt: 1 })
+        .sort({ sentAt: -1 })
         .limit(query.limit)
-        .skip(query.limit * query.page)
+        .skip(query.limit * (query.page - 1))
         .populate({
           path: 'reactions',
           options: { sort: { sentAt: 1 } },
@@ -55,10 +55,10 @@ export class MessageRepositoryImpl implements IMessageRepository {
         })
         .exec();
 
-      return messages.map(message => this.mapper.toDto(message));
+      return messages.reverse().map(message => this.mapper.toDto(message));
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error('Error while saving message:', msg);
+      this.logger.error('Error while getting messages:', msg);
       return [];
     }
   }
