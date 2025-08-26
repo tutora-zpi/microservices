@@ -1,15 +1,11 @@
 package org.example.userservice.security.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.userservice.entity.Role;
-import org.example.userservice.entity.RoleName;
 import org.example.userservice.entity.User;
 import org.example.userservice.exception.OAuth2AuthenticationProcessingException;
-import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.security.CustomUserDetails;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.security.userinfo.OAuth2UserInfoFactory;
-import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;

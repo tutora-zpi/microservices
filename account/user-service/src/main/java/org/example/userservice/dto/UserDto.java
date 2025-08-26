@@ -8,7 +8,7 @@ public record UserDto(
         String email,
         String name,
         String surname,
-        String avatarKey,
+        String avatarUrl,
         Set<String> roles
 ) {}
 

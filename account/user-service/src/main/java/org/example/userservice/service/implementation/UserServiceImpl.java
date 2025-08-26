@@ -5,8 +5,7 @@ import org.example.userservice.dto.UpdateUserDto;
 import org.example.userservice.entity.Role;
 import org.example.userservice.entity.RoleName;
 import org.example.userservice.entity.User;
-import org.example.userservice.exception.ResourceNotFoundException; // Zmieniony import
-import org.example.userservice.mapper.UserMapper;
+import org.example.userservice.exception.ResourceNotFoundException;
 import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;

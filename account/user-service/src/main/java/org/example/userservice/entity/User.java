@@ -53,11 +53,4 @@ public class User {
             uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"})
     )
     private Set<Role> roles = new HashSet<>();
-
-
-    public Set<String> getRoleNames() {
-        return this.getRoles().stream()
-                .map(role -> role.getName().name())
-                .collect(Collectors.toSet());
-    }
 }
