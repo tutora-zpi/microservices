@@ -1,4 +1,4 @@
-package org.example.userservice.service;
+package org.example.userservice.service.contract;
 
 import org.example.userservice.entity.User;
 
@@ -10,4 +10,5 @@ public interface UserService {
     User findByEmail(String email);
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
     User save(User user);
+    String updateUserAvatar(User user, String contentType);
 }
