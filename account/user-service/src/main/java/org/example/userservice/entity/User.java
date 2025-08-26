@@ -31,11 +31,20 @@ public class User {
     @Column(nullable = false)
     private String provider;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "provider_id")
     private String providerId;
 
     @Column(nullable = false)
     private String email;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String surname;
+
+    @Column(name = "avatar_key")
+    private String avatarKey;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

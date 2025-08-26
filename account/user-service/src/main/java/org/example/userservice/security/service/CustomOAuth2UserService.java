@@ -9,7 +9,7 @@ import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.security.CustomUserDetails;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.security.userinfo.OAuth2UserInfoFactory;
-import org.example.userservice.service.UserService;
+import org.example.userservice.service.contract.UserService;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;

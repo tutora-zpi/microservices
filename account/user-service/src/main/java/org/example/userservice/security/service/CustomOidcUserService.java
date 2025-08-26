@@ -9,7 +9,7 @@ import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.security.CustomUserDetails;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.security.userinfo.OAuth2UserInfoFactory;
-import org.example.userservice.service.UserService;
+import org.example.userservice.service.contract.UserService;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
