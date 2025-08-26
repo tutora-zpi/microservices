@@ -11,6 +11,7 @@ import { MicroserviceOptions } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { RabbitMQConfig } from './infrastructure/config/rabbitmq.config';
 import { ServiceResponseWrapperInterceptor } from './domain/response/response.wrapper';
+import { AllExceptionsFilter } from './infrastructure/filters/all-exception.filter';
 
 const appName = `${process.env.APP_NAME || 'PROVIDE APP NAME'} - Chat Service`;
 
@@ -43,6 +44,8 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>(
     rabbitmqConfig.options(),
   );
+
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
