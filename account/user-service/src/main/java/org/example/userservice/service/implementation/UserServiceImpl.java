@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
             avatarService.deleteAvatar(user.getAvatarKey());
         }
 
-        String newKey = "avatars/" + user.getId() + "/" + UUID.randomUUID() + ".png";
+        String newKey = "avatars/" + user.getId().toString() + "/" + UUID.randomUUID() + ".png";
 
         String uploadUrl = avatarService.generateUploadUrl(newKey, contentType);
 

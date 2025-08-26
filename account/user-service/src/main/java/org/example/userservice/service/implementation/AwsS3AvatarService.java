@@ -67,7 +67,7 @@ public class AwsS3AvatarService implements AvatarService {
                 throw new RuntimeException("Pusty plik avataru");
             }
 
-            String key = "avatars/" + userId + "/" + UUID.randomUUID() + ".png";
+            String key = "avatars/" + userId.toString() + "/" + UUID.randomUUID() + ".png";
 
             s3Client.putObject(
                     PutObjectRequest.builder()
