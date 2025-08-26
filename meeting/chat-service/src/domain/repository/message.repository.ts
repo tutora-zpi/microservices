@@ -3,6 +3,7 @@ import { ReactMessageOnCommand } from '../commands/react-on-message.command';
 import { ReplyOnMessageCommand } from '../commands/reply-on-message.command';
 import { SendMessageCommand } from '../commands/send-message.command';
 import { MessageDTO } from '../dto/message.dto';
+import { GetMoreMessagesQuery } from '../queries/get-more-messages.query';
 
 export const MESSAGE_REPOSITORY = 'IMessageRepository';
 
@@ -11,4 +12,5 @@ export interface IMessageRepository {
   react(react: ReactMessageOnCommand): Promise<MessageDTO>;
   reply(reply: ReplyOnMessageCommand): Promise<MessageDTO>;
   delete(body: DeleteMessageCommand): Promise<boolean>;
+  get(query: GetMoreMessagesQuery): Promise<MessageDTO[]>;
 }
