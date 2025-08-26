@@ -1,8 +1,7 @@
 import { DTO } from './dto';
 import { ReactionDTO } from './reaction.dto';
 import { UserDTO } from './user.dto';
-import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional, getSchemaPath } from '@nestjs/swagger';
+import { IsArray, IsBoolean, IsDate, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class MessageDTO extends DTO {
   @IsUUID()
