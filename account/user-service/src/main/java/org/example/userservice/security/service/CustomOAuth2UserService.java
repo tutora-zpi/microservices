@@ -9,6 +9,7 @@ import org.example.userservice.repository.RoleRepository;
 import org.example.userservice.security.CustomUserDetails;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.security.userinfo.OAuth2UserInfoFactory;
+import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,6 +33,7 @@ import java.util.Set;
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserService userService;
+    private final AvatarService avatarService;
     private final RoleRepository roleRepository;
     private final RestTemplate restTemplate;
 
@@ -49,58 +51,35 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         String email = oAuth2UserInfo.getEmail();
 
-        if (!StringUtils.hasText(email) && "github".equalsIgnoreCase(provider)) { //proxy email
-            String githubId = oAuth2UserInfo.getId();
-            email = githubId + "@users.noreply.github.com";
-        }
-
         if (!StringUtils.hasText(email)) {
             throw new OAuth2AuthenticationProcessingException("Email not found from OAuth2 provider");
         }
 
-        final String finalEmail = email;
         String providerId = oAuth2UserInfo.getId();
 
         User user = userService
                 .findByProviderAndProviderId(provider, providerId)
-                .orElseGet(() -> registerNewUser(provider, providerId, finalEmail));
+                .orElseGet(() -> registerNewUser(oAuth2UserInfo));
 
         return CustomUserDetails.create(user, oAuth2User);
     }
 
-    private String fetchPrimaryGitHubEmail(String accessToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        HttpEntity<String> entity = new HttpEntity<>("", headers);
-
-        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                GITHUB_EMAILS_URL,
-                HttpMethod.GET,
-                entity,
-                new org.springframework.core.ParameterizedTypeReference<>() {}
-        );
-
-        List<Map<String, Object>> emails = response.getBody();
-        if (emails == null || emails.isEmpty()) {
-            throw new OAuth2AuthenticationProcessingException("Email list not found from GitHub");
-        }
-
-        return emails.stream()
-                .filter(emailMap -> (Boolean) emailMap.get("primary") && (Boolean) emailMap.get("verified"))
-                .findFirst()
-                .map(emailMap -> (String) emailMap.get("email"))
-                .orElseThrow(() -> new OAuth2AuthenticationProcessingException("No primary verified email found from GitHub"));
-    }
-
-    private User registerNewUser(String provider, String id, String email) {
+    private User registerNewUser(OAuth2UserInfo oAuth2UserInfo) {
         User newUser = new User();
-        newUser.setProvider(provider);
-        newUser.setProviderId(id);
-        newUser.setEmail(email);
+        newUser.setProvider(oAuth2UserInfo.getProvider());
+        newUser.setProviderId(oAuth2UserInfo.getId());
+        newUser.setEmail(oAuth2UserInfo.getEmail());
+        newUser.setName(oAuth2UserInfo.getName());
+        newUser.setSurname(oAuth2UserInfo.getSurname());
 
         Role userRole = roleRepository.findByName(RoleName.USER)
                 .orElseThrow(() -> new RuntimeException("Error: Default role USER not found in database."));
         newUser.setRoles(Set.of(userRole));
+
+        String pictureUrl = oAuth2UserInfo.getImageUrl();
+        String avatarKey = avatarService.saveAvatarFromUrl(newUser.getId(), pictureUrl);
+
+        newUser.setAvatarKey(avatarKey);
 
         return userService.save(newUser);
     }

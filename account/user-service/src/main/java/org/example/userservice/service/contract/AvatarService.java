@@ -1,6 +1,6 @@
 package org.example.userservice.service.contract;
 
-import org.example.userservice.entity.User;
+import java.util.UUID;
 
 public interface AvatarService {
 
@@ -29,4 +29,13 @@ public interface AvatarService {
      * @param key - klucz obiektu w storage (np. avatars/123.png)
      */
     void deleteAvatar(String key);
+
+    /**
+     * Zapisuje avatar w storage
+     *
+     * @param userId - id użytkownika
+     * @param sourceUrl - url do avataru
+     * @return klucz obiektu w storage
+     */
+    String saveAvatarFromUrl(UUID userId, String sourceUrl);
 }

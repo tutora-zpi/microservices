@@ -1,8 +1,10 @@
 package org.example.userservice.service.implementation;
 
 import lombok.RequiredArgsConstructor;
+import org.example.userservice.dto.UpdateUserDto;
 import org.example.userservice.entity.User;
 import org.example.userservice.exception.ResourceNotFoundException; // Zmieniony import
+import org.example.userservice.mapper.UserMapper;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
@@ -19,6 +21,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final AvatarService avatarService;
+    private final UserMapper userMapper;
 
     @Override
     public User findById(UUID id) {
@@ -27,9 +30,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+    public User findByNameAndSurname(String name, String surname) {
+        return userRepository.findByNameAndSurname(name, surname)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "name and surname", name + surname));
     }
 
     @Override
@@ -57,5 +60,15 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return uploadUrl;
+    }
+
+    @Override
+    public User updateUserData(UUID userId, UpdateUserDto dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        userMapper.updateUserFromDto(dto, user);
+
+        return userRepository.save(user);
     }
 }
