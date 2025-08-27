@@ -11,6 +11,8 @@ import org.example.userservice.repository.UserRepository;
 import org.example.userservice.security.userinfo.OAuth2UserInfo;
 import org.example.userservice.service.contract.AvatarService;
 import org.example.userservice.service.contract.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,9 +36,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByNameAndSurname(String name, String surname) {
-        return userRepository.findByNameAndSurname(name, surname)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "name and surname", name + surname));
+    public Page<User> findByNameStartingWithIgnoreCaseOrSurnameStartingWithIgnoreCase(
+            String query,
+            Pageable pageable) {
+        return userRepository.findByNameStartingWithIgnoreCaseOrSurnameStartingWithIgnoreCase(
+                query,
+                query,
+                pageable);
     }
 
     @Override

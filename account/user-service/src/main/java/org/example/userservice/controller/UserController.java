@@ -8,6 +8,8 @@ import org.example.userservice.dto.UserDto;
 import org.example.userservice.entity.User;
 import org.example.userservice.mapper.UserMapper;
 import org.example.userservice.service.contract.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,5 +54,20 @@ public class UserController {
         String uploadUrl = userService.updateUserAvatar(id, request.getContentType());
 
         return ResponseEntity.ok(Map.of("uploadUrl", uploadUrl));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<UserDto>> searchUsers(
+            @RequestParam String query,
+            Pageable pageable
+    ) {
+        log.info("Request to search users with query {}", query);
+
+        Page<User> result = userService.findByNameStartingWithIgnoreCaseOrSurnameStartingWithIgnoreCase(
+                query,
+                pageable
+        );
+
+        return ResponseEntity.ok(result.map(userMapper::toDto));
     }
 }
