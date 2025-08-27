@@ -25,17 +25,25 @@ import java.util.stream.Collectors;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
     private String provider;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "provider_id")
     private String providerId;
 
     @Column(nullable = false)
     private String email;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String surname;
+
+    @Column(name = "avatar_key")
+    private String avatarKey;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -45,11 +53,4 @@ public class User {
             uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"})
     )
     private Set<Role> roles = new HashSet<>();
-
-
-    public Set<String> getRoleNames() {
-        return this.getRoles().stream()
-                .map(role -> role.getName().name())
-                .collect(Collectors.toSet());
-    }
 }

@@ -7,21 +7,25 @@ Centralny mikroserwis odpowiedzialny za uwierzytelnianie użytkowników w ekosys
 ## Funkcjonalności
 
 * **Logowanie jednokrotne (SSO)** z dostawcami:
-    * Google
-    * GitHub
+    * Google (automatyczne pobieranie danych i zapisywanie w bazie)
 * **Generowanie tokenów JWT** podpisanych asymetrycznie algorytmem **RS256**.
 * **Trwałość użytkowników** w bazie danych PostgreSQL.
+* **Zarządzanie danymi użytkowników**:
+  * Pobieranie danych użytkownika po UUID
+  * Aktualizacja danych użytkownika (`email`, `name`, `surname`)
+  * Generowanie presigned URL do uploadu awatarów
 * **Endpoint JWKS** (`/.well-known/jwks.json`) do dystrybucji klucza publicznego.
 * **Zdecentralizowana walidacja tokenów** – każdy mikroserwis może weryfikować tokeny samodzielnie.
-* **Globalna obsługa wyjątków** i spójne formatowanie odpowiedzi błędów.
-* Gotowa konfiguracja do uruchomienia za pomocą **Docker Compose**.
 
 ## Architektura
 
-![Diagram przepływu OAuth2 i JWT](https://i.imgur.com/gK2gE2C.png)
-
 Serwis implementuje nowoczesny i bezpieczny wzorzec uwierzytelniania dla systemów rozproszonych. Po pomyślnej autoryzacji u dostawcy OAuth2, serwis tworzy lub aktualizuje użytkownika w swojej bazie danych, a następnie generuje token JWT podpisany kluczem prywatnym. Klucz publiczny jest udostępniany przez standardowy endpoint JWKS, co pozwala innym serwisom na bezstanową i szybką weryfikację tokenów.
 
+Dodatkowo serwis zarządza pełnym cyklem życia użytkowników:
+* Przechowuje ich dane w bazie PostgreSQL (`email`, `name`, `surname`, `role`, `avatarKey`).
+* Umożliwia pobranie danych użytkownika po UUID.
+* Umożliwia aktualizację podstawowych danych użytkownika (email, imię, nazwisko).
+* Generuje presigned URL do uploadu awatarów i zapisuje referencję w bazie.
 ---
 
 ## Wymagania
@@ -30,6 +34,7 @@ Przed uruchomieniem upewnij się, że masz zainstalowane następujące narzędzi
 * Java 17 (lub nowsza)
 * Apache Maven
 * Docker i Docker Compose
+* Skonfigurowany bucket w AWS S3
 * `openssl` (do generowania kluczy RSA, zazwyczaj dostępne w systemach Linux/macOS lub przez Git Bash w Windows)
 
 ---
@@ -57,43 +62,16 @@ openssl rsa -pubout -in src/main/resources/keys/private_key.pem -out src/main/re
 Musisz założyć własne aplikacje OAuth2 w konsolach deweloperskich Google i GitHub, aby uzyskać `Client ID` i `Client Secret`.
 
 * **Google:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-* **GitHub:** [Developer Settings](https://github.com/settings/developers)
 
 Podczas konfiguracji aplikacji u dostawców, jako **Authorized redirect URI** podaj:
 `http://localhost:8080/login/oauth2/code/google`
-`http://localhost:8080/login/oauth2/code/github`
 
-### 4. Utworzenie pliku `.env`
+### 3. Utworzenie pliku `.env`
 
 
-Stwórz plik `.env`, skopiuj i uzupełnij poniższy template:
-```
-# Porty
-USER_SERVICE_PORT=
-POSTGRES_PORT=
-PGADMIN_PORT=
+Stwórz plik `.env` na podstawie `.env.sample`
 
-# Dane dostepu do Postgresa
-POSTGRES_DB=
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-
-# Dane do pgAdmin
-PGADMIN_DEFAULT_EMAIL=
-PGADMIN_DEFAULT_PASSWORD=
-
-# OAuth2 (GitHub)
-OAUTH_GITHUB_CLIENT_ID=
-OAUTH_GITHUB_CLIENT_SECRET=
-
-# OAuth2 (Google) 
-OAUTH_GOOGLE_CLIENT_ID=
-OAUTH_GOOGLE_CLIENT_SECRET=
-
-FRONTEND_URL_CALLBACK=http://localhost:3000/auth/callback
-CORS_ALLOWED_ORIGINS=http://localhost:3000
-```
-Następnie **otwórz plik `.env` i uzupełnij go** swoimi danymi uzyskanymi w poprzednim kroku oraz danymi do bazy danych.
+**Otwórz plik `.env` i uzupełnij go** swoimi danymi uzyskanymi w poprzednim kroku oraz danymi do bazy danych.
 
 **WAŻNE:** Plik `.env` zawiera poufne dane i **nie powinien** być dodawany do systemu kontroli wersji Git. Jest on już uwzględniony w pliku `.gitignore`.
 
@@ -111,23 +89,27 @@ docker-compose up --build
 
 ## Endpointy API
 
-| Metoda | Ścieżka | Opis | Dostęp |
-| :--- | :--- | :--- |:--- |
-| `GET` | `/oauth2/authorization/{provider}` | Inicjuje proces logowania przez danego dostawcę (`google` lub `github`). Należy przekierować tu użytkownika. | Publiczny |
-| `GET` | `/.well-known/jwks.json` | Zwraca klucz publiczny RSA w formacie JWKS do weryfikacji tokenów. | Publiczny |
-| `GET` | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. Wymaga nagłówka `Authorization: Bearer <JWT>`. | Chroniony |
+| Metoda | Ścieżka | Opis | Dostęp | Body |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/oauth2/authorization/{provider}` | Inicjuje proces logowania przez danego dostawcę (`google` lub `github`). | Publiczny | – |
+| `GET` | `/.well-known/jwks.json` | Zwraca klucz publiczny RSA w formacie JWKS do weryfikacji tokenów. | Publiczny | – |
+| `GET` | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. | Chroniony (JWT) | – |
+| `GET` | `/users/{id}` | Pobiera dane użytkownika po UUID. | Chroniony (JWT) | – |
+| `PATCH` | `/users/{id}` | Aktualizuje dane użytkownika (`email`, `name`, `surname`). | Chroniony (JWT) | JSON `{ "email": "", "name": "", "surname": "" }` |
+| `POST` | `/users/{id}/avatar` | Generuje presigned URL do uploadu avatara. | Chroniony (JWT) | JSON `{ "contentType": "image/png" }` |
 
 ---
 
-## Przykładowy response dla /auth/me
+## Przykładowy response dla /auth/me, /users/{id}
 
 ```
 {
-    "id": "b7542757-3b91-4fd0-8e59-473a341f1a3b",
-    "email": "igopood33@gmail.com",
-    "roles": [
-        "USER"
-    ]
+  "id": "b7542757-3b91-4fd0-8e59-473a341f1a3b",
+  "email": "user@example.com",
+  "name": "Jan",
+  "surname": "Kowalski",
+  "roles": ["USER"],
+  "avatarKey": "avatars/b7542757-3b91-4fd0-8e59-473a341f1a3b/abc123.png"
 }
 ```
 
@@ -144,6 +126,15 @@ docker-compose up --build
         }
     ]
 }
+```
+
+## Przykładowy response dla users/{id}/avatar
+
+```
+{
+  "uploadUrl": "https://bucket.s3.amazonaws.com/avatars/b7542757-3b91-4fd0-8e59-473a341f1a3b/abc123.png?AWSAccessKeyId=..."
+}
+
 ```
 Opis pól:
 - kty (Key Type): Typ algorytmu kryptograficznego. Najczęściej będzie to "RSA".
