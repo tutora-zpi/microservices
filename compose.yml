@@ -79,6 +79,33 @@ services:
     networks:
       - tutora_net
 
+  board-service:
+    container_name: board-service
+    build:
+      context: ./meeting/board-service
+      dockerfile: ./Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./meeting/board-service/.env
+    depends_on:
+      - board-db
+    networks:
+      - tutora_net
+
+  board-db:
+    image: mongo
+    container_name: board_db
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tutora_net
+
   user_service_app:
     container_name: user_service
     build:

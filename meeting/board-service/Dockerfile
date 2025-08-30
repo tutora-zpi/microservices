@@ -1,4 +1,4 @@
-FROM node:20
+FROM node:20-slim
 
 WORKDIR /usr/src/app
 
@@ -8,6 +8,6 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 8001
 
 CMD ["node", "dist/main.js"]
