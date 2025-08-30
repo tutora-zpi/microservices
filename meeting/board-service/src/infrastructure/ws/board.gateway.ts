@@ -11,7 +11,11 @@ import { Logger } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 import { AutosaveScheduler } from '../scheduler/autosave.scheduler';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({
+    cors: {
+        origin: '*',
+    },
+})
 export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
