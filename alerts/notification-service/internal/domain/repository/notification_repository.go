@@ -1,6 +1,12 @@
 package repository
 
+import (
+	"context"
+	"notification-serivce/internal/domain/dto"
+	"notification-serivce/internal/domain/models"
+)
+
 type NotificationRepository interface {
-	Save()
-	MarkAsRead()
+	Save(ctx context.Context, n *models.Notification) (*dto.NotificationDTO, error)
+	MarkAsDelivered(ctx context.Context, id string) error
 }
