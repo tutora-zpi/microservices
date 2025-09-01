@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.userservice.dto.UserDto;
 import org.example.userservice.mapper.UserMapper;
 import org.example.userservice.security.CustomUserDetails;
-import org.example.userservice.service.UserService;
+import org.example.userservice.service.contract.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8004;
 
 server.listen(PORT, () => {
   console.log(` ${PORT}`);

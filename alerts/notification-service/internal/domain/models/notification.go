@@ -1,46 +1,34 @@
 package models
 
 import (
+	"notification-serivce/internal/domain/dto"
+	"notification-serivce/internal/domain/enums"
 	"time"
 
-	"github.com/google/uuid"
-)
-
-type NotificationType string
-
-const (
-	Invitation NotificationType = "invitation"
-	System     NotificationType = "system"
-)
-
-type NotificationStatus string
-
-const (
-	Sent    NotificationStatus = "sent"
-	Created NotificationStatus = "created"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Notification struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	Type      NotificationType
-	Status    NotificationStatus
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	CreatedAt time.Time     `bson:"createdAt"`
 
-	ReceiverID string
+	Type   enums.NotificationType   `bson:"type"`
+	Status enums.NotificationStatus `bson:"status"`
 
-	Title string
-	Body  string
+	ReceiverID string `bson:"receiverId"`
 
-	RedirectionLink string
+	Title           string `bson:"title"`
+	Body            string `bson:"body"`
+	RedirectionLink string `bson:"redirectionLink"`
 
-	Metadata map[string]any
+	Metadata map[string]any `bson:"metadata"`
 }
 
-func NewNotification(notificationType NotificationType, receiverID, title, body, redirectionLink string, metadata map[string]any) *Notification {
+func NewNotification(notificationType enums.NotificationType, receiverID, title, body, redirectionLink string, metadata map[string]any) *Notification {
 	return &Notification{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		Status:    Created,
+		ID:        bson.NewObjectID(),
+		CreatedAt: bson.NewObjectID().Timestamp(),
+		Status:    enums.Created,
 
 		Type:       notificationType,
 		ReceiverID: receiverID,
@@ -50,5 +38,18 @@ func NewNotification(notificationType NotificationType, receiverID, title, body,
 		RedirectionLink: redirectionLink,
 
 		Metadata: metadata,
+	}
+}
+
+func (n *Notification) DTO() dto.NotificationDTO {
+	return dto.NotificationDTO{
+		ID:              n.ID.Hex(),
+		CreatedAt:       n.CreatedAt,
+		Type:            n.Type,
+		Status:          n.Status,
+		Title:           n.Title,
+		Body:            n.Body,
+		RedirectionLink: n.RedirectionLink,
+		Metadata:        n.Metadata,
 	}
 }

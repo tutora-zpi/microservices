@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"notification-serivce/internal/config"
 	"os"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -54,13 +55,13 @@ func (d *Database) GetCollection() *mongo.Collection {
 }
 
 func chooseDatabase(client *mongo.Client) (*Database, error) {
-	dbName := os.Getenv("MONGO_DB_NAME")
+	dbName := os.Getenv(config.MONGO_DB_NAME)
 
 	if dbName == "" {
 		dbName = DATABASE_NAME
 	}
 
-	collection := os.Getenv("MONGO_COLLECTION")
+	collection := os.Getenv(config.MONGO_COLLECTION)
 
 	if collection == "" {
 		collection = COLLECTION
@@ -74,12 +75,12 @@ func chooseDatabase(client *mongo.Client) (*Database, error) {
 }
 
 func getConnectionURL() string {
-	uri := os.Getenv("MONGO_URI")
+	uri := os.Getenv(config.MONGO_URI)
 	if uri == "" {
-		host := os.Getenv("MONGO_HOST")
-		port := os.Getenv("MONGO_PORT")
-		user := os.Getenv("MONGO_USER")
-		pass := os.Getenv("MONGO_PASS")
+		host := os.Getenv(config.MONGO_HOST)
+		port := os.Getenv(config.MONGO_PORT)
+		user := os.Getenv(config.MONGO_USER)
+		pass := os.Getenv(config.MONGO_PASS)
 
 		if host == "" || port == "" || user == "" || pass == "" {
 			return ""

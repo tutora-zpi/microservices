@@ -6,7 +6,8 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <include file="/db/migration/schema.sql" />
+    <include file="/db/migration/001-schema_init.sql" />
+    <include file="/db/migration/002-users_extension.sql"/>
     <include file="/db/seeding/seed-roles.sql"/>
 
 </databaseChangeLog>
