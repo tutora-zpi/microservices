@@ -1,6 +1,7 @@
 package org.tutora.classservice.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import org.hibernate.annotations.NaturalId;
 @Getter
 @Setter
 @NoArgsConstructor
+@Builder
 public class Role {
 
     @Id

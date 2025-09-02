@@ -10,6 +10,7 @@ import org.hibernate.annotations.NaturalId;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class InvitationStatus {
 
     @Id
