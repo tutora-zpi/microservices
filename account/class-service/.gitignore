@@ -1,0 +1,12 @@
+# IDE
+.idea/
+*.iml
+
+# Build / Maven
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# Environment
+.env
