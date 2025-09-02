@@ -30,6 +30,6 @@ public class Classroom {
     @Column
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "classId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserClass> userClasses;
 }
