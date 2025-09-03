@@ -11,14 +11,11 @@ import (
 	"notification-serivce/internal/domain/repository"
 )
 
-const RETRIES int = 5
-
 type ClassInvitationHandler struct {
-	publisher interfaces.NotificationPublisher
+	publisher interfaces.NotificationManager
 	repo      repository.NotificationRepository
 }
 
-// Handle implements interfaces.EventHandler.
 func (c *ClassInvitationHandler) Handle(body []byte) error {
 	ctx := context.Background()
 	event := event.ClassInvitationEvent{}
@@ -29,12 +26,16 @@ func (c *ClassInvitationHandler) Handle(body []byte) error {
 		return fmt.Errorf("an error occured during casting into event struct")
 	}
 
+	log.Println("Successfully handled")
+
 	var dto *dto.NotificationDTO
 
 	dto, err = c.repo.Save(ctx, event.Notification())
 	if err != nil {
 		return err
 	}
+
+	log.Println("DTO", *dto)
 
 	if err = c.publisher.Push(*dto); err != nil {
 		return err
@@ -47,7 +48,7 @@ func (c *ClassInvitationHandler) Handle(body []byte) error {
 	return nil
 }
 
-func NewClassInvitationHandler(publisher interfaces.NotificationPublisher, repo repository.NotificationRepository) interfaces.EventHandler {
+func NewClassInvitationHandler(publisher interfaces.NotificationManager, repo repository.NotificationRepository) interfaces.EventHandler {
 	return &ClassInvitationHandler{
 		publisher: publisher,
 		repo:      repo,
