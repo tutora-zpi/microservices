@@ -3,6 +3,7 @@ package messaging
 import (
 	"fmt"
 	"log"
+	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/config"
 	"notification-serivce/internal/domain/event"
 	"os"
@@ -15,15 +16,14 @@ type RabbitMQBroker struct {
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	exchange   string
+	dispatcher interfaces.Dispatcher
 }
+
+const fanout string = "fanout"
 
 const RETRIES int = 3
 
 var rabbitmqURL string
-
-func init() {
-	rabbitmqURL = buildConnectionString()
-}
 
 func connect(connStr string) (*amqp.Connection, error) {
 	var conn *amqp.Connection
@@ -42,7 +42,9 @@ func connect(connStr string) (*amqp.Connection, error) {
 	return nil, fmt.Errorf("could not connect to RabbitMQ: %w", err)
 }
 
-func NewRabbitBroker() *RabbitMQBroker {
+func NewRabbitBroker(dispatcher interfaces.Dispatcher) interfaces.Broker {
+
+	rabbitmqURL = buildConnectionString()
 
 	conn, err := connect(rabbitmqURL)
 	if err != nil {
@@ -55,16 +57,8 @@ func NewRabbitBroker() *RabbitMQBroker {
 	}
 
 	exchangeName := os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME)
-	err = ch.ExchangeDeclare(
-		exchangeName,
-		"fanout",
-		true,  // durable
-		false, // autoDelete
-		false, // internal
-		false, // noWait
-		nil,   // args
-	)
-	if err != nil {
+
+	if err := declareExchange(ch, exchangeName); err != nil {
 		log.Panicf("Failed to declare exchange: %v\n", err)
 	}
 
@@ -72,6 +66,7 @@ func NewRabbitBroker() *RabbitMQBroker {
 		connection: conn,
 		channel:    ch,
 		exchange:   exchangeName,
+		dispatcher: dispatcher,
 	}
 }
 
@@ -84,32 +79,76 @@ func (r *RabbitMQBroker) Close() {
 	}
 }
 
+func (r *RabbitMQBroker) Consume() error {
+	if err := r.reconnect(); err != nil {
+		return fmt.Errorf("failed to reconnect: %w", err)
+	}
+
+	q, err := r.channel.QueueDeclare(
+		"",
+		false,
+		false,
+		true,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	for _, p := range r.dispatcher.AvailablePatterns() {
+		if err := r.channel.QueueBind(q.Name, p, r.exchange, false, nil); err != nil {
+			return fmt.Errorf("failed to bind pattern %s: %w", p, err)
+		}
+	}
+
+	msgs, err := r.channel.Consume(
+		q.Name,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to consume: %w", err)
+	}
+
+	log.Println("Waiting for events...")
+
+	go func() {
+		for msg := range msgs {
+			if len(msg.Body) == 0 {
+				log.Println("Skipping empty event")
+				continue
+			}
+
+			log.Printf("Received an event: %s\n", msg.Body)
+
+			var wrapper event.EventWrapper
+			pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
+
+			if err != nil {
+				log.Println("Failed to decode event:", err)
+				continue
+			}
+
+			if err := r.dispatcher.HandleEvent(pattern, data); err != nil {
+				log.Printf("Error handling event %s: %v", pattern, err)
+			}
+
+			_ = msg.Ack(false)
+		}
+	}()
+
+	return nil
+}
+
 func (r *RabbitMQBroker) Publish(event event.EventWrapper) error {
-	if r.channel == nil || r.connection.IsClosed() {
-		connStr := buildConnectionString()
-
-		conn, err := connect(connStr)
-		if err != nil {
-			return fmt.Errorf("reconnect failed: %w", err)
-		}
-		ch, err := conn.Channel()
-		if err != nil {
-			return fmt.Errorf("failed to open channel after reconnect: %w", err)
-		}
-		r.connection = conn
-		r.channel = ch
-
-		if err := ch.ExchangeDeclare(
-			r.exchange,
-			"fanout",
-			true,
-			false,
-			false,
-			false,
-			nil,
-		); err != nil {
-			return fmt.Errorf("failed to declare exchange after reconnect: %w", err)
-		}
+	if err := r.reconnect(); err != nil {
+		log.Printf("Failed to reconnect to rabbitmq: %v\n", err)
+		return err
 	}
 
 	body, err := event.ToJson()
@@ -119,7 +158,7 @@ func (r *RabbitMQBroker) Publish(event event.EventWrapper) error {
 
 	err = r.channel.Publish(
 		r.exchange,
-		"",
+		event.Pattern,
 		false,
 		false,
 		amqp.Publishing{
@@ -152,4 +191,43 @@ func buildConnectionString() string {
 	}
 
 	return url
+}
+
+func (r *RabbitMQBroker) reconnect() error {
+	if r.channel == nil || r.connection.IsClosed() {
+		connStr := buildConnectionString()
+
+		conn, err := connect(connStr)
+		if err != nil {
+			return fmt.Errorf("reconnect failed: %w", err)
+		}
+		ch, err := conn.Channel()
+		if err != nil {
+			return fmt.Errorf("failed to open channel after reconnect: %w", err)
+		}
+		r.connection = conn
+		r.channel = ch
+
+		if err := declareExchange(r.channel, r.exchange); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func declareExchange(ch *amqp.Channel, exchangeName string) error {
+	if err := ch.ExchangeDeclare(
+		exchangeName,
+		fanout,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	); err != nil {
+		return fmt.Errorf("failed to declare exchange after reconnect: %w", err)
+	}
+
+	return nil
 }
