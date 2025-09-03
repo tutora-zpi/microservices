@@ -7,14 +7,14 @@ import (
 )
 
 type NotificationDTO struct {
-	ID              string                   `json:"id"`
-	CreatedAt       time.Time                `json:"createdAt"`
-	Type            enums.NotificationType   `json:"type"`
-	Status          enums.NotificationStatus `json:"status"`
-	Title           string                   `json:"title"`
-	Body            string                   `json:"body"`
-	RedirectionLink string                   `json:"redirectionLink"`
-	Metadata        map[string]any           `json:"metadata"`
+	ID              string                 `json:"id"`
+	ReceiverID      string                 `json:"receiverID"`
+	CreatedAt       time.Time              `json:"createdAt"`
+	Type            enums.NotificationType `json:"type"`
+	Title           string                 `json:"title"`
+	Body            string                 `json:"body"`
+	RedirectionLink string                 `json:"redirectionLink"`
+	Metadata        map[string]any         `json:"metadata"`
 }
 
 func (dto *NotificationDTO) JSON() []byte {
