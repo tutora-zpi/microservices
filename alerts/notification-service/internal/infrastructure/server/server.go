@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"notification-serivce/internal/config"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -16,7 +14,8 @@ import (
 )
 
 type Server struct {
-	s *http.Server
+	s    *http.Server
+	host string
 }
 
 const DEFAULT_PORT string = "8888"
@@ -50,33 +49,28 @@ func NewServer(router *mux.Router) *Server {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	return &Server{s: s}
+	return &Server{s: s, host: host}
 }
 
-// GracefulShutdown listens for system signals and shuts down the server cleanly,
-// allowing up to 5 seconds for open connections to finish.
-func (apiServer *Server) GracefulShutdown(done chan bool) {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	<-ctx.Done()
-
-	log.Println("Shutting down gracefully, press Ctrl+C again to force")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (apiServer *Server) GracefulShutdown(ctx context.Context) error {
+	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if err := apiServer.s.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown with error: %v", err)
+
+	log.Println("Shutting down gracefully...")
+	if err := apiServer.s.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("server forced to shutdown: %w", err)
 	}
 
-	log.Println("Server exiting")
-	done <- true
+	log.Println("Server exited")
+	return nil
 }
 
-func (apiServer *Server) StartAndListen() {
-	log.Printf("Server is listening on: http://%s%s", os.Getenv(config.APP_ENV), apiServer.s.Addr)
-	err := apiServer.s.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		log.Panicf("HTTP server error: %s", err)
+func (apiServer *Server) StartAndListen() error {
+
+	log.Printf("Server is listening on: http://%s%s", apiServer.host, apiServer.s.Addr)
+
+	if err := apiServer.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("http server error: %w", err)
 	}
+	return nil
 }
