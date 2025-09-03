@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"notification-serivce/internal/domain/query"
-	v1 "notification-serivce/internal/infrastructure/rest/v1"
 	"notification-serivce/internal/infrastructure/server"
 	"notification-serivce/pkg"
 )
@@ -14,7 +13,7 @@ const (
 )
 
 func (h *HTTPHandler) FetchNotifications(w http.ResponseWriter, r *http.Request) {
-	requesterID, err := v1.ExtractClientID(r)
+	requesterID, err := ExtractClientID(r)
 	if err != nil {
 		server.NewResponse(w, pkg.Ptr("Missing user id"), http.StatusBadRequest, nil)
 		return
