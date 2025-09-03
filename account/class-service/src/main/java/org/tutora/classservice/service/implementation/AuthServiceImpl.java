@@ -10,4 +10,12 @@ public class AuthServiceImpl implements AuthService {
     public String getUserId(Jwt principal) {
         return principal.getSubject();
     }
+
+    @Override
+    public String getFullName(Jwt principal) {
+        String firstName = principal.getClaim("first_name");
+        String lastName = principal.getClaim("last_name");
+
+        return firstName + " " + lastName;
+    }
 }

@@ -21,6 +21,8 @@ public class CustomUserDetails implements OidcUser, UserDetails {
     // Dane z naszej bazy danych
     private final UUID id;
     private final String email;
+    private final String firstName;
+    private final String lastName;
     private final Collection<? extends GrantedAuthority> authorities;
 
     // Dane od dostawcy OAuth2/OIDC
@@ -34,6 +36,8 @@ public class CustomUserDetails implements OidcUser, UserDetails {
     private CustomUserDetails(User user, Map<String, Object> attributes, OidcIdToken idToken, OidcUserInfo userInfo) {
         this.id = user.getId();
         this.email = user.getEmail();
+        this.firstName = user.getName();
+        this.lastName = user.getSurname();
         this.authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
                 .collect(Collectors.toList());

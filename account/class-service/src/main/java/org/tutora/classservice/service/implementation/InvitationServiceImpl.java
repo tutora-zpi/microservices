@@ -2,6 +2,8 @@ package org.tutora.classservice.service.implementation;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.tutora.classservice.client.NotificationPublisher;
+import org.tutora.classservice.dto.ClassInvitationEvent;
 import org.tutora.classservice.entity.*;
 import org.tutora.classservice.exception.ResourceNotFoundException;
 import org.tutora.classservice.repository.InvitationRepository;
@@ -19,21 +21,28 @@ public class InvitationServiceImpl implements InvitationService {
 
     private final InvitationRepository invitationRepository;
     private final InvitationStatusRepository invitationStatusRepository;
+    private final NotificationPublisher notificationPublisher;
 
     private final ClassService classService;
 
     @Override
-    public void inviteUser(UUID classId, UUID userId) {
-        saveInvitation(classId, userId);
+    public Invitation inviteUser(String senderFullName, UUID classId, UUID userId) {
+        Invitation inv = saveInvitation(classId, userId);
 
-        //TODO: emit event to notification service
+        Classroom classroom = classService.getClassById(classId);
+
+        notificationPublisher.sendClassInvitation(new ClassInvitationEvent(
+                senderFullName,
+                classroom.getName(),
+                userId
+        ));
+
+        return inv;
     }
 
     @Override
     public void cancelInvitation(UUID classId, UUID userId) {
         invitationRepository.deleteByClassroomIdAndUserId(classId, userId);
-
-        //TODO: emit event to notification service
     }
 
     @Override
@@ -52,8 +61,6 @@ public class InvitationServiceImpl implements InvitationService {
 
         inv.setStatus(getInvitationStatus(InvitationStatusName.DECLINED));
         invitationRepository.save(inv);
-
-        //TODO: emit event to notification service
     }
 
     @Override
@@ -76,7 +83,7 @@ public class InvitationServiceImpl implements InvitationService {
                 ));
     }
 
-    private void saveInvitation(UUID classId, UUID userId) {
+    private Invitation saveInvitation(UUID classId, UUID userId) {
         InvitationStatus status = getInvitationStatus(InvitationStatusName.INVITED);
 
         Invitation inv = Invitation.builder()
@@ -86,13 +93,13 @@ public class InvitationServiceImpl implements InvitationService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        invitationRepository.save(inv);
+        return invitationRepository.save(inv);
     }
 
     private Invitation getInvitation(UUID classId, UUID userId) {
         return invitationRepository.findByClassroomIdAndUserId(classId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Invitation", "classId" + classId.toString() + " and userId", userId));
-        //TODO refactor exception constructor to accept many objects
+        //TODO refactor exception constructor to accept multiple objects
     }
 }

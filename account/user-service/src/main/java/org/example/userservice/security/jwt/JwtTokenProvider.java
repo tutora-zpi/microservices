@@ -41,6 +41,8 @@ public class JwtTokenProvider {
                 .subject(userPrincipal.getId().toString())
                 .claim("email", userPrincipal.getUsername())
                 .claim("roles", roles)
+                .claim("first_name", userPrincipal.getFirstName())
+                .claim("last_name", userPrincipal.getLastName())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(rsaKeyProperties.privateKey())

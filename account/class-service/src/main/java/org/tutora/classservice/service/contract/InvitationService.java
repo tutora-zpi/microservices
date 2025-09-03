@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface InvitationService {
-    void inviteUser(UUID classId, UUID userId);
-    void cancelInvitation(UUID classId, UUID userId);
-    void joinClass(UUID classId, UUID userId);
-    void declineInvitation(UUID classId, UUID userId);
+    Invitation inviteUser(String senderFullName, UUID classId, UUID receiverId);
+    void cancelInvitation(UUID classId, UUID receiverId);
+    void joinClass(UUID classId, UUID receiverId);
+    void declineInvitation(UUID classId, UUID receiverId);
     List<Invitation> getInvitationsForUser(UUID userId);
     List<Invitation> getInvitationsForClass(UUID classId);
 }
