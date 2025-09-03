@@ -18,20 +18,20 @@ type Database struct {
 const DATABASE_NAME string = "notification_db"
 const COLLECTION string = "notifications"
 
-func Connect() (*Database, error) {
+func Connect() *Database {
 
 	uri := getConnectionURL()
 	if uri == "" {
-		return nil, fmt.Errorf("MongoDB credentials are missing")
+		log.Panicln("MongoDB credentials are missing")
 	}
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
-		return nil, err
+		log.Panicln("Failed to connect with database")
 	}
 
 	if err := client.Ping(context.TODO(), nil); err != nil {
-		return nil, fmt.Errorf("Failed to ping mongo db")
+		log.Panicln("Failed to ping mongo db")
 	}
 
 	log.Println("Database pinged successfully!")
@@ -54,7 +54,7 @@ func (d *Database) GetCollection() *mongo.Collection {
 	return d.db
 }
 
-func chooseDatabase(client *mongo.Client) (*Database, error) {
+func chooseDatabase(client *mongo.Client) *Database {
 	dbName := os.Getenv(config.MONGO_DB_NAME)
 
 	if dbName == "" {
@@ -71,7 +71,7 @@ func chooseDatabase(client *mongo.Client) (*Database, error) {
 
 	return &Database{
 		db: mongoDB,
-	}, nil
+	}
 }
 
 func getConnectionURL() string {
