@@ -1,10 +1,17 @@
 package event
 
-import "notification-serivce/internal/domain/models"
+import (
+	"notification-serivce/internal/domain/models"
+	"reflect"
+)
 
 type MeetingInvitationEvent struct {
 }
 
-func (c *MeetingInvitationEvent) Notification() *models.Notification {
+func (m *MeetingInvitationEvent) Notification() *models.Notification {
 	return &models.Notification{}
+}
+
+func (m *MeetingInvitationEvent) Name() string {
+	return reflect.TypeOf(m).Elem().Name()
 }
