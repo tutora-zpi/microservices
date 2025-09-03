@@ -1,52 +1,32 @@
 package handlers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
-	"notification-serivce/internal/infrastructure/server"
-	"time"
 )
 
-func (h *RequestHandler) StreamNotifications(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
+func (h *SSEHandler) StreamNotifications(w http.ResponseWriter, r *http.Request) {
+	h.configureSSEHeaders(w)
 
-	val := r.Context().Value("id")
-	clientID, ok := val.(string)
-	if !ok || clientID == "" {
-		errorMessage := "Missing client ID in context"
-		server.NewResponse(w, &errorMessage, http.StatusBadRequest, nil)
-		return
-	}
-
-	clientChan, err := h.manager.Subscribe(clientID)
+	conn, cancel, err := h.prepareSSEConnection(w, r)
 	if err != nil {
-		errorMessage := "Failed to subscribe stream"
-		server.NewResponse(w, &errorMessage, http.StatusBadRequest, nil)
+		h.handleError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	defer h.manager.Unsubscribe(clientID)
+	defer func() {
+		conn.Cleanup()
+		cancel()
+	}()
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		errorMessage := "Unsupported streaming"
-		server.NewResponse(w, &errorMessage, http.StatusBadRequest, nil)
+	if err := conn.SendWelcomeMessage(); err != nil {
+		log.Printf("Failed to send welcome message to client %s: %v", conn.ClientID, err)
 		return
 	}
 
-	//keeping alive
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
+	h.manager.FlushBufferedNotification(conn.ClientID, conn.Channel)
 
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case notification := <-clientChan:
-			fmt.Fprintf(w, "data: %s\n\n", notification)
-			flusher.Flush()
-		}
-	}
+	log.Printf("SSE connection established for client: %s", conn.ClientID)
+
+	conn.HandleEvents()
 }
