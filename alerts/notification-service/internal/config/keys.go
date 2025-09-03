@@ -23,4 +23,5 @@ const (
 	RABBITMQ_URL          string = "RABBITMQ_URL"
 
 	EVENT_EXCHANGE_QUEUE_NAME string = "EVENT_EXCHANGE_QUEUE_NAME"
+	FRONTEND_URL              string = "FRONTEND_URL"
 )
