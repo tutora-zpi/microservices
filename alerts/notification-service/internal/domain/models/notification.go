@@ -44,9 +44,9 @@ func NewNotification(notificationType enums.NotificationType, receiverID, title,
 func (n *Notification) DTO() dto.NotificationDTO {
 	return dto.NotificationDTO{
 		ID:              n.ID.Hex(),
+		ReceiverID:      n.ReceiverID,
 		CreatedAt:       n.CreatedAt,
 		Type:            n.Type,
-		Status:          n.Status,
 		Title:           n.Title,
 		Body:            n.Body,
 		RedirectionLink: n.RedirectionLink,
