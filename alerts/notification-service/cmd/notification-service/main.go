@@ -1,40 +1,77 @@
 package main
 
 import (
+	"context"
 	"log"
-	handlers "notification-serivce/internal/infrastructure/rest"
-	"notification-serivce/internal/infrastructure/security"
+	"notification-serivce/internal/app/usecase"
+	"notification-serivce/internal/domain/event"
+	"notification-serivce/internal/domain/query"
+	"notification-serivce/internal/infrastructure/bus"
+	"notification-serivce/internal/infrastructure/database"
+	"notification-serivce/internal/infrastructure/messaging"
+	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
+	"notification-serivce/internal/infrastructure/repository"
+	handlers "notification-serivce/internal/infrastructure/rest/v1"
 	"notification-serivce/internal/infrastructure/server"
-	"notification-serivce/internal/infrastructure/sse"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 func init() {
 
-	// loading envs
 	if err := godotenv.Load(); err != nil {
 		log.Panic(".env* file not found. Please check path or provide one.")
 	}
 
-	// fetch jwt secret
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {
-	sseManager := sse.NewSSEManager()
+	dispatcher := bus.NewDispatcher()
+	queryBus := bus.NewQueryBus()
+	database := database.Connect()
+	defer database.Close()
 
-	server := server.NewServer(handlers.NewRouter(sseManager))
+	notificationManager := notificationmanager.NewManager()
+	notificationManager.EnableBuffering(1000, 10*time.Minute)
+	repo := repository.NewNotificationRepository(database)
+
+	queryBus.Register(
+		&query.FetchNotificationsQuery{},
+		usecase.NewFetchNotificationsHandler(repo),
+	)
+
+	dispatcher.Register(
+		&event.ClassInvitationEvent{},
+		usecase.NewClassInvitationHandler(notificationManager, repo),
+	)
+
+	server := server.NewServer(handlers.NewRouter(notificationManager, queryBus))
+
+	broker := messaging.NewRabbitBroker(dispatcher)
+	defer broker.Close()
+
+	go broker.Consume()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// HTTP
 
 	go func() {
-		server.StartAndListen()
+		if err := server.StartAndListen(); err != nil {
+			log.Printf("server stopped with error: %v", err)
+			stop()
+		}
 	}()
 
-	done := make(chan bool, 1)
+	<-ctx.Done()
 
-	go func() {
-		server.GracefulShutdown(done)
-	}()
-
-	<-done
+	if err := server.GracefulShutdown(context.Background()); err != nil {
+		log.Printf("graceful shutdown failed: %v", err)
+	}
 }
