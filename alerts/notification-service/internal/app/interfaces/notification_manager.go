@@ -2,8 +2,8 @@ package interfaces
 
 import (
 	"context"
+	"notification-serivce/internal/domain/buffer"
 	"notification-serivce/internal/domain/dto"
-	"notification-serivce/internal/domain/flow"
 	"time"
 )
 
@@ -15,5 +15,5 @@ type NotificationManager interface {
 	FlushBufferedNotification(clientID string, channel chan []byte) int
 
 	EnableBuffering(maxSize int, ttl time.Duration)
-	GetBufferedNotifications(clientID string) []*flow.BufferedNotification
+	GetBufferedNotifications(clientID string) []*buffer.BufferedNotification
 }
