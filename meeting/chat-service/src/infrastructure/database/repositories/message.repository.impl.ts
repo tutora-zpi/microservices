@@ -31,7 +31,10 @@ export class MessageRepositoryImpl implements IMessageRepository {
 
     this.logger.log('Getting messages from', query.id);
 
-    const findOption = { chatID: query.id }
+    const findOption = {
+      chatID: query.id,
+      ...(query.lastMessageId && { _id: { $lt: query.lastMessageId } }),
+    }
 
     try {
       const messages = await this.messageModel
@@ -39,7 +42,6 @@ export class MessageRepositoryImpl implements IMessageRepository {
         .select(['_id', 'sentAt', 'content', 'sender'])
         .sort({ sentAt: -1 })
         .limit(query.limit)
-        .skip(query.limit * (query.page - 1))
         .populate({
           path: 'reactions',
           options: { sort: { sentAt: 1 } },

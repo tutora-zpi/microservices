@@ -15,7 +15,7 @@ export class GetMoreMessagesHandler implements IQueryHandler<GetMoreMessagesQuer
     ) { }
 
     async execute(query: GetMoreMessagesQuery): Promise<MessageDTO[]> {
-        this.logger.log(`Executing GetChatQuery with id: ${query.id}`);
+        this.logger.log(`Executing GetMoreMessagesQuery with id: ${query.id}`);
 
         const res = await this.repo.get(query);
         if (!res) {
