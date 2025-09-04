@@ -103,9 +103,10 @@ func (conn *SSEConnection) SendSSEComment(message string) error {
 		return fmt.Errorf("connection is not healthy")
 	}
 
-	_, err := fmt.Fprintf(conn.Writer, ": %s\n\n", message)
+	_, err := fmt.Fprintf(conn.Writer, "data: %s\n\n", message)
 	if err != nil {
 		conn.isHealthy = false
+		log.Println("An error occured during sending ping")
 		return fmt.Errorf("failed to write SSE comment: %w", err)
 	}
 	conn.Flusher.Flush()
@@ -164,6 +165,7 @@ func (conn *SSEConnection) Cleanup() {
 }
 
 func (conn *SSEConnection) sendHeartbeat() error {
+	log.Println("Sending heartbeat")
 	err := conn.SendSSEComment(fmt.Sprintf("heartbeat-%d", time.Now().Unix()))
 	if err == nil {
 		conn.HeartbeatsSent++

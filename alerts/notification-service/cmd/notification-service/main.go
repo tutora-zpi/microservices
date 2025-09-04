@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"notification-serivce/internal/app/usecase"
+	"notification-serivce/internal/config"
 	"notification-serivce/internal/domain/event"
 	"notification-serivce/internal/domain/query"
 	"notification-serivce/internal/infrastructure/bus"
@@ -12,6 +13,7 @@ import (
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
+	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -22,12 +24,13 @@ import (
 )
 
 func init() {
-
-	if err := godotenv.Load(); err != nil {
-		log.Panic(".env* file not found. Please check path or provide one.")
+	if os.Getenv(config.APP_ENV) == "" {
+		if err := godotenv.Load(); err != nil {
+			log.Panic(".env* file not found. Please check path or provide one.")
+		}
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
@@ -37,7 +40,7 @@ func main() {
 	defer database.Close()
 
 	notificationManager := notificationmanager.NewManager()
-	notificationManager.EnableBuffering(1000, 10*time.Minute)
+	notificationManager.EnableBuffering(1000, 30*time.Minute)
 	repo := repository.NewNotificationRepository(database)
 
 	queryBus.Register(

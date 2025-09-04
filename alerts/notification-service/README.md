@@ -1,17 +1,166 @@
+![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+
 # .tutora - NotificationService
 
 Responsible for sending realtime notifications to clients. Using Server Sent Events (SSE). Additionally server has an endpoint for fetching notfications to show history. 
 
-// finish it!!!
+---
 
+
+## Table of Contents
+
+- [Running the app](#running-the-app)
+- [Environment Variables](#environment-variables)
+- [SSE docs](#sse-docs)
+- [Events docs](#events-docs)
+- [API Documentation](#api-documentation)
+
+## Running the app
+
+Service demands `RabbitMQ` and `MongoDB` so make sure its running in background.
+
+```bash
+docker build -t notification-service .
+docker run -p 8003:8003 --env-file .env.local notification-service
+```
+
+## Environment Variables
+
+Copy **environment variables** exmaple file and fill it with valid data.
+
+```bash
+cp .env.sample .env
+```
+
+## SSE docs
+
+Down below you'll find example events which are sent from server.
+
+**Note**: good to know that if you handle event to get data simply use `data` property.
+
+If you don't receive notifications in 5 minutes, connection is closed to save resources and client (frontend) should have some kind of reconnect solution.
+
+#### Buffer - What happens if client is reconnecting and in the same time gots message?
+
+If a client is offline and receives a notification, the message is buffered for 30 minutes.
+
+If the buffer reaches its maximum capacity, the oldest messages are removed to make room for new ones.
+
+Even if a notification is removed from the buffer, the client can still access it later by navigating to a dedicated screen or subpage, because all notifications are stored in the database.
+
+
+#### Connecting
+
+To connect use **/api/v1/notification/stream?token={JWTtoken}**
+
+### Notification Event
+
+**Key**: `notification`
+
+**Data**: server wraps data in [notification dto](/internal/domain/dto/notification_dto.go).
+
+**How can you handle on frontend?**
+
+```js
+eventSource.addEventListener("notification", (event) => {
+    log(event.data)
+    // logic
+});
+```
+
+### Simple messages
+
+Contains simple messages like heartbeats and initial message.
+
+**Key**: none
+
+**Data**: `string` under data property
+
+**How can you handle on frontend?**
+
+```js
+eventSource.onmessage = (event) => {
+    log(event.data)
+    // logic
+}
+```
+
+## Events docs
+
+**Note**: every event must be wrapped in specific object.
 
 ```json
 {
+    "pattern": "PatternNameEvent",
+    "data": {...}
+}
+```
+
+Service listens on given types of events. List is down below.
+
+### ClassInvitationEvent
+
+**Note**: if you use **RabbitMQ dashboard** to testing purposes, make sure you paste raw json without comments.
+
+**Source**: `class-service`
+
+```json
+{
+    // wrapper
     "pattern": "ClassInvitationEvent",
     "data": {
+        // acutal events class
         "sender_full_name": "Lukasz Fabia",
-        "room_name": "Maths 2025",
-        "receiver_id": "lukasz"
+        "room_name": "Room name",
+        "receiver_id": "acde070d-8c4c-4f0d-9d8a-162843c10333"
     }
+}
+```
+
+### MeetingInivtationEvent
+
+**Source**: `meeting-scheduler-service`
+
+```json
+{
+    // wrapper
+    "pattern": "MeetingInivtationEvent",
+    "data": {
+        // acutal events class
+        // in progress
+    }
+}
+```
+
+## API Documentation
+
+### Fetching notifcations for user
+
+`ReceiverID` is got from **JWT token**.
+
+**Endpoint**: /api/v1/notification?limit={limit}&last_notification_id={id}
+
+`last_notification_id` is optional for the first fetch but next fetches should contain id to easily implement infinite scoll.
+
+**Example**: /api/v1/notification?limit=3&last_notification_id=68b9406b102850c7f8089447
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "68b81b572b43fe7b0195929f",
+      "receiverId": "lukasz",
+      "createdAt": "2025-09-03T10:41:27Z",
+      "type": "invitation",
+      "title": "Invitation to Maths 2025 class!",
+      "body": "You've been invited by Lukasz Fabia to Maths 2025 class. Click button below to go on the invitations page.",
+      "redirectionLink": "",
+      "metadata": null
+    }
+  ]
 }
 ```

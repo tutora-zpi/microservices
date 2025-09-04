@@ -8,7 +8,7 @@ import (
 
 type NotificationDTO struct {
 	ID              string                 `json:"id"`
-	ReceiverID      string                 `json:"receiverID"`
+	ReceiverID      string                 `json:"receiverId"`
 	CreatedAt       time.Time              `json:"createdAt"`
 	Type            enums.NotificationType `json:"type"`
 	Title           string                 `json:"title"`

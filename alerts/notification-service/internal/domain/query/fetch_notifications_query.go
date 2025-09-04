@@ -1,6 +1,9 @@
 package query
 
-import "reflect"
+import (
+	"reflect"
+	"strconv"
+)
 
 const (
 	DEFAULT_LIMIT int = 10
@@ -22,8 +25,12 @@ func NewFetchNotificationsQuery(limit, lastNotificationID, receiverID string) Qu
 
 	q.ReceiverID = receiverID
 
-	if limit == "" || limit > "20" {
+	limitNum, err := strconv.Atoi(limit)
+
+	if err != nil || limitNum > 20 {
 		q.Limit = DEFAULT_LIMIT
+	} else {
+		q.Limit = limitNum
 	}
 
 	if lastNotificationID != "" {
