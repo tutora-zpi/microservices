@@ -13,6 +13,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { CommandBus, ICommand, IQuery, QueryBus } from '@nestjs/cqrs';
+import { ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CreateGeneralChatCommand } from 'src/domain/commands/create-general-chat.command';
 import { DeleteChatCommand } from 'src/domain/commands/delete-chat.command';
 import { ChatDTO } from 'src/domain/dto/chat.dto';
@@ -34,6 +35,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Get(':id')
   @HttpCode(200)
+  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
   async findOne(@Param('id') id: string): Promise<ChatDTO> {
     this.logger.log(`Getting chat with id: ${id}`);
     const query = new GetChatQuery(id);
@@ -58,6 +60,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Delete(':id')
   @HttpCode(204)
+  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
   async deleteOne(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting chat with id: ${id}`);
     const command = new DeleteChatCommand(id);
@@ -68,6 +71,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Post('/general')
   @HttpCode(201)
+  @ApiBody({ type: CreateGeneralChatCommand })
   async createChat(@Body() body: CreateGeneralChatCommand): Promise<ChatDTO> {
     this.logger.log('Creating new general chat');
 
@@ -84,12 +88,14 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Get('/:id/messages')
   @HttpCode(200)
-  async getMoreMessages(@Param('id') id: string, @Query('page') page: string = '1', @Query('limit') limit: string = '10',
+  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of messages to fetch' })
+  @ApiQuery({ name: 'last_message_id', required: false, type: String, description: 'ID of the last message for pagination' })
+  async getMoreMessages(@Param('id') id: string, @Query('limit') limit: string = '10', @Query('last_message_id') lastMessageId?: string | null
   ): Promise<MessageDTO[]> {
-    const pageNumber = Number(page) || 1;
     const limitNumber = Number(limit) || 10;
 
-    const query = new GetMoreMessagesQuery(id, pageNumber, limitNumber);
+    const query = new GetMoreMessagesQuery(id, limitNumber, lastMessageId);
 
     const data = await this.queryBus.execute<GetMoreMessagesQuery, MessageDTO[]>(query);
 

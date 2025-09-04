@@ -261,7 +261,7 @@ You can find docs on **/api/v1/docs** but down below is additional example respo
 
 ### Getting more messages
 
-**Path**: /api/v1/chats/{id}/messages?limit={limit}&page={page}
+**Path**: /api/v1/chats/{id}/messages?limit={limit}&last_message_id={last_message_id}
 
 **Returns**:
 
