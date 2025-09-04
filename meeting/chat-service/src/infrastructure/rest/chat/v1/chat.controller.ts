@@ -85,7 +85,7 @@ export class ChatController {
     }
   }
 
-  // @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
   @Get('/:id/messages')
   @HttpCode(200)
   @ApiParam({ name: 'id', required: true, type: String, description: "Chats ID" })
