@@ -40,17 +40,19 @@ public class ClassServiceImpl implements ClassService {
     @Override
     @Transactional
     public Classroom createClass(UUID userId, Classroom newClassroom) {
-        Classroom savedClassroom = classRepository.save(newClassroom);
-        saveUserClass(userId, savedClassroom, RoleName.HOST);
+        newClassroom.setId(null);
+        UserClass userClass = createUserClass(userId, RoleName.HOST);
+        newClassroom.addUserClass(userClass);
 
-        return savedClassroom;
+        return classRepository.save(newClassroom);
     }
 
     @Override
     public void addUserToClass(UUID classId, UUID userId, RoleName role) {
         Classroom classroom = getClassById(classId);
+        classroom.addUserClass(createUserClass(userId, role));
 
-        saveUserClass(userId, classroom, role);
+        classRepository.save(classroom);
     }
 
     private Role getRoleByName(RoleName name) {
@@ -58,15 +60,12 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "name", name.toString()));
     }
 
-    private void saveUserClass(UUID userId, Classroom classroom, RoleName name) {
+    private UserClass createUserClass(UUID userId, RoleName name) {
         Role role = getRoleByName(name);
 
-        UserClass userClass = UserClass.builder()
-                .classroom(classroom)
+        return UserClass.builder()
                 .userId(userId)
                 .role(role)
                 .build();
-
-        userClassRepository.save(userClass);
     }
 }

@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
         newUser.setSurname(userInfo.getSurname());
 
         Role userRole = roleRepository.findByName(RoleName.USER)
-                .orElseThrow(() -> new RuntimeException("Default role USER not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", RoleName.USER));
         newUser.setRoles(Set.of(userRole));
 
         String avatarKey = avatarService.saveAvatarFromUrl(newUser.getId(), userInfo.getImageUrl());

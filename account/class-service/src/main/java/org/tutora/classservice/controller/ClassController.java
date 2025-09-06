@@ -29,11 +29,15 @@ public class ClassController {
     private final ClassMapper classMapper;
 
     @PostMapping
-    public ResponseEntity<ClassDto> createClass(@RequestBody ClassCreateRequest classCreateRequest) {
+    public ResponseEntity<ClassDto> createClass(
+            @RequestBody ClassCreateRequest classCreateRequest,
+            @AuthenticationPrincipal Jwt principal
+    ) {
         log.info("Request to create class: {}", classCreateRequest);
+        String hostId = principal.getSubject();
 
         Classroom classroom = classService.createClass(
-                classCreateRequest.hostId(),
+                UUID.fromString(hostId),
                 classMapper.toEntity(classCreateRequest)
         );
 

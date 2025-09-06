@@ -19,10 +19,10 @@ import java.util.UUID;
 public class UserClass {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @ManyToOne(cascade = CascadeType.MERGE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "class_id"
     )
@@ -32,7 +32,7 @@ public class UserClass {
     @Column(nullable = false)
     private UUID userId;
 
-    @ManyToOne(cascade = CascadeType.MERGE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "user_role"
     )

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,5 +30,11 @@ public class Classroom {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserClass> userClasses;
+    @Builder.Default
+    private List<UserClass> userClasses = new ArrayList<>();
+
+    public void addUserClass(UserClass userClass) {
+        userClasses.add(userClass);
+        userClass.setClassroom(this);
+    }
 }

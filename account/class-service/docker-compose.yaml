@@ -19,7 +19,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${CLASS_POSTGRES_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

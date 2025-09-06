@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.tutora.classservice.dto.InvitationDto;
 import org.tutora.classservice.entity.Invitation;
+import org.tutora.classservice.entity.InvitationStatus;
 
 @Mapper(componentModel = "spring")
 public interface InvitationMapper {
@@ -13,7 +14,7 @@ public interface InvitationMapper {
     InvitationDto toDto(Invitation invitation);
 
     @Named("mapStatusesToString")
-    default String mapStatusesToString(final Invitation invitation) {
-        return invitation.getStatus().toString();
+    default String mapStatusesToString(final InvitationStatus status) {
+        return status.toString();
     }
 }

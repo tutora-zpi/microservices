@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
 
         ErrorDetailsDto errorDetails = new ErrorDetailsDto(
                 LocalDateTime.now(),
-                "An unexpected internal server error occurred",
+                "An unexpected internal server error occurred" + exception.getMessage(),
                 webRequest.getDescription(false).replace("uri=", ""),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
