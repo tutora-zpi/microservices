@@ -55,10 +55,10 @@ public class InvitationController {
             @PathVariable UUID classId,
             @PathVariable UUID userId
     ) {
-        String senderFullName = authService.getFullName(principal);
-        log.info("User [{}] invites [{}] to class [{}]", senderFullName, userId, classId);
+        UUID senderId = UUID.fromString(authService.getUserId(principal));
+        log.info("User [{}] invites [{}] to class [{}]", senderId, userId, classId);
 
-        Invitation inv = invitationService.inviteUser(senderFullName, classId, userId);
+        Invitation inv = invitationService.inviteUser(senderId, classId, userId);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(invitationMapper.toDto(inv));
@@ -77,22 +77,24 @@ public class InvitationController {
                 .build();
     }
 
-    @PostMapping("/{classId}/users/{userId}/accept")
+    @PostMapping("/{classId}/accept")
     public ResponseEntity<Void> acceptInvitation(
-            @PathVariable UUID classId,
-            @PathVariable UUID userId
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable UUID classId
     ) {
+        UUID userId = UUID.fromString(authService.getUserId(principal));
         log.info("User [{}] accepts invitation to class [{}]", userId, classId);
 
         invitationService.joinClass(classId, userId);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{classId}/users/{userId}/decline")
+    @PostMapping("/{classId}/decline")
     public ResponseEntity<Void> declineInvitation(
-            @PathVariable UUID classId,
-            @PathVariable UUID userId
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable UUID classId
     ) {
+        UUID userId = UUID.fromString(authService.getUserId(principal));
         log.info("User [{}] declines invitation to class [{}]", userId, classId);
 
         invitationService.declineInvitation(classId, userId);

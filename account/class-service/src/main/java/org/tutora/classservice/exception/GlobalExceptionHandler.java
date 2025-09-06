@@ -27,6 +27,51 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UserAlreadyInClassException.class)
+    public ResponseEntity<ErrorDetailsDto> handleUserAlreadyInClassException(
+            UserAlreadyInClassException exception,
+            WebRequest webRequest) {
+
+        ErrorDetailsDto errorDetails = new ErrorDetailsDto(
+                LocalDateTime.now(),
+                exception.getMessage(),
+                webRequest.getDescription(false).replace("uri=", ""),
+                HttpStatus.CONFLICT.value()
+        );
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UserAlreadyInvitedException.class)
+    public ResponseEntity<ErrorDetailsDto> handleUserAlreadyInvitedException(
+            UserAlreadyInvitedException exception,
+            WebRequest webRequest) {
+
+        ErrorDetailsDto errorDetails = new ErrorDetailsDto(
+                LocalDateTime.now(),
+                exception.getMessage(),
+                webRequest.getDescription(false).replace("uri=", ""),
+                HttpStatus.CONFLICT.value()
+        );
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UserRejectedInvitationException.class)
+    public ResponseEntity<ErrorDetailsDto> handleUserRejectedInvitationException(
+            UserRejectedInvitationException exception,
+            WebRequest webRequest) {
+
+        ErrorDetailsDto errorDetails = new ErrorDetailsDto(
+                LocalDateTime.now(),
+                exception.getMessage(),
+                webRequest.getDescription(false).replace("uri=", ""),
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetailsDto> handleGlobalException(
             Exception exception,
@@ -34,7 +79,7 @@ public class GlobalExceptionHandler {
 
         ErrorDetailsDto errorDetails = new ErrorDetailsDto(
                 LocalDateTime.now(),
-                "An unexpected internal server error occurred" + exception.getMessage(),
+                "An unexpected internal server error occurred: " + exception.getMessage(),
                 webRequest.getDescription(false).replace("uri=", ""),
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );

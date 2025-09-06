@@ -10,6 +10,7 @@ import org.tutora.classservice.entity.InvitationStatus;
 @Mapper(componentModel = "spring")
 public interface InvitationMapper {
 
+    @Mapping(target = "classId", source = "classroom.id")
     @Mapping(target = "status", source = "status", qualifiedByName = "mapStatusesToString")
     InvitationDto toDto(Invitation invitation);
 

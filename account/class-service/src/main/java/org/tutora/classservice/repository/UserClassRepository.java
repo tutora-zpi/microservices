@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface UserClassRepository extends JpaRepository<UserClass, Long> {
     List<UserClass> findUserClassByUserId(UUID userId);
+    boolean existsByClassroomIdAndUserId(UUID classId, UUID userId);
 }

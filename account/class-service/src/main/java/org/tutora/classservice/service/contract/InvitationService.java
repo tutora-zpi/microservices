@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface InvitationService {
-    Invitation inviteUser(String senderFullName, UUID classId, UUID receiverId);
+    Invitation inviteUser(UUID senderId, UUID classId, UUID receiverId);
     void cancelInvitation(UUID classId, UUID receiverId);
     void joinClass(UUID classId, UUID receiverId);
     void declineInvitation(UUID classId, UUID receiverId);
