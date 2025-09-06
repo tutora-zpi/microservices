@@ -31,10 +31,10 @@ public class Classroom {
 
     @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<UserClass> userClasses = new ArrayList<>();
+    private List<Member> members = new ArrayList<>();
 
-    public void addUserClass(UserClass userClass) {
-        userClasses.add(userClass);
-        userClass.setClassroom(this);
+    public void addUserClass(Member member) {
+        members.add(member);
+        member.setClassroom(this);
     }
 }

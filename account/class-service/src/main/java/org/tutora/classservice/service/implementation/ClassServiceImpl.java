@@ -6,11 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.tutora.classservice.entity.Classroom;
 import org.tutora.classservice.entity.Role;
 import org.tutora.classservice.entity.RoleName;
-import org.tutora.classservice.entity.UserClass;
+import org.tutora.classservice.entity.Member;
 import org.tutora.classservice.exception.ResourceNotFoundException;
 import org.tutora.classservice.repository.ClassRepository;
 import org.tutora.classservice.repository.RoleRepository;
-import org.tutora.classservice.repository.UserClassRepository;
+import org.tutora.classservice.repository.MemberRepository;
 import org.tutora.classservice.service.contract.ClassService;
 
 import java.util.List;
@@ -21,7 +21,7 @@ import java.util.UUID;
 public class ClassServiceImpl implements ClassService {
 
     private final ClassRepository classRepository;
-    private final UserClassRepository userClassRepository;
+    private final MemberRepository memberRepository;
     private final RoleRepository roleRepository;
 
     @Override
@@ -32,8 +32,8 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     public List<Classroom> getUserClasses(UUID userId) {
-        return userClassRepository.findUserClassByUserId(userId).stream()
-                .map(UserClass::getClassroom)
+        return memberRepository.findUserClassByUserId(userId).stream()
+                .map(Member::getClassroom)
                 .toList();
     }
 
@@ -41,8 +41,8 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public Classroom createClass(UUID userId, Classroom newClassroom) {
         newClassroom.setId(null);
-        UserClass userClass = createUserClass(userId, RoleName.HOST);
-        newClassroom.addUserClass(userClass);
+        Member member = createUserClass(userId, RoleName.HOST);
+        newClassroom.addUserClass(member);
 
         return classRepository.save(newClassroom);
     }
@@ -60,10 +60,10 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "name", name.toString()));
     }
 
-    private UserClass createUserClass(UUID userId, RoleName name) {
+    private Member createUserClass(UUID userId, RoleName name) {
         Role role = getRoleByName(name);
 
-        return UserClass.builder()
+        return Member.builder()
                 .userId(userId)
                 .role(role)
                 .build();

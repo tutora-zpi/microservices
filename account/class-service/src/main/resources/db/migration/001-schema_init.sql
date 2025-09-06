@@ -7,16 +7,17 @@ CREATE TABLE classes (
     created_at TIMESTAMP
 );
 
-CREATE TABLE user_class_roles (
+CREATE TABLE member_roles (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(255) NOT NULL,
+    CONSTRAINT uq_member_roles_name UNIQUE (name)
 );
 
-CREATE TABLE users_classes (
-    id BIGINT PRIMARY KEY,
+CREATE TABLE members (
+    id UUID PRIMARY KEY,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE NOT NULL,
     user_id UUID NOT NULL,
-    user_role SERIAL REFERENCES user_class_roles(id) NOT NULL
+    user_role SERIAL REFERENCES member_roles(id) NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_users_classes_user_id_class_id ON users_classes(user_id, class_id);
+CREATE UNIQUE INDEX idx_members_user_id_class_id ON members(user_id, class_id);

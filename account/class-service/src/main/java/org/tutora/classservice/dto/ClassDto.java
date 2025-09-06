@@ -6,6 +6,6 @@ import java.util.UUID;
 public record ClassDto(
         UUID id,
         String name,
-        List<UserRoleDto> users
+        List<UserRoleDto> members
 ) {
 }

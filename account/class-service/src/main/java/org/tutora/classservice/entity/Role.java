@@ -9,7 +9,7 @@ import org.hibernate.annotations.NaturalId;
 
 @Entity
 @Table(
-        name = "user_class_roles"
+        name = "member_roles"
 )
 @Getter
 @Setter

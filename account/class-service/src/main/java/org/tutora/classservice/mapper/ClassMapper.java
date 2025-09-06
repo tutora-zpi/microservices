@@ -5,7 +5,7 @@ import org.tutora.classservice.dto.ClassCreateRequest;
 import org.tutora.classservice.dto.ClassDto;
 import org.tutora.classservice.dto.UserRoleDto;
 import org.tutora.classservice.entity.Classroom;
-import org.tutora.classservice.entity.UserClass;
+import org.tutora.classservice.entity.Member;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,15 +26,15 @@ public interface ClassMapper {
         return LocalDateTime.now();
     }
 
-    @Mapping(target = "users", source = "userClasses", qualifiedByName = "mapUserClasses")
+    @Mapping(target = "members", source = "members", qualifiedByName = "mapMembers")
     ClassDto toDto(Classroom classroom);
 
-    @Named("mapUserClasses")
-    default List<UserRoleDto> mapUserClasses(List<UserClass> userClasses) {
-        if (userClasses == null)
+    @Named("mapMembers")
+    default List<UserRoleDto> mapMembers(List<Member> members) {
+        if (members == null)
             return null;
 
-        return userClasses.stream()
+        return members.stream()
                 .map(uc -> new UserRoleDto(uc.getUserId(), uc.getRole().getName().name()))
                 .toList();
     }

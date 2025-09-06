@@ -6,13 +6,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.tutora.classservice.client.NotificationPublisher;
 import org.tutora.classservice.dto.ClassInvitationCreatedEvent;
 import org.tutora.classservice.entity.*;
-import org.tutora.classservice.exception.ResourceNotFoundException;
-import org.tutora.classservice.exception.UserAlreadyInClassException;
-import org.tutora.classservice.exception.UserAlreadyInvitedException;
-import org.tutora.classservice.exception.UserRejectedInvitationException;
+import org.tutora.classservice.exception.*;
 import org.tutora.classservice.repository.InvitationRepository;
 import org.tutora.classservice.repository.InvitationStatusRepository;
-import org.tutora.classservice.repository.UserClassRepository;
+import org.tutora.classservice.repository.MemberRepository;
 import org.tutora.classservice.service.contract.ClassService;
 import org.tutora.classservice.service.contract.InvitationService;
 
@@ -31,13 +28,17 @@ public class InvitationServiceImpl implements InvitationService {
     private final NotificationPublisher notificationPublisher;
 
     private final ClassService classService;
-    private final UserClassRepository userClassRepository;
+    private final MemberRepository memberRepository;
 
     @Override
     public Invitation inviteUser(UUID senderId, UUID classId, UUID userId) {
         Classroom classroom = classService.getClassById(classId);
 
-        if (userClassRepository.existsByClassroomIdAndUserId(classId, userId)) {
+        if (!hasAuthority(userId, classId, RoleName.HOST)) {
+            throw new UnauthorizedActionException("classroom", classId, "send invitation to classroom");
+        }
+
+        if (memberRepository.existsByClassroomIdAndUserId(classId, userId)) {
             throw new UserAlreadyInClassException(userId, classId);
         }
 
@@ -103,6 +104,14 @@ public class InvitationServiceImpl implements InvitationService {
     public List<Invitation> getInvitationsForClass(UUID classId) {
         return invitationRepository
                 .findAllByClassroomIdAndStatus(classId, getInvitationStatus(InvitationStatusName.INVITED));
+    }
+
+    private boolean hasAuthority(UUID userId, UUID classId, RoleName role) {
+        Member member = memberRepository.findUserClassByUserIdAndClassroomId(userId, classId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Member", Map.of("userId", userId, "classId", classId)));
+
+        return member.getRole().getName() == role;
     }
 
     private void validateInvitationStatus(InvitationStatus invitationStatus, UUID classId, UUID userId) {

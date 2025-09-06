@@ -9,14 +9,14 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "users_classes"
+        name = "members"
 )
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserClass {
+public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
