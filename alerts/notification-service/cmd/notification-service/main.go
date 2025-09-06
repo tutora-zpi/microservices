@@ -13,6 +13,7 @@ import (
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
+	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -29,7 +30,7 @@ func init() {
 		}
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
