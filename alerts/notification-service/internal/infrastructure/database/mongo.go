@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"notification-serivce/internal/config"
 	"os"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -17,20 +18,20 @@ type Database struct {
 const DATABASE_NAME string = "notification_db"
 const COLLECTION string = "notifications"
 
-func Connect() (*Database, error) {
+func Connect() *Database {
 
 	uri := getConnectionURL()
 	if uri == "" {
-		return nil, fmt.Errorf("MongoDB credentials are missing")
+		log.Panicln("MongoDB credentials are missing")
 	}
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
-		return nil, err
+		log.Panicln("Failed to connect with database")
 	}
 
 	if err := client.Ping(context.TODO(), nil); err != nil {
-		return nil, fmt.Errorf("Failed to ping mongo db")
+		log.Panicln("Failed to ping mongo db")
 	}
 
 	log.Println("Database pinged successfully!")
@@ -53,14 +54,14 @@ func (d *Database) GetCollection() *mongo.Collection {
 	return d.db
 }
 
-func chooseDatabase(client *mongo.Client) (*Database, error) {
-	dbName := os.Getenv("MONGO_DB_NAME")
+func chooseDatabase(client *mongo.Client) *Database {
+	dbName := os.Getenv(config.MONGO_DB_NAME)
 
 	if dbName == "" {
 		dbName = DATABASE_NAME
 	}
 
-	collection := os.Getenv("MONGO_COLLECTION")
+	collection := os.Getenv(config.MONGO_COLLECTION)
 
 	if collection == "" {
 		collection = COLLECTION
@@ -70,16 +71,16 @@ func chooseDatabase(client *mongo.Client) (*Database, error) {
 
 	return &Database{
 		db: mongoDB,
-	}, nil
+	}
 }
 
 func getConnectionURL() string {
-	uri := os.Getenv("MONGO_URI")
+	uri := os.Getenv(config.MONGO_URI)
 	if uri == "" {
-		host := os.Getenv("MONGO_HOST")
-		port := os.Getenv("MONGO_PORT")
-		user := os.Getenv("MONGO_USER")
-		pass := os.Getenv("MONGO_PASS")
+		host := os.Getenv(config.MONGO_HOST)
+		port := os.Getenv(config.MONGO_PORT)
+		user := os.Getenv(config.MONGO_USER)
+		pass := os.Getenv(config.MONGO_PASS)
 
 		if host == "" || port == "" || user == "" || pass == "" {
 			return ""
