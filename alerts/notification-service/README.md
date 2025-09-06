@@ -130,18 +130,44 @@ Service listens on given types of events. List is down below.
 
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "id": "68b81b572b43fe7b0195929f",
-      "receiverId": "lukasz",
-      "createdAt": "2025-09-03T10:41:27Z",
-      "type": "invitation",
-      "title": "Invitation to Maths 2025 class!",
-      "body": "You've been invited by Lukasz Fabia to Maths 2025 class. Click button below to go on the invitations page.",
-      "redirectionLink": "",
-      "metadata": null
-    }
-  ]
+    "success": true,
+    "data": [
+        {
+            "id": "68bc910570b5d96a4c46bd54",
+            "receiver": {
+                "id": "lukasz",
+                "firstName": "123",
+                "lastName": "456"
+            },
+            "sender": {
+                "id": "tomasz",
+                "firstName": "23232",
+                "lastName": "3434"
+            },
+            "createdAt": "2025-09-06T19:52:37Z",
+            "type": "invitation",
+            "title": "",
+            "body": "",
+            "redirectionLink": "",
+            "metadata": {
+                "className": "matma"
+            }
+        }
+    ]
 }
 ```
+
+### Deleting notifcations for user
+
+Used to delete user, returns nothing (204).
+
+**Endpoint**: /api/v1/notification (DELETE)
+
+**Body**:
+
+```json
+{
+  "ids": ["68bc910570b5d96a4c46bd54", "68bc910570b5d96a4c46bd59"]
+}
+```
+

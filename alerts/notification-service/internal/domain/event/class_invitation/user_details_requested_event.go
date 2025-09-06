@@ -6,9 +6,9 @@ import (
 )
 
 type UserDetailsRequestedEvent struct {
-	ID         string `json:"notification_id"`
-	SenderID   string `json:"sender_id"`
-	ReceiverID string `json:"receiver_id"`
+	ID         string `json:"notificationId"`
+	SenderID   string `json:"senderId"`
+	ReceiverID string `json:"receiverId"`
 }
 
 func (u *UserDetailsRequestedEvent) Name() string {

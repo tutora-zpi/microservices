@@ -4,8 +4,8 @@ import "fmt"
 
 type UserDTO struct {
 	ID        string `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 func (u *UserDTO) FullName() string {

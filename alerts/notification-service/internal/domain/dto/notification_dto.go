@@ -3,6 +3,7 @@ package dto
 import (
 	"encoding/json"
 	"notification-serivce/internal/domain/enums"
+	"notification-serivce/internal/domain/metadata"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type NotificationDTO struct {
 	Title           string                 `json:"title"`
 	Body            string                 `json:"body"`
 	RedirectionLink string                 `json:"redirectionLink"`
-	Metadata        map[string]any         `json:"metadata"`
+	Metadata        map[metadata.Key]any   `json:"metadata"`
 }
 
 func (dto *NotificationDTO) JSON() []byte {

@@ -2,15 +2,15 @@ package classinvitation
 
 import (
 	"notification-serivce/internal/domain/enums"
+	"notification-serivce/internal/domain/metadata"
 	"notification-serivce/internal/domain/models"
 	"reflect"
 )
 
 type ClassInvitationCreatedEvent struct {
-	RoomID     string `json:"room_id"`
-	RoomName   string `json:"room_name"`
-	ReceiverID string `json:"receiver_id"`
-	SenderID   string `json:"sender_id"`
+	ClassName  string `json:"className"`
+	ReceiverID string `json:"receiverId"`
+	SenderID   string `json:"senderId"`
 }
 
 func (c *ClassInvitationCreatedEvent) Name() string {
@@ -18,10 +18,9 @@ func (c *ClassInvitationCreatedEvent) Name() string {
 }
 
 func (c *ClassInvitationCreatedEvent) Notification() *models.Notification {
-	metadata := map[string]any{
-		"room_id":   c.RoomID,
-		"room_name": c.RoomName,
+	metadata := map[metadata.Key]any{
+		metadata.CLASS_NAME: c.ClassName,
 	}
 
-	return models.NewPartialNotification(enums.Invitation, c.ReceiverID, c.SenderID, metadata)
+	return models.NewPartialNotification(enums.INVITATION, c.ReceiverID, c.SenderID, metadata)
 }

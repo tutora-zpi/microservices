@@ -3,17 +3,16 @@ package main
 import (
 	"context"
 	"log"
-	"notification-serivce/internal/app/usecase"
+	eventhandler "notification-serivce/internal/app/event_handler"
+	"notification-serivce/internal/app/service"
 	"notification-serivce/internal/config"
 	classinvitation "notification-serivce/internal/domain/event/class_invitation"
-	"notification-serivce/internal/domain/query"
 	"notification-serivce/internal/infrastructure/bus"
 	"notification-serivce/internal/infrastructure/database"
 	"notification-serivce/internal/infrastructure/messaging"
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
-	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -30,42 +29,37 @@ func init() {
 		}
 	}
 
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {
 	dispatcher := bus.NewDispatcher()
-	queryBus := bus.NewQueryBus()
 	database := database.Connect()
 	defer database.Close()
 
-	notificationManager := notificationmanager.NewManager()
-	notificationManager.EnableBuffering(1000, 30*time.Minute)
+	manager := notificationmanager.NewManager()
+	manager.EnableBuffering(1000, 30*time.Minute)
 	repo := repository.NewNotificationRepository(database)
+	service := service.NewNotificationSerivce(repo)
 	broker := messaging.NewRabbitBroker(dispatcher)
 	defer broker.Close()
 
-	queryBus.Register(
-		&query.FetchNotificationsQuery{},
-		usecase.NewFetchNotificationsHandler(repo),
-	)
-
 	dispatcher.Register(
 		&classinvitation.ClassInvitationCreatedEvent{},
-		usecase.NewClassInvitationCreatedHandler(broker, repo),
+		eventhandler.NewClassInvitationCreatedHandler(broker, repo),
 	)
 
 	dispatcher.Register(
 		&classinvitation.ClassInvitationReadyEvent{},
-		usecase.NewClassInvitationReadyHandler(notificationManager, repo),
+		eventhandler.NewClassInvitationReadyHandler(manager, repo),
 	)
 
 	dispatcher.Register(
 		&classinvitation.UserDetailsRespondedEvent{},
-		usecase.NewUserDetailsResponsedHandler(broker, repo),
+		eventhandler.NewUserDetailsResponsedHandler(broker, repo),
 	)
 
-	server := server.NewServer(handlers.NewRouter(notificationManager, queryBus))
+	server := server.NewServer(handlers.NewRouter(manager, service))
 
 	go broker.Consume()
 

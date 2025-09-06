@@ -13,8 +13,12 @@ type Response struct {
 
 func NewResponse(w http.ResponseWriter, err *string, httpCode int, data any) {
 	w.WriteHeader(httpCode)
-	w.Header().Set("Content-Type", "application/json")
 
+	if httpCode == http.StatusNoContent {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	var response Response
 
 	if httpCode < 300 && httpCode >= 200 && err == nil {

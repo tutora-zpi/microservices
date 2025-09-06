@@ -28,11 +28,11 @@ func IsAuth(next http.Handler) http.Handler {
 			tokenStr = strings.TrimPrefix(header, bearer)
 		}
 
-		if tokenStr == "" {
-			log.Println("Missing token")
-			server.NewResponse(w, pkg.Ptr("Missing JWT token"), http.StatusUnauthorized, nil)
-			return
-		}
+		// if tokenStr == "" {
+		// 	log.Println("Missing token")
+		// 	server.NewResponse(w, pkg.Ptr("Missing JWT token"), http.StatusUnauthorized, nil)
+		// 	return
+		// }
 
 		userID, err := security.DecodeJWT(tokenStr)
 

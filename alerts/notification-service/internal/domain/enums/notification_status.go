@@ -3,7 +3,7 @@ package enums
 type NotificationStatus string
 
 const (
-	Delivered NotificationStatus = "delivered"
-	Created   NotificationStatus = "created"
-	Pending   NotificationStatus = "pending"
+	DELIVERED NotificationStatus = "delivered"
+	CREATED   NotificationStatus = "created"
+	PENDING   NotificationStatus = "pending"
 )

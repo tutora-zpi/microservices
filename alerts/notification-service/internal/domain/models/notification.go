@@ -1,9 +1,9 @@
 package models
 
 import (
-	"log"
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/enums"
+	"notification-serivce/internal/domain/metadata"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -19,16 +19,16 @@ type Notification struct {
 	Receiver User `bson:"receiver"`
 	Sender   User `bson:"sender"`
 
-	RedirectionLink string `bson:"redirection_link"`
+	RedirectionLink string `bson:"redirectionLink"`
 
-	Metadata map[string]any `bson:"metadata"`
+	Metadata map[metadata.Key]any `bson:"metadata"`
 }
 
-func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[string]any) *Notification {
+func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[metadata.Key]any) *Notification {
 	return &Notification{
 		ID:        bson.NewObjectID(),
 		CreatedAt: bson.NewObjectID().Timestamp(),
-		Status:    enums.Pending,
+		Status:    enums.PENDING,
 
 		Type:     notificationType,
 		Receiver: *NewPartialUser(receiverID),
@@ -37,11 +37,6 @@ func NewPartialNotification(notificationType enums.NotificationType, receiverID,
 		RedirectionLink: "",
 		Metadata:        metadata,
 	}
-}
-
-func NewNotification() *Notification {
-	log.Panic("unimplemented")
-	return nil
 }
 
 func (n *Notification) DTO() *dto.NotificationDTO {
