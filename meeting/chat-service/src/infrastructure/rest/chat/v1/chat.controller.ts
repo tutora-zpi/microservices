@@ -35,7 +35,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Get(':id')
   @HttpCode(200)
-  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
+  @ApiParam({ name: 'id', required: true, type: String, description: "Chats ID" })
   async findOne(@Param('id') id: string): Promise<ChatDTO> {
     this.logger.log(`Getting chat with id: ${id}`);
     const query = new GetChatQuery(id);
@@ -60,7 +60,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Delete(':id')
   @HttpCode(204)
-  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
+  @ApiParam({ name: 'id', required: true, type: String, description: "Chats ID" })
   async deleteOne(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting chat with id: ${id}`);
     const command = new DeleteChatCommand(id);
@@ -88,7 +88,7 @@ export class ChatController {
   @UseGuards(AuthGuard)
   @Get('/:id/messages')
   @HttpCode(200)
-  @ApiParam({ name: 'id', required: false, type: String, description: 'Chats ID' })
+  @ApiParam({ name: 'id', required: true, type: String, description: "Chats ID" })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of messages to fetch' })
   @ApiQuery({ name: 'last_message_id', required: false, type: String, description: 'ID of the last message for pagination' })
   async getMoreMessages(@Param('id') id: string, @Query('limit') limit: string = '10', @Query('last_message_id') lastMessageId?: string | null
