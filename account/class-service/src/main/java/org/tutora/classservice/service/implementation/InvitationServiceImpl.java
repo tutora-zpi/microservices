@@ -64,6 +64,10 @@ public class InvitationServiceImpl implements InvitationService {
     @Transactional
     @Override
     public void cancelInvitation(UUID classId, UUID userId) {
+        Invitation inv = getInvitation(classId, userId);
+
+        validateInvitationStatus(inv.getStatus(), classId, userId);
+
         invitationRepository.deleteByClassroomIdAndUserId(classId, userId);
     }
 
