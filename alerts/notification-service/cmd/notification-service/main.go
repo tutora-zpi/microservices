@@ -5,7 +5,7 @@ import (
 	"log"
 	"notification-serivce/internal/app/usecase"
 	"notification-serivce/internal/config"
-	"notification-serivce/internal/domain/event"
+	classinvitation "notification-serivce/internal/domain/event/class_invitation"
 	"notification-serivce/internal/domain/query"
 	"notification-serivce/internal/infrastructure/bus"
 	"notification-serivce/internal/infrastructure/database"
@@ -42,6 +42,8 @@ func main() {
 	notificationManager := notificationmanager.NewManager()
 	notificationManager.EnableBuffering(1000, 30*time.Minute)
 	repo := repository.NewNotificationRepository(database)
+	broker := messaging.NewRabbitBroker(dispatcher)
+	defer broker.Close()
 
 	queryBus.Register(
 		&query.FetchNotificationsQuery{},
@@ -49,14 +51,21 @@ func main() {
 	)
 
 	dispatcher.Register(
-		&event.ClassInvitationEvent{},
-		usecase.NewClassInvitationHandler(notificationManager, repo),
+		&classinvitation.ClassInvitationCreatedEvent{},
+		usecase.NewClassInvitationCreatedHandler(broker, repo),
+	)
+
+	dispatcher.Register(
+		&classinvitation.ClassInvitationReadyEvent{},
+		usecase.NewClassInvitationReadyHandler(notificationManager, repo),
+	)
+
+	dispatcher.Register(
+		&classinvitation.UserDetailsRespondedEvent{},
+		usecase.NewUserDetailsResponsedHandler(broker, repo),
 	)
 
 	server := server.NewServer(handlers.NewRouter(notificationManager, queryBus))
-
-	broker := messaging.NewRabbitBroker(dispatcher)
-	defer broker.Close()
 
 	go broker.Consume()
 

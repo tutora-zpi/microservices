@@ -37,7 +37,7 @@ func (mb *NotificationBuffer) AddNotification(dto dto.NotificationDTO) {
 
 	log.Println("Appending notification to the buffer")
 
-	clientID := dto.ReceiverID
+	clientID := dto.Receiver.ID
 
 	msg := buffer.NewBufferedNotification(dto)
 

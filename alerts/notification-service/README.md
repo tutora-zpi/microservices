@@ -101,39 +101,20 @@ eventSource.onmessage = (event) => {
 
 Service listens on given types of events. List is down below.
 
-### ClassInvitationEvent
+### ClassInvitation Flow
 
 **Note**: if you use **RabbitMQ dashboard** to testing purposes, make sure you paste raw json without comments.
 
-**Source**: `class-service`
+**Events**: [class invitation events](./internal/domain/event/class_invitation/)
 
-```json
-{
-    // wrapper
-    "pattern": "ClassInvitationEvent",
-    "data": {
-        // acutal events class
-        "sender_full_name": "Lukasz Fabia",
-        "room_name": "Room name",
-        "receiver_id": "acde070d-8c4c-4f0d-9d8a-162843c10333"
-    }
-}
-```
+`ClassService` publishes an event [ClassInvitationCreatedEvent](./internal/domain/event/class_invitation/created_event.go) then `NotificationService` creates partial entry in database and requests for more data to `UserService` using [UserDetailsRequestedEvent](./internal/domain/event/class_invitation/user_details_requested_event.go). When `UserService` will return data by publishing event called [UserDetailsRespondedEvent](./internal/domain/event/class_invitation/user_details_responded_event.go), `NotificationService` updates fields and creates domain event [ClassInvitationReadyEvent](./internal/domain/event/class_invitation/ready_event.go) and finally pushes notification to infrastructre layer.
+
+
 
 ### MeetingInivtationEvent
 
-**Source**: `meeting-scheduler-service`
+**Events**: [meeting invitation events](./internal/domain/event/meeting_invitation_event.go)
 
-```json
-{
-    // wrapper
-    "pattern": "MeetingInivtationEvent",
-    "data": {
-        // acutal events class
-        // in progress
-    }
-}
-```
 
 ## API Documentation
 

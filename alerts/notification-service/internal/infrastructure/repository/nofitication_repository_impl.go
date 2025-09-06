@@ -19,6 +19,38 @@ type notificationRepositoryImpl struct {
 	database *database.Database
 }
 
+func (r *notificationRepositoryImpl) Update(ctx context.Context, fields map[string]any, id string) (*dto.NotificationDTO, error) {
+	uid, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid hex string")
+	}
+
+	filter := bson.M{"_id": uid}
+
+	update := bson.M{"$set": fields}
+
+	res := r.database.GetCollection().FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+
+	if err := res.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("notification not found")
+		}
+		return nil, fmt.Errorf("failed to update notification: %w", err)
+	}
+
+	var result models.Notification
+	if err := res.Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode notification: %w", err)
+	}
+
+	return result.DTO(), nil
+}
+
 func NewNotificationRepository(db *database.Database) repository.NotificationRepository {
 	return &notificationRepositoryImpl{
 		database: db,
@@ -55,12 +87,11 @@ func (this *notificationRepositoryImpl) Save(ctx context.Context, n *models.Noti
 	if uid, ok := res.InsertedID.(bson.ObjectID); ok {
 		n.ID = uid
 	} else {
-		log.Printf("Unexpected InsertedID type: %T", res.InsertedID)
 		return nil, fmt.Errorf("failed to retrieve inserted ID: unexpected type %T", res.InsertedID)
 	}
 
 	result := n.DTO()
-	return &result, nil
+	return result, nil
 }
 
 func (r *notificationRepositoryImpl) Get(ctx context.Context, receiverID string, lastNotificationID *string, limit int) ([]dto.NotificationDTO, error) {
@@ -101,7 +132,7 @@ func (r *notificationRepositoryImpl) decodeNotifications(ctx context.Context, cu
 		if err := cursor.Decode(&result); err != nil {
 			return dtos, fmt.Errorf("failed to decode notification: %w", err)
 		}
-		dtos = append(dtos, result.DTO())
+		dtos = append(dtos, *result.DTO())
 	}
 
 	if err := cursor.Err(); err != nil {

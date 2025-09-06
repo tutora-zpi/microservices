@@ -18,9 +18,9 @@ func (e *EventWrapper) ToJson() ([]byte, error) {
 	return json.Marshal(e)
 }
 
-func NewEventWrapper(pattern string, event Event) *EventWrapper {
-	return &EventWrapper{
-		Pattern: pattern,
+func NewEventWrapper(event Event) EventWrapper {
+	return EventWrapper{
+		Pattern: event.Name(),
 		Data:    event,
 	}
 }

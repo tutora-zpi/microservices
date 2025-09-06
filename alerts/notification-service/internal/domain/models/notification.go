@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log"
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/enums"
 	"time"
@@ -15,40 +16,41 @@ type Notification struct {
 	Type   enums.NotificationType   `bson:"type"`
 	Status enums.NotificationStatus `bson:"status"`
 
-	ReceiverID string `bson:"receiverId"`
+	Receiver User `bson:"receiver"`
+	Sender   User `bson:"sender"`
 
-	Title           string `bson:"title"`
-	Body            string `bson:"body"`
-	RedirectionLink string `bson:"redirectionLink"`
+	RedirectionLink string `bson:"redirection_link"`
 
 	Metadata map[string]any `bson:"metadata"`
 }
 
-func NewNotification(notificationType enums.NotificationType, receiverID, title, body, redirectionLink string, metadata map[string]any) *Notification {
+func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[string]any) *Notification {
 	return &Notification{
 		ID:        bson.NewObjectID(),
 		CreatedAt: bson.NewObjectID().Timestamp(),
-		Status:    enums.Created,
+		Status:    enums.Pending,
 
-		Type:       notificationType,
-		ReceiverID: receiverID,
+		Type:     notificationType,
+		Receiver: *NewPartialUser(receiverID),
+		Sender:   *NewPartialUser(senderID),
 
-		Title:           title,
-		Body:            body,
-		RedirectionLink: redirectionLink,
-
-		Metadata: metadata,
+		RedirectionLink: "",
+		Metadata:        metadata,
 	}
 }
 
-func (n *Notification) DTO() dto.NotificationDTO {
-	return dto.NotificationDTO{
+func NewNotification() *Notification {
+	log.Panic("unimplemented")
+	return nil
+}
+
+func (n *Notification) DTO() *dto.NotificationDTO {
+	return &dto.NotificationDTO{
 		ID:              n.ID.Hex(),
-		ReceiverID:      n.ReceiverID,
+		Receiver:        n.Receiver.DTO(),
+		Sender:          n.Sender.DTO(),
 		CreatedAt:       n.CreatedAt,
 		Type:            n.Type,
-		Title:           n.Title,
-		Body:            n.Body,
 		RedirectionLink: n.RedirectionLink,
 		Metadata:        n.Metadata,
 	}

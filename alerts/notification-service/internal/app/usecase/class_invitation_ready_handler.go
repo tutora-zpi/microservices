@@ -7,18 +7,18 @@ import (
 	"log"
 	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/domain/dto"
-	"notification-serivce/internal/domain/event"
+	classinvitation "notification-serivce/internal/domain/event/class_invitation"
 	"notification-serivce/internal/domain/repository"
 )
 
-type ClassInvitationHandler struct {
+type ClassInvitationReadyHandler struct {
 	publisher interfaces.NotificationManager
 	repo      repository.NotificationRepository
 }
 
-func (c *ClassInvitationHandler) Handle(body []byte) error {
+func (c *ClassInvitationReadyHandler) Handle(body []byte) error {
 	ctx := context.Background()
-	event := event.ClassInvitationEvent{}
+	event := classinvitation.ClassInvitationReadyEvent{}
 	var err error
 
 	if err = json.Unmarshal(body, &event); err != nil {
@@ -28,14 +28,7 @@ func (c *ClassInvitationHandler) Handle(body []byte) error {
 
 	log.Println("Successfully handled")
 
-	var dto *dto.NotificationDTO
-
-	dto, err = c.repo.Save(ctx, event.Notification())
-	if err != nil {
-		return err
-	}
-
-	log.Println("DTO", *dto)
+	var dto *dto.NotificationDTO = event.GetReadyNotification()
 
 	if err = c.publisher.Push(*dto); err != nil {
 		return err
@@ -48,8 +41,8 @@ func (c *ClassInvitationHandler) Handle(body []byte) error {
 	return nil
 }
 
-func NewClassInvitationHandler(publisher interfaces.NotificationManager, repo repository.NotificationRepository) interfaces.EventHandler {
-	return &ClassInvitationHandler{
+func NewClassInvitationReadyHandler(publisher interfaces.NotificationManager, repo repository.NotificationRepository) interfaces.EventHandler {
+	return &ClassInvitationReadyHandler{
 		publisher: publisher,
 		repo:      repo,
 	}

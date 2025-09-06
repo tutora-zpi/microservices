@@ -45,7 +45,8 @@ func (conn *SSEConnection) HandleEvents() {
 	_ = conn.SendRetry(5)
 
 	_ = conn.SendSSEComment("Connection ready, checking for buffered notifications...")
-	_ = conn.sendHeartbeat()
+
+	conn.Flusher.Flush()
 
 	connectionTimeout := time.NewTimer(5 * time.Minute)
 	defer connectionTimeout.Stop()

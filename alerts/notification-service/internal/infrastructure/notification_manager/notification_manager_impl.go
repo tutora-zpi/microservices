@@ -77,13 +77,13 @@ func (m *notificationManagerImpl) GetBufferedNotifications(clientID string) []*b
 
 func (m *notificationManagerImpl) Push(dto dto.NotificationDTO) error {
 	m.mu.RLock()
-	clientChan, exists := m.clients[dto.ReceiverID]
+	clientChan, exists := m.clients[dto.Receiver.ID]
 	clientCount := len(m.clients)
 	m.mu.RUnlock()
 
 	data := dto.JSON()
 	log.Printf("Client %s, exists: %t, total clients: %d, buffering: %t",
-		dto.ReceiverID, exists, clientCount, m.bufferingEnabled)
+		dto.Receiver.ID, exists, clientCount, m.bufferingEnabled)
 
 	isActuallyConnected := exists && clientChan != nil
 
@@ -99,17 +99,17 @@ func (m *notificationManagerImpl) Push(dto dto.NotificationDTO) error {
 
 	select {
 	case clientChan <- data:
-		log.Printf("Notification sent to client %s", dto.ReceiverID)
+		log.Printf("Notification sent to client %s", dto.Receiver.ID)
 		return nil
 
 	default:
 		if m.bufferingEnabled && m.notificationBuffer != nil {
 			m.notificationBuffer.AddNotification(dto)
-			log.Printf("Channel full for client %s - notification buffered\n", dto.ReceiverID)
+			log.Printf("Channel full for client %s - notification buffered\n", dto.Receiver.ID)
 		} else {
-			log.Printf("Channel full for client %s - buffering disabled\n", dto.ReceiverID)
+			log.Printf("Channel full for client %s - buffering disabled\n", dto.Receiver.ID)
 		}
-		return fmt.Errorf("client %s channel full", dto.ReceiverID)
+		return fmt.Errorf("client %s channel full", dto.Receiver.ID)
 	}
 }
 
