@@ -1,4 +1,4 @@
-package query
+package requests
 
 import (
 	"reflect"
@@ -9,19 +9,19 @@ const (
 	DEFAULT_LIMIT int = 10
 )
 
-type FetchNotificationsQuery struct {
+type FetchNotificationsRequest struct {
 	// person who requests it
 	ReceiverID         string
 	Limit              int
 	LastNotificationID *string
 }
 
-func (f *FetchNotificationsQuery) Name() string {
+func (f *FetchNotificationsRequest) Name() string {
 	return reflect.TypeOf(f).Elem().Name()
 }
 
-func NewFetchNotificationsQuery(limit, lastNotificationID, receiverID string) Query {
-	q := &FetchNotificationsQuery{}
+func NewFetchNotificationsRequest(limit, lastNotificationID, receiverID string) *FetchNotificationsRequest {
+	q := &FetchNotificationsRequest{}
 
 	q.ReceiverID = receiverID
 

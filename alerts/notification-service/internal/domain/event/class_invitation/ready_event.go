@@ -21,11 +21,11 @@ func NewClassInvitationReadyEvent(dto *dto.NotificationDTO) *ClassInvitationRead
 }
 
 func (c *ClassInvitationReadyEvent) enrichNotification() *dto.NotificationDTO {
-	title := fmt.Sprintf("Invitation to %s class!", c.getRoomName())
+	title := fmt.Sprintf("Invitation to %s class!", c.getClassName())
 
 	body := fmt.Sprintf(
 		"%s!, You've been invited by %s to %s class. Click button below to go on the invitations page.",
-		c.Receiver.FirstName, c.Sender.FullName(), c.getRoomName(),
+		c.Receiver.FirstName, c.Sender.FullName(), c.getClassName(),
 	)
 
 	c.Title = title
@@ -38,8 +38,8 @@ func (c *ClassInvitationReadyEvent) Name() string {
 	return reflect.TypeOf(c).Elem().Name()
 }
 
-func (c *ClassInvitationReadyEvent) getRoomName() string {
-	roomName, ok := c.Metadata[metadata.ROOM_NAME].(string)
+func (c *ClassInvitationReadyEvent) getClassName() string {
+	roomName, ok := c.Metadata[metadata.CLASS_NAME].(string)
 	if !ok {
 		roomName = PLACEHOLDER_ROOM_NAME
 	}

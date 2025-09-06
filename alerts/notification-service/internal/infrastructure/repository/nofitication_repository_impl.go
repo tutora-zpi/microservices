@@ -19,6 +19,45 @@ type notificationRepositoryImpl struct {
 	database *database.Database
 }
 
+// Delete implements repository.NotificationRepository.
+func (r *notificationRepositoryImpl) Delete(ctx context.Context, clientID string, ids ...string) error {
+	var objectIDs []bson.ObjectID
+	var err error
+	var uid bson.ObjectID
+
+	for _, id := range ids {
+		uid, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			log.Printf("Failed to convert id %s to ObjectID: %v (skipping)", id, err)
+			continue
+		}
+		objectIDs = append(objectIDs, uid)
+	}
+
+	if len(objectIDs) == 0 {
+		return nil
+	}
+
+	uid, err = bson.ObjectIDFromHex(clientID)
+	if err != nil {
+		return fmt.Errorf("invalid hex string")
+	}
+
+	filter := bson.M{
+		"$and": []bson.M{
+			{"_id": bson.M{"$in": objectIDs}},
+			{"receiver._id": uid},
+		},
+	}
+
+	_, err = r.database.GetCollection().DeleteMany(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to delete notifications: %w", err)
+	}
+
+	return nil
+}
+
 func (r *notificationRepositoryImpl) Update(ctx context.Context, fields map[string]any, id string) (*dto.NotificationDTO, error) {
 	uid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
@@ -64,7 +103,7 @@ func (r *notificationRepositoryImpl) MarkAsDelivered(ctx context.Context, id str
 	}
 
 	filter := bson.M{"_id": uid}
-	update := bson.M{"$set": bson.M{"status": enums.Delivered}}
+	update := bson.M{"$set": bson.M{"status": enums.DELIVERED}}
 
 	res := r.database.GetCollection().FindOneAndUpdate(ctx, filter, update)
 	if err := res.Err(); err != nil {
@@ -95,7 +134,7 @@ func (this *notificationRepositoryImpl) Save(ctx context.Context, n *models.Noti
 }
 
 func (r *notificationRepositoryImpl) Get(ctx context.Context, receiverID string, lastNotificationID *string, limit int) ([]dto.NotificationDTO, error) {
-	filter := bson.M{"receiverId": receiverID}
+	filter := bson.M{"receiver._id": receiverID}
 
 	if lastNotificationID != nil {
 		uid, err := bson.ObjectIDFromHex(*lastNotificationID)

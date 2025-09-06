@@ -7,8 +7,8 @@ import (
 
 type User struct {
 	ID        string `bson:"_id"`
-	FirstName string `bson:"first_name"`
-	LastName  string `bson:"last_name"`
+	FirstName string `bson:"firstName"`
+	LastName  string `bson:"lastName"`
 	Role      string `bson:"role"`
 }
 

@@ -9,10 +9,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func NewRouter(manager interfaces.NotificationManager, queryBus interfaces.QueryBus) *mux.Router {
+func NewRouter(manager interfaces.NotificationManager, service interfaces.NotificationSerivce) *mux.Router {
 	router := mux.NewRouter()
 	sseHandler := handlers.NewSSEHandler(manager, nil)
-	httpHandler := handlers.NewHTTPHandler(queryBus)
+	httpHandler := handlers.NewHTTPHandler(service)
 
 	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
 
@@ -21,6 +21,7 @@ func NewRouter(manager interfaces.NotificationManager, queryBus interfaces.Query
 	api.Handle("/stream", middleware.IsAuth(http.HandlerFunc(sseHandler.StreamNotifications))).Methods(http.MethodGet)
 
 	api.Handle("", middleware.IsAuth(http.HandlerFunc(httpHandler.FetchNotifications))).Methods(http.MethodGet)
+	api.Handle("", middleware.IsAuth(http.HandlerFunc(httpHandler.DeleteNotifications))).Methods(http.MethodDelete)
 
 	return router
 }
