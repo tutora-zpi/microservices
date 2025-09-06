@@ -1,8 +1,8 @@
-package org.tutora.classservice.dto;
+package org.tutora.classservice.event;
 
 import java.io.Serializable;
 
-public record Event<T> (
+public record EventWrapper<T extends Event> (
         String pattern,
         T data
 ) implements Serializable {

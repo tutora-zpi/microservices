@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutora.classservice.client.NotificationPublisher;
-import org.tutora.classservice.dto.ClassInvitationCreatedEvent;
+import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.entity.*;
 import org.tutora.classservice.exception.*;
 import org.tutora.classservice.repository.InvitationRepository;
@@ -54,9 +54,9 @@ public class InvitationServiceImpl implements InvitationService {
         Invitation inv = saveInvitation(classId, userId);
 
         notificationPublisher.sendClassInvitation(new ClassInvitationCreatedEvent(
-                senderId,
+                senderId.toString(),
                 classroom.getName(),
-                userId
+                userId.toString()
         ));
 
         return inv;

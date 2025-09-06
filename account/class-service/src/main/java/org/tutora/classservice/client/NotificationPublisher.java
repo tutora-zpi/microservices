@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
-import org.tutora.classservice.dto.ClassInvitationCreatedEvent;
-import org.tutora.classservice.dto.Event;
+import org.tutora.classservice.event.ClassInvitationCreatedEvent;
+import org.tutora.classservice.event.EventWrapper;
 
 import java.io.UncheckedIOException;
 
@@ -18,7 +18,7 @@ public class NotificationPublisher {
     private final ObjectMapper objectMapper;
 
     public void sendClassInvitation(ClassInvitationCreatedEvent invitation) {
-        Event<ClassInvitationCreatedEvent> event = new Event<>(
+        EventWrapper<ClassInvitationCreatedEvent> event = new EventWrapper<>(
                 ClassInvitationCreatedEvent.class.getSimpleName(),
                 invitation
         );
