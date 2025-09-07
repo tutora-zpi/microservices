@@ -1,0 +1,32 @@
+services:
+  class-service:
+    build: .
+    container_name: class-service
+    ports:
+      - "${CLASS_SERVICE_PORT}:8080"
+    env_file:
+      - ".env"
+
+    depends_on:
+      postgres-class-service:
+        condition: service_healthy
+
+  postgres-class-service:
+    image: postgres:16
+    container_name: postgres-class-service
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${CLASS_POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

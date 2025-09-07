@@ -107,7 +107,7 @@ services:
       - tutora_net
 
   user_service_app:
-    container_name: user_service
+    container_name: user-service
     build:
       context: ./account/user-service
       dockerfile: Dockerfile
@@ -145,8 +145,53 @@ services:
     networks:
       - tutora_net
 
+  class_service_app:
+    container_name: class_service
+    build:
+      context: ./account/class-service
+      dockerfile: Dockerfile
+    ports:
+      - "${CLASS_SERVICE_PORT}:8080"
+    env_file:
+      - ./account/class-service/.env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${CLASS_POSTGRES_HOST}:5432/${CLASS_POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${CLASS_POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${CLASS_POSTGRES_PASSWORD}
+
+    depends_on:
+      class_service_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
+    networks:
+      - tutora_net
+
+  class_service_db:
+    image: postgres:16
+    container_name: class_db
+    environment:
+      POSTGRES_DB: ${CLASS_POSTGRES_DB}
+      POSTGRES_USER: ${CLASS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${CLASS_POSTGRES_PASSWORD}
+    ports:
+      - "${CLASS_POSTGRES_PORT}:5432"
+    volumes:
+      - pgdata_class:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${CLASS_POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tutora_net
+
+
 volumes:
   pgdata:
+  pgdata_class:
 
 networks:
   tutora_net:
