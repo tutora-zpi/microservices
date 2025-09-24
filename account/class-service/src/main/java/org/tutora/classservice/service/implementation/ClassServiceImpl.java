@@ -32,7 +32,7 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     public List<Classroom> getUserClasses(UUID userId) {
-        return memberRepository.findUserClassByUserId(userId).stream()
+        return memberRepository.findMemberByUserId(userId).stream()
                 .map(Member::getClassroom)
                 .toList();
     }

@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
-    List<Member> findUserClassByUserId(UUID userId);
-    Optional<Member> findUserClassByUserIdAndClassroomId(UUID userId, UUID classId);
+    List<Member> findMemberByUserId(UUID userId);
+    Optional<Member> findMemberByUserIdAndClassroomId(UUID userId, UUID classId);
     boolean existsByClassroomIdAndUserId(UUID classId, UUID userId);
 }
