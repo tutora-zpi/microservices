@@ -34,7 +34,7 @@ public class InvitationServiceImpl implements InvitationService {
     public Invitation inviteUser(UUID senderId, UUID classId, UUID userId) {
         Classroom classroom = classService.getClassById(classId);
 
-        if (!hasAuthority(userId, classId, RoleName.HOST)) {
+        if (!hasAuthority(senderId, classId, RoleName.HOST)) {
             throw new UnauthorizedActionException("classroom", classId, "send invitation to classroom");
         }
 
@@ -107,7 +107,7 @@ public class InvitationServiceImpl implements InvitationService {
     }
 
     private boolean hasAuthority(UUID userId, UUID classId, RoleName role) {
-        Member member = memberRepository.findUserClassByUserIdAndClassroomId(userId, classId)
+        Member member = memberRepository.findMemberByUserIdAndClassroomId(userId, classId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Member", Map.of("userId", userId, "classId", classId)));
 
