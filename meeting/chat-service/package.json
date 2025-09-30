@@ -35,7 +35,7 @@
     "@types/amqplib": "^0.10.7",
     "amqp-connection-manager": "^4.1.14",
     "amqplib": "^0.10.8",
-    "axios": "^1.10.0",
+    "axios": "^1.12.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "jwks-rsa": "^2.1.5",
