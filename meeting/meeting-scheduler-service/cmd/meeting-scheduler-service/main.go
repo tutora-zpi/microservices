@@ -9,6 +9,7 @@ import (
 	"meeting-scheduler-service/internal/infrastructure/messaging"
 	"meeting-scheduler-service/internal/infrastructure/redis"
 	"meeting-scheduler-service/internal/infrastructure/rest"
+	"meeting-scheduler-service/internal/infrastructure/security"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,7 +24,7 @@ func init() {
 		}
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
