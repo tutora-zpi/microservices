@@ -9,19 +9,21 @@ import (
 )
 
 type MeetingStartedEvent struct {
-	MeetingID   string        `json:"meetingID"`
+	MeetingID   string        `json:"meetingId"`
 	Members     []dto.UserDTO `json:"members"`
 	StartedTime time.Time     `json:"startedTime"` // ISO 8601 format
 }
 
-func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *EventWrapper {
+func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
 	event := &MeetingStartedEvent{
 		MeetingID:   uuid.New().String(),
 		Members:     dto.Members,
 		StartedTime: time.Now(),
 	}
 
-	name := reflect.TypeOf(*event).Name()
+	return event
+}
 
-	return NewEventWrapper(name, *event)
+func (m *MeetingStartedEvent) Name() string {
+	return reflect.TypeOf(*m).Name()
 }

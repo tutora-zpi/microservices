@@ -18,8 +18,11 @@ func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	router.PathPrefix("/api/v1/docs/").Handler(httpSwagger.WrapHandler)
 
 	api := router.PathPrefix("/api/v1/meeting").Subrouter()
-	api.Handle("/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting))))
-	api.Handle("/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting))))
+	// api.Handle("/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting))))
+	// api.Handle("/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting))))
+
+	api.Handle("/start", middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))
+	api.Handle("/end", middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))
 
 	return router
 }

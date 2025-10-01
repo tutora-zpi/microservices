@@ -17,7 +17,7 @@ func (c *ClassInvitationCreatedEvent) Name() string {
 	return reflect.TypeOf(c).Elem().Name()
 }
 
-func (c *ClassInvitationCreatedEvent) Notification() *models.Notification {
+func (c *ClassInvitationCreatedEvent) Notification() models.Notification {
 	metadata := map[metadata.Key]any{
 		metadata.CLASS_NAME: c.ClassName,
 	}

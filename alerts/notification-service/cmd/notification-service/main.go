@@ -7,13 +7,13 @@ import (
 	"notification-serivce/internal/app/service"
 	"notification-serivce/internal/config"
 	classinvitation "notification-serivce/internal/domain/event/class_invitation"
+	meetinginvitation "notification-serivce/internal/domain/event/meeting_invitation"
 	"notification-serivce/internal/infrastructure/bus"
 	"notification-serivce/internal/infrastructure/database"
 	"notification-serivce/internal/infrastructure/messaging"
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
-	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -30,7 +30,7 @@ func init() {
 		}
 	}
 
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {
@@ -58,6 +58,11 @@ func main() {
 	dispatcher.Register(
 		&classinvitation.UserDetailsRespondedEvent{},
 		eventhandler.NewUserDetailsResponsedHandler(broker, repo),
+	)
+
+	dispatcher.Register(
+		&meetinginvitation.MeetingStartedEvent{},
+		eventhandler.NewMeetingInvitationReadyEventHandler(manager, repo),
 	)
 
 	server := server.NewServer(handlers.NewRouter(manager, service))

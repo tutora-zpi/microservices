@@ -28,3 +28,15 @@ func (dto *NotificationDTO) JSON() []byte {
 
 	return data
 }
+
+func (dto *NotificationDTO) AppendTitle(title string) *NotificationDTO {
+	dto.Title = title
+
+	return dto
+}
+
+func (dto *NotificationDTO) AppendBody(body string) *NotificationDTO {
+	dto.Body = body
+
+	return dto
+}

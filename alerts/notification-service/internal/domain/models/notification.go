@@ -24,8 +24,8 @@ type Notification struct {
 	Metadata map[metadata.Key]any `bson:"metadata"`
 }
 
-func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[metadata.Key]any) *Notification {
-	return &Notification{
+func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[metadata.Key]any) Notification {
+	return Notification{
 		ID:        bson.NewObjectID(),
 		CreatedAt: bson.NewObjectID().Timestamp(),
 		Status:    enums.PENDING,
