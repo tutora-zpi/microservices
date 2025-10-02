@@ -19,13 +19,22 @@ type manageMeetingImlp struct {
 	meetingChannelName      string
 }
 
+// ActiveMeeting implements interfaces.ManageMeeting.
+func (m *manageMeetingImlp) ActiveMeeting(classID string) (*dto.MeetingDTO, error) {
+	ctx := context.Background()
+
+	return m.MeetingRepository.Get(ctx, classID)
+}
+
 // Start implements ManageMeeting.
 func (m *manageMeetingImlp) Start(startedMeetingDto dto.StartMeetingDTO) (*dto.MeetingDTO, error) {
 	ctx := context.Background()
 
 	ev := event.NewMeetingStartedEvent(startedMeetingDto)
 
-	err := m.MeetingRepository.Append(ctx, startedMeetingDto.ClassID, ev.StartedTime)
+	meeting := ev.NewMeeting(startedMeetingDto.ClassID, startedMeetingDto.Title)
+
+	err := m.MeetingRepository.Append(ctx, meeting)
 	if err != nil {
 		return nil, err
 	}
@@ -35,32 +44,28 @@ func (m *manageMeetingImlp) Start(startedMeetingDto dto.StartMeetingDTO) (*dto.M
 		return nil, fmt.Errorf("failed to create meeting, try again")
 	}
 
-	startedTime := ev.StartedTime.Unix()
-
-	result := dto.NewMeetingDTO(ev.MeetingID, ev.Members, &startedTime)
+	result := dto.NewMeetingDTO(ev.MeetingID, ev.Members, &meeting.Timestamp, meeting.Title)
 
 	return result, nil
 }
 
 // Stop implements ManageMeeting.
-func (m *manageMeetingImlp) Stop(endMeetingDto dto.EndMeetingDTO) (*dto.MeetingDTO, error) {
+func (m *manageMeetingImlp) Stop(endMeetingDto dto.EndMeetingDTO) error {
 	ctx := context.Background()
 
 	ev := event.NewMeetingEndedEvent(endMeetingDto)
 	err := m.MeetingRepository.Delete(ctx, endMeetingDto.ClassID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = m.Broker.Publish(ev, m.meetingChannelName)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to stop meeting, try again")
+		return fmt.Errorf("failed to stop meeting, try again")
 	}
 
-	result := dto.NewMeetingDTO(endMeetingDto.MeetingID, endMeetingDto.Members, nil)
-
-	return result, nil
+	return nil
 }
 
 func NewMeetingManager(broker interfaces.Broker, repo repository.MeetingRepository) interfaces.ManageMeeting {

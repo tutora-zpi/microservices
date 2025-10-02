@@ -14,6 +14,10 @@ type StartMeetingDTO struct {
 	// Class id - where meeting will be started (UUIDv4)
 	// required: true
 	ClassID string `json:"classId" validate:"required,uuid4"`
+
+	// The title of the class eg. C++ Object oriented: pointers
+	// reqiured: true
+	Title string `json:"title" validate:"required"`
 }
 
 func (dto *StartMeetingDTO) IsValid() error {

@@ -110,11 +110,11 @@ Service listens on given types of events. List is down below.
 `ClassService` publishes an event [ClassInvitationCreatedEvent](./internal/domain/event/class_invitation/created_event.go) then `NotificationService` creates partial entry in database and requests for more data to `UserService` using [UserDetailsRequestedEvent](./internal/domain/event/class_invitation/user_details_requested_event.go). When `UserService` will return data by publishing event called [UserDetailsRespondedEvent](./internal/domain/event/class_invitation/user_details_responded_event.go), `NotificationService` updates fields and creates domain event [ClassInvitationReadyEvent](./internal/domain/event/class_invitation/ready_event.go) and finally pushes notification to infrastructre layer.
 
 
-
 ### MeetingInivtationEvent
 
-**Events**: [meeting invitation events](./internal/domain/event/meeting_invitation_event.go)
+**Events**: [meeting invitation event](./internal/domain/event/meeting_invitation/meeting_invitation_event.go)
 
+Receives an event, saves in database and then pushes notification to infrastructre layer.
 
 ## API Documentation
 

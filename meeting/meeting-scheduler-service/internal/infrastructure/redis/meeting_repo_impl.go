@@ -2,8 +2,11 @@ package redis
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"meeting-scheduler-service/internal/domain/dto"
+	"meeting-scheduler-service/internal/domain/models"
 	"meeting-scheduler-service/internal/domain/repository"
 	"meeting-scheduler-service/internal/infrastructure/config"
 	"os"
@@ -18,11 +21,13 @@ type meetingRepoImpl struct {
 }
 
 // Append implements repository.MeetingRepository.
-func (m *meetingRepoImpl) Append(ctx context.Context, classID string, timestamp time.Time) error {
-	key := m.key(classID)
-	_, err := m.client.Set(ctx, key, timestamp.UnixNano(), time.Duration(time.Minute*70)).Result()
+func (m *meetingRepoImpl) Append(ctx context.Context, meeting *models.Meeting) error {
+	key := m.key(meeting.ClassID)
+	log.Printf("Appending item under: %s\n", key)
+
+	_, err := m.client.Set(ctx, key, meeting.ToJSON(), time.Duration(time.Minute*70)).Result()
 	if err != nil {
-		return fmt.Errorf("failed to append new value with key:%s", classID)
+		return fmt.Errorf("failed to append new value with key:%s", meeting.ClassID)
 	}
 	return nil
 }
@@ -39,10 +44,20 @@ func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 }
 
 // Get implements repository.MeetingRepository.
-func (m *meetingRepoImpl) Contains(ctx context.Context, classID string) bool {
+func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.MeetingDTO, error) {
 	key := m.key(classID)
-	_, err := m.client.Get(ctx, key).Result()
-	return err == nil
+	result, err := m.client.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var meeting *models.Meeting
+
+	if err := json.Unmarshal([]byte(result), &meeting); err != nil {
+		return nil, err
+	}
+
+	return meeting.ToDTO(), nil
 }
 
 func NewMeetingRepo() repository.MeetingRepository {
@@ -53,6 +68,13 @@ func NewMeetingRepo() repository.MeetingRepository {
 	}
 
 	client := redis.NewClient(ops)
+
+	result, err := client.Ping(context.Background()).Result()
+	if err != nil || result != "PONG" {
+		log.Panicf("Failed to connect with Redis")
+	} else {
+		log.Println("Successfully connected to Redis")
+	}
 
 	return &meetingRepoImpl{
 		client: client,

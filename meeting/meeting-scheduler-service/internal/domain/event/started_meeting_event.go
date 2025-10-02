@@ -2,6 +2,7 @@ package event
 
 import (
 	"meeting-scheduler-service/internal/domain/dto"
+	"meeting-scheduler-service/internal/domain/models"
 	"reflect"
 	"time"
 
@@ -26,4 +27,13 @@ func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
 
 func (m *MeetingStartedEvent) Name() string {
 	return reflect.TypeOf(*m).Name()
+}
+
+func (m *MeetingStartedEvent) NewMeeting(classID, title string) *models.Meeting {
+	return &models.Meeting{
+		MeetingID: m.MeetingID,
+		Timestamp: m.StartedTime.Unix(),
+		Title:     title,
+		ClassID:   classID,
+	}
 }

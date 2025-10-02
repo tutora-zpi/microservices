@@ -2,12 +2,13 @@ package repository
 
 import (
 	"context"
-	"time"
+	"meeting-scheduler-service/internal/domain/dto"
+	"meeting-scheduler-service/internal/domain/models"
 )
 
 type MeetingRepository interface {
-	Append(ctx context.Context, classID string, timestamp time.Time) error
-	Contains(ctx context.Context, classID string) bool
+	Append(ctx context.Context, meeting *models.Meeting) error
+	Get(ctx context.Context, classID string) (*dto.MeetingDTO, error)
 	Delete(ctx context.Context, classID string) error
 	Close()
 }

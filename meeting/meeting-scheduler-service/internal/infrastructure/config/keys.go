@@ -11,8 +11,7 @@ const (
 	RABBITMQ_PORT         string = "RABBITMQ_PORT"
 	RABBITMQ_URL          string = "RABBITMQ_URL"
 
-	JWT_SECRET string = "JWT_SECRET"
-	JWKS_URL   string = "JWKS_URL"
+	JWKS_URL string = "JWKS_URL"
 
 	APP_NAME string = "APP_NAME"
 	APP_PORT string = "APP_PORT"

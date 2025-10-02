@@ -25,7 +25,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "meetings"
+                    "ending meetings"
                 ],
                 "summary": "End a meeting",
                 "parameters": [
@@ -41,19 +41,75 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Meeting details after operation",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad request due to invalid data or DTO type",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Ends a meeting based on the provided DTO",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ending meetings"
+                ],
+                "summary": "End a meeting",
+                "parameters": [
+                    {
+                        "description": "End Meeting DTO",
+                        "name": "meeting",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.EndMeetingDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
                     },
-                    "405": {
-                        "description": "Method not allowed (only POST supported)",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.Response"
                         }
@@ -62,7 +118,7 @@ const docTemplate = `{
             }
         },
         "/api/v1/meeting/start": {
-            "post": {
+            "put": {
                 "description": "Starts a meeting based on the provided DTO",
                 "consumes": [
                     "application/json"
@@ -71,7 +127,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "meetings"
+                    "start meetings"
                 ],
                 "summary": "Start a meeting",
                 "parameters": [
@@ -89,7 +145,75 @@ const docTemplate = `{
                     "200": {
                         "description": "Meeting details after operation",
                         "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request due to invalid data or DTO type",
+                        "schema": {
                             "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed (only POST supported)",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Starts a meeting based on the provided DTO",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "start meetings"
+                ],
+                "summary": "Start a meeting",
+                "parameters": [
+                    {
+                        "description": "Start Meeting DTO",
+                        "name": "meeting",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.StartMeetingDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Meeting details after operation",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -106,16 +230,80 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/meeting/{class_id}": {
+            "get": {
+                "description": "Fetches information about active meeting for given class. \"members\" will be empty.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "meetings class"
+                ],
+                "summary": "Gets active meeting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class ID",
+                        "name": "class_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Found active meeting",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Empty class id",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found or not started yet",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed (only GET supported)",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "dto.EndMeetingDTO": {
             "type": "object",
             "required": [
+                "classId",
                 "meetingID",
                 "members"
             ],
             "properties": {
+                "classId": {
+                    "description": "Class id - where meeting will be started (UUIDv4)\nrequired: true",
+                    "type": "string"
+                },
                 "meetingID": {
                     "description": "Meeting unique identifier (UUIDv4)\nrequired: true",
                     "type": "string"
@@ -130,12 +318,42 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.MeetingDTO": {
+            "type": "object",
+            "properties": {
+                "meetingID": {
+                    "description": "Meeting unique identifier",
+                    "type": "string"
+                },
+                "members": {
+                    "description": "Members who participated in the meeting",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserDTO"
+                    }
+                },
+                "timestamp": {
+                    "description": "Timestamp of started meeting",
+                    "type": "integer"
+                },
+                "title": {
+                    "description": "Meetings title",
+                    "type": "string"
+                }
+            }
+        },
         "dto.StartMeetingDTO": {
             "type": "object",
             "required": [
-                "members"
+                "classId",
+                "members",
+                "title"
             ],
             "properties": {
+                "classId": {
+                    "description": "Class id - where meeting will be started (UUIDv4)\nrequired: true",
+                    "type": "string"
+                },
                 "members": {
                     "description": "Members participating in the meeting (minimum 2)\nrequired: true",
                     "type": "array",
@@ -143,6 +361,10 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.UserDTO"
                     }
+                },
+                "title": {
+                    "description": "The title of the class eg. C++ Object oriented: pointers\nreqiured: true",
+                    "type": "string"
                 }
             }
         },
