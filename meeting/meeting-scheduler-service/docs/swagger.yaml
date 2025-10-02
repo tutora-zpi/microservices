@@ -2,6 +2,11 @@ basePath: /api/v1
 definitions:
   dto.EndMeetingDTO:
     properties:
+      classId:
+        description: |-
+          Class id - where meeting will be started (UUIDv4)
+          required: true
+        type: string
       meetingID:
         description: |-
           Meeting unique identifier (UUIDv4)
@@ -16,11 +21,34 @@ definitions:
         minItems: 2
         type: array
     required:
+    - classId
     - meetingID
     - members
     type: object
+  dto.MeetingDTO:
+    properties:
+      meetingID:
+        description: Meeting unique identifier
+        type: string
+      members:
+        description: Members who participated in the meeting
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        type: array
+      timestamp:
+        description: Timestamp of started meeting
+        type: integer
+      title:
+        description: Meetings title
+        type: string
+    type: object
   dto.StartMeetingDTO:
     properties:
+      classId:
+        description: |-
+          Class id - where meeting will be started (UUIDv4)
+          required: true
+        type: string
       members:
         description: |-
           Members participating in the meeting (minimum 2)
@@ -29,8 +57,15 @@ definitions:
           $ref: '#/definitions/dto.UserDTO'
         minItems: 2
         type: array
+      title:
+        description: |-
+          The title of the class eg. C++ Object oriented: pointers
+          reqiured: true
+        type: string
     required:
+    - classId
     - members
+    - title
     type: object
   dto.UserDTO:
     properties:
@@ -81,7 +116,74 @@ info:
   title: Meeting Scheduler API
   version: "1.0"
 paths:
+  /api/v1/meeting/{class_id}:
+    get:
+      description: Fetches information about active meeting for given class. "members"
+        will be empty.
+      parameters:
+      - description: Class ID
+        in: path
+        name: class_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Found active meeting
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MeetingDTO'
+              type: object
+        "400":
+          description: Empty class id
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: Not found or not started yet
+          schema:
+            $ref: '#/definitions/response.Response'
+        "405":
+          description: Method not allowed (only GET supported)
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Gets active meeting
+      tags:
+      - meetings class
   /api/v1/meeting/end:
+    delete:
+      consumes:
+      - application/json
+      description: Ends a meeting based on the provided DTO
+      parameters:
+      - description: End Meeting DTO
+        in: body
+        name: meeting
+        required: true
+        schema:
+          $ref: '#/definitions/dto.EndMeetingDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MeetingDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: End a meeting
+      tags:
+      - ending meetings
     post:
       consumes:
       - application/json
@@ -97,20 +199,21 @@ paths:
       - application/json
       responses:
         "200":
-          description: Meeting details after operation
+          description: OK
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MeetingDTO'
+              type: object
         "400":
-          description: Bad request due to invalid data or DTO type
-          schema:
-            $ref: '#/definitions/response.Response'
-        "405":
-          description: Method not allowed (only POST supported)
+          description: Bad Request
           schema:
             $ref: '#/definitions/response.Response'
       summary: End a meeting
       tags:
-      - meetings
+      - ending meetings
   /api/v1/meeting/start:
     post:
       consumes:
@@ -129,7 +232,12 @@ paths:
         "200":
           description: Meeting details after operation
           schema:
-            $ref: '#/definitions/response.Response'
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MeetingDTO'
+              type: object
         "400":
           description: Bad request due to invalid data or DTO type
           schema:
@@ -140,5 +248,39 @@ paths:
             $ref: '#/definitions/response.Response'
       summary: Start a meeting
       tags:
-      - meetings
+      - start meetings
+    put:
+      consumes:
+      - application/json
+      description: Starts a meeting based on the provided DTO
+      parameters:
+      - description: Start Meeting DTO
+        in: body
+        name: meeting
+        required: true
+        schema:
+          $ref: '#/definitions/dto.StartMeetingDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Meeting details after operation
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MeetingDTO'
+              type: object
+        "400":
+          description: Bad request due to invalid data or DTO type
+          schema:
+            $ref: '#/definitions/response.Response'
+        "405":
+          description: Method not allowed (only POST supported)
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Start a meeting
+      tags:
+      - start meetings
 swagger: "2.0"

@@ -38,7 +38,7 @@ func (c *ClassInvitationCreatedHandler) Handle(body []byte) error {
 		return err
 	}
 
-	userDetails := classinvitation.NewUserDetailsRequestedEvent(result)
+	userDetails := classinvitation.NewUserDetailsRequestedEvent(result[0])
 
 	wrapped := event.NewEventWrapper(userDetails)
 

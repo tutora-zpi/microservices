@@ -96,40 +96,63 @@ func NewNotificationRepository(db *database.Database) repository.NotificationRep
 	}
 }
 
-func (r *notificationRepositoryImpl) MarkAsDelivered(ctx context.Context, id string) error {
-	uid, err := bson.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf("invalid hex string")
+func (r *notificationRepositoryImpl) MarkAsDelivered(ctx context.Context, ids ...string) error {
+	if len(ids) == 0 {
+		return fmt.Errorf("no ids provided")
 	}
 
-	filter := bson.M{"_id": uid}
+	var objectIDs []bson.ObjectID
+	for _, id := range ids {
+		oid, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return fmt.Errorf("invalid hex string %q: %w", id, err)
+		}
+		objectIDs = append(objectIDs, oid)
+	}
+
+	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
 	update := bson.M{"$set": bson.M{"status": enums.DELIVERED}}
 
-	res := r.database.GetCollection().FindOneAndUpdate(ctx, filter, update)
-	if err := res.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return fmt.Errorf("notification not found")
-		}
-		return fmt.Errorf("failed to update notification: %w", err)
+	res, err := r.database.GetCollection().UpdateMany(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update notifications: %w", err)
+	}
+
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("no notifications found")
 	}
 
 	return nil
 }
 
-func (this *notificationRepositoryImpl) Save(ctx context.Context, n *models.Notification) (*dto.NotificationDTO, error) {
-	res, err := this.database.GetCollection().InsertOne(ctx, n)
+func (r *notificationRepositoryImpl) Save(ctx context.Context, n ...models.Notification) ([]*dto.NotificationDTO, error) {
+	if len(n) == 0 {
+		return nil, fmt.Errorf("no notifications to save")
+	}
+
+	res, err := r.database.GetCollection().InsertMany(ctx, n)
 	if err != nil {
-		log.Printf("Failed to save notification: %s\n", err.Error())
-		return nil, fmt.Errorf("failed to save notification: %w", err)
+		return nil, fmt.Errorf("failed to save notifications: %w", err)
 	}
 
-	if uid, ok := res.InsertedID.(bson.ObjectID); ok {
-		n.ID = uid
-	} else {
-		return nil, fmt.Errorf("failed to retrieve inserted ID: unexpected type %T", res.InsertedID)
+	if len(res.InsertedIDs) != len(n) {
+		return nil, fmt.Errorf("number of inserted IDs does not match number of notifications")
 	}
 
-	result := n.DTO()
+	for i, id := range res.InsertedIDs {
+		oid, ok := id.(bson.ObjectID)
+		if !ok {
+			return nil, fmt.Errorf("failed to retrieve inserted ID: unexpected type %T", id)
+		}
+		n[i].ID = oid
+	}
+
+	result := []*dto.NotificationDTO{}
+
+	for _, notification := range n {
+		result = append(result, notification.DTO())
+	}
+
 	return result, nil
 }
 
