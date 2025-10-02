@@ -30,6 +30,8 @@ func Connect() *Database {
 		log.Panicln("Failed to connect with database")
 	}
 
+	log.Println(uri)
+
 	if err := client.Ping(context.TODO(), nil); err != nil {
 		log.Panicln("Failed to ping mongo db")
 	}

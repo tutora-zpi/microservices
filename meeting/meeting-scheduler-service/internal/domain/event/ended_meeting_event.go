@@ -12,13 +12,16 @@ type MeetingEndedEvent struct {
 	EndedTime time.Time     `json:"endedTime"`
 }
 
-func NewMeetingEndedEvent(dto dto.EndMeetingDTO) *EventWrapper {
+func NewMeetingEndedEvent(dto dto.EndMeetingDTO) *MeetingEndedEvent {
 	event := &MeetingEndedEvent{
 		MeetingID: dto.MeetingID,
 		Members:   dto.Members,
 		EndedTime: time.Now(),
 	}
 
-	name := reflect.TypeOf(*event).Name()
-	return NewEventWrapper(name, *event)
+	return event
+}
+
+func (m *MeetingEndedEvent) Name() string {
+	return reflect.TypeOf(m).Name()
 }

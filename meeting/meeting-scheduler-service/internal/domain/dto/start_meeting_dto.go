@@ -9,7 +9,15 @@ import (
 type StartMeetingDTO struct {
 	// Members participating in the meeting (minimum 2)
 	// required: true
-	Members []UserDTO `json:"members" validate:"required,min=2,dive,required"`
+	Members []UserDTO `json:"members" validate:"required,min=2,dive"`
+
+	// Class id - where meeting will be started (UUIDv4)
+	// required: true
+	ClassID string `json:"classId" validate:"required,uuid4"`
+
+	// The title of the class eg. C++ Object oriented: pointers
+	// reqiured: true
+	Title string `json:"title" validate:"required"`
 }
 
 func (dto *StartMeetingDTO) IsValid() error {
