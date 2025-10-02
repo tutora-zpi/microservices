@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"notification-serivce/internal/domain/enums"
 	"notification-serivce/internal/domain/metadata"
-	"time"
 )
 
 type NotificationDTO struct {
 	ID              string                 `json:"id"`
 	Receiver        UserDTO                `json:"receiver"`
 	Sender          UserDTO                `json:"sender"`
-	CreatedAt       time.Time              `json:"createdAt"`
+	CreatedAt       int64                  `json:"createdAt"`
 	Type            enums.NotificationType `json:"type"`
 	Title           string                 `json:"title"`
 	Body            string                 `json:"body"`

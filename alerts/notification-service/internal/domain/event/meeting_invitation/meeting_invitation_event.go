@@ -19,7 +19,7 @@ type MeetingStartedEvent struct {
 func (m *MeetingStartedEvent) Notifications() []models.Notification {
 	base := models.Notification{
 		ID:              bson.NewObjectID(),
-		CreatedAt:       m.StartedTime,
+		CreatedAt:       m.StartedTime.Unix(),
 		Type:            enums.INVITATION,
 		Status:          enums.CREATED,
 		RedirectionLink: "",

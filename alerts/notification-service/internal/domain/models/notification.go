@@ -4,14 +4,13 @@ import (
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/enums"
 	"notification-serivce/internal/domain/metadata"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Notification struct {
 	ID        bson.ObjectID `bson:"_id,omitempty"`
-	CreatedAt time.Time     `bson:"createdAt"`
+	CreatedAt int64         `bson:"createdAt"`
 
 	Type   enums.NotificationType   `bson:"type"`
 	Status enums.NotificationStatus `bson:"status"`
@@ -27,7 +26,7 @@ type Notification struct {
 func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[metadata.Key]any) Notification {
 	return Notification{
 		ID:        bson.NewObjectID(),
-		CreatedAt: bson.NewObjectID().Timestamp(),
+		CreatedAt: bson.NewObjectID().Timestamp().Unix(),
 		Status:    enums.PENDING,
 
 		Type:     notificationType,
