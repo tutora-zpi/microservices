@@ -51,7 +51,7 @@ public class InvitationServiceImpl implements InvitationService {
             }
         }
 
-        Invitation inv = saveInvitation(classId, userId);
+        Invitation inv = saveInvitation(classroom, userId);
 
         notificationPublisher.sendClassInvitation(new ClassInvitationCreatedEvent(
                 senderId.toString(),
@@ -130,15 +130,15 @@ public class InvitationServiceImpl implements InvitationService {
                 ));
     }
 
-    private Invitation saveInvitation(UUID classId, UUID userId) {
+    private Invitation saveInvitation(Classroom classroom, UUID userId) {
         InvitationStatus status = getInvitationStatus(InvitationStatusName.INVITED);
 
         Invitation inv = Invitation.builder()
-                .classroom(classService.getClassById(classId))
                 .userId(userId)
                 .status(status)
                 .createdAt(LocalDateTime.now())
                 .build();
+        classroom.addInvitation(inv);
 
         return invitationRepository.save(inv);
     }

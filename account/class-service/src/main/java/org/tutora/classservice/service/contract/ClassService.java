@@ -11,4 +11,5 @@ public interface ClassService {
     List<Classroom> getUserClasses(UUID userId);
     Classroom createClass(UUID userId, Classroom newClassroom);
     void addUserToClass(UUID classId, UUID userId, RoleName role);
+    void deleteClass(UUID classId, UUID userID);
 }
