@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.event.EventWrapper;
@@ -17,6 +18,12 @@ public class NotificationPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
+    @Value("${RABBIT_EXCHANGE}")
+    private String exchange;
+
+    @Value("${RABBIT_ROUTING_KEY}")
+    private String routingKey;
+
     public void sendClassInvitation(ClassInvitationCreatedEvent invitation) {
         EventWrapper<ClassInvitationCreatedEvent> event = new EventWrapper<>(
                 ClassInvitationCreatedEvent.class.getSimpleName(),
@@ -25,7 +32,11 @@ public class NotificationPublisher {
 
         try {
             String json = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend(json);
+            rabbitTemplate.convertAndSend(
+                    "notification",
+                    "class.invitation.created",
+                    json
+            );
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException("Error serializing event: ", e);
         }
