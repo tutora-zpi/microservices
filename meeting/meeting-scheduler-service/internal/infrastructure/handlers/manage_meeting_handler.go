@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"meeting-scheduler-service/internal/app/interfaces"
 	"meeting-scheduler-service/internal/domain/dto"
 	"meeting-scheduler-service/internal/infrastructure/middleware"
@@ -39,19 +38,13 @@ func NewManageMeetingHandler(m interfaces.ManageMeeting) ManageMeetingHandler {
 // @Router /api/v1/meeting/start [post]
 // @Router /api/v1/meeting/start [put]
 func (m *ManageMeetingHandler) StartMeeting(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		response.NewResponse(w, "Use Post method", http.StatusMethodNotAllowed, nil)
-		return
-	}
-
 	body := middleware.GetDTO(r)
 	startDTO, ok := body.(*dto.StartMeetingDTO)
 	if !ok {
-		response.NewResponse(w, "invalid DTO type", http.StatusBadRequest, nil)
+		response.NewResponse(w, "Invalid DTO type", http.StatusBadRequest, nil)
 		return
 	}
 
-	log.Println("Requested starting meeting")
 	meeting, err := m.manager.Start(*startDTO)
 	if err != nil {
 		response.NewResponse(w, err.Error(), http.StatusBadRequest, nil)

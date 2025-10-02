@@ -37,7 +37,7 @@ func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 	key := m.key(classID)
 	removedAmount, err := m.client.Del(ctx, key).Result()
 	if err != nil || removedAmount < 1 {
-		return fmt.Errorf("failed to delete value with key:%s", classID)
+		return fmt.Errorf("failed to delete value with id:%s", classID)
 	}
 
 	return nil
@@ -46,35 +46,41 @@ func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 // Get implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.MeetingDTO, error) {
 	key := m.key(classID)
+	log.Printf("Getting key: %s\n", key)
+
 	result, err := m.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		log.Printf("Key %s not found in Redis\n", key)
+		return nil, nil
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get key %s: %w", key, err)
 	}
 
-	var meeting *models.Meeting
-
+	var meeting models.Meeting
 	if err := json.Unmarshal([]byte(result), &meeting); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal meeting for key %s: %w", key, err)
 	}
 
+	log.Printf("Found meeting for key %s\n", key)
 	return meeting.ToDTO(), nil
 }
 
 func NewMeetingRepo() repository.MeetingRepository {
-	ops := &redis.Options{
+	opts := &redis.Options{
 		Addr:     os.Getenv(config.REDIS_ADDR),
 		Password: os.Getenv(config.REDIS_PASSWORD),
 		DB:       0,
 	}
 
-	client := redis.NewClient(ops)
+	client := redis.NewClient(opts)
 
-	result, err := client.Ping(context.Background()).Result()
-	if err != nil || result != "PONG" {
-		log.Panicf("Failed to connect with Redis")
-	} else {
-		log.Println("Successfully connected to Redis")
+	pong, err := client.Ping(context.Background()).Result()
+	if err != nil || pong != "PONG" {
+		log.Panicf("Failed to ping Redis: %v", err)
 	}
+	log.Println("Successfully connected to Redis:", pong)
 
 	return &meetingRepoImpl{
 		client: client,

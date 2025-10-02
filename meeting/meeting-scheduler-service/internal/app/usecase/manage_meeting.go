@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log"
 	"meeting-scheduler-service/internal/app/interfaces"
 	"meeting-scheduler-service/internal/domain/dto"
 	"meeting-scheduler-service/internal/domain/event"
@@ -30,17 +31,23 @@ func (m *manageMeetingImlp) ActiveMeeting(classID string) (*dto.MeetingDTO, erro
 func (m *manageMeetingImlp) Start(startedMeetingDto dto.StartMeetingDTO) (*dto.MeetingDTO, error) {
 	ctx := context.Background()
 
+	if retrieved, err := m.MeetingRepository.Get(ctx, startedMeetingDto.ClassID); err == nil && retrieved != nil {
+		return nil, fmt.Errorf("meeting has already started")
+	}
+
 	ev := event.NewMeetingStartedEvent(startedMeetingDto)
 
 	meeting := ev.NewMeeting(startedMeetingDto.ClassID, startedMeetingDto.Title)
 
 	err := m.MeetingRepository.Append(ctx, meeting)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	err = m.Broker.Publish(ev, m.meetingChannelName, m.notificationChannelName)
 	if err != nil {
+		log.Println(err)
 		return nil, fmt.Errorf("failed to create meeting, try again")
 	}
 
