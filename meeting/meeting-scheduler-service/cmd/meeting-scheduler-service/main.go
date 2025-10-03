@@ -5,10 +5,11 @@ import (
 	"log"
 	"meeting-scheduler-service/internal/app/usecase"
 	"meeting-scheduler-service/internal/infrastructure/config"
-	"meeting-scheduler-service/internal/infrastructure/handlers"
 	"meeting-scheduler-service/internal/infrastructure/messaging"
 	"meeting-scheduler-service/internal/infrastructure/redis"
 	"meeting-scheduler-service/internal/infrastructure/rest"
+	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
+	"meeting-scheduler-service/internal/infrastructure/server"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,7 +37,7 @@ func main() {
 
 	router := rest.NewRouter(handlers.NewManageMeetingHandler(meetingManager))
 
-	server := rest.NewServer(router)
+	server := server.NewServer(router)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

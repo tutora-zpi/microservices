@@ -7,15 +7,24 @@ import (
 )
 
 type NotificationDTO struct {
-	ID              string                 `json:"id"`
-	Receiver        UserDTO                `json:"receiver"`
-	Sender          UserDTO                `json:"sender"`
-	CreatedAt       int64                  `json:"createdAt"`
-	Type            enums.NotificationType `json:"type"`
-	Title           string                 `json:"title"`
-	Body            string                 `json:"body"`
-	RedirectionLink string                 `json:"redirectionLink"`
-	Metadata        map[metadata.Key]any   `json:"metadata"`
+	// Notification identificator
+	ID string `json:"id"`
+	// Receiver informations
+	Receiver UserDTO `json:"receiver"`
+	// Sender informations
+	Sender UserDTO `json:"sender"`
+	// Timestamp of creation time in seconds (unix)
+	CreatedAt int64 `json:"createdAt"`
+	// Type of notification system either invitation
+	Type enums.NotificationType `json:"type"`
+	// Title
+	Title string `json:"title"`
+	// Description
+	Body string `json:"body"`
+	// A part of link used to navigate user after clicking notification
+	RedirectionLink string `json:"redirectionLink" example:"/meeting/some_id"`
+	//Additional information which is unique for other notification types
+	Metadata map[metadata.Key]any `json:"metadata"`
 }
 
 func (dto *NotificationDTO) JSON() []byte {

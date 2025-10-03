@@ -6,7 +6,6 @@ import (
 	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/repository"
-	"notification-serivce/internal/domain/requests"
 )
 
 type notificationSerivceImpl struct {
@@ -14,14 +13,14 @@ type notificationSerivceImpl struct {
 }
 
 // DeleteNotifications implements interfaces.NotificationSerivce.
-func (n *notificationSerivceImpl) DeleteNotifications(req *requests.DeleteNotificationsRequest, clientID string) error {
+func (n *notificationSerivceImpl) DeleteNotifications(req *dto.DeleteNotificationsDTO, clientID string) error {
 	log.Println("Deleting notifications...")
 	ctx := context.Background()
 	return n.repo.Delete(ctx, clientID, req.IDs...)
 }
 
 // FetchNotifications implements interfaces.NotificationSerivce.
-func (n *notificationSerivceImpl) FetchNotifications(req *requests.FetchNotificationsRequest) ([]dto.NotificationDTO, error) {
+func (n *notificationSerivceImpl) FetchNotifications(req *dto.FetchNotificationsDTO) ([]dto.NotificationDTO, error) {
 	log.Println("Fetching notifications...")
 	ctx := context.Background()
 

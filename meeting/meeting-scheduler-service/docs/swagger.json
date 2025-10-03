@@ -6,8 +6,7 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "default localhost:8080",
-    "basePath": "/api/v1",
+    "host": "localhost:8003",
     "paths": {
         "/api/v1/meeting/end": {
             "post": {
@@ -39,7 +38,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -55,7 +54,7 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -89,7 +88,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -105,7 +104,7 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -141,7 +140,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -157,13 +156,13 @@
                     "400": {
                         "description": "Bad request due to invalid data or DTO type",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "405": {
                         "description": "Method not allowed (only POST supported)",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -197,7 +196,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -213,13 +212,13 @@
                     "400": {
                         "description": "Bad request due to invalid data or DTO type",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "405": {
                         "description": "Method not allowed (only POST supported)",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -250,7 +249,7 @@
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -266,19 +265,13 @@
                     "400": {
                         "description": "Empty class id",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "404": {
                         "description": "Not found or not started yet",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed (only GET supported)",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -315,7 +308,7 @@
         "dto.MeetingDTO": {
             "type": "object",
             "properties": {
-                "meetingID": {
+                "meetingId": {
                     "description": "Meeting unique identifier",
                     "type": "string"
                 },
@@ -390,7 +383,7 @@
                 }
             }
         },
-        "response.Response": {
+        "server.Response": {
             "description": "Standard API response format containing message, data, and success status",
             "type": "object",
             "properties": {
