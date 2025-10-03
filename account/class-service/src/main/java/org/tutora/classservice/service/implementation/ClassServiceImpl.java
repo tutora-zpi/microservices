@@ -8,6 +8,7 @@ import org.tutora.classservice.entity.Role;
 import org.tutora.classservice.entity.RoleName;
 import org.tutora.classservice.entity.Member;
 import org.tutora.classservice.exception.ResourceNotFoundException;
+import org.tutora.classservice.exception.UnauthorizedActionException;
 import org.tutora.classservice.repository.ClassRepository;
 import org.tutora.classservice.repository.RoleRepository;
 import org.tutora.classservice.repository.MemberRepository;
@@ -53,6 +54,18 @@ public class ClassServiceImpl implements ClassService {
         classroom.addUserClass(createUserClass(userId, role));
 
         classRepository.save(classroom);
+    }
+
+    @Override
+    public void deleteClass(UUID classId, UUID userID) {
+        Member member = memberRepository.findMemberByUserIdAndClassroomId(userID, classId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member", "id", classId.toString()));
+
+        if (member.getRole().getName() == RoleName.HOST) {
+            classRepository.deleteById(classId);
+        } else {
+            throw new UnauthorizedActionException("class", classId, "delete");
+        }
     }
 
     private Role getRoleByName(RoleName name) {

@@ -1,33 +1,34 @@
 package org.tutora.classservice.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.event.EventWrapper;
 
-import java.io.UncheckedIOException;
-
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationPublisher {
 
     private final RabbitTemplate rabbitTemplate;
-    private final ObjectMapper objectMapper;
+
+    @Value("${spring.rabbitmq.template.exchange}")
+    private String exchange;
 
     public void sendClassInvitation(ClassInvitationCreatedEvent invitation) {
+        String routingKey = ClassInvitationCreatedEvent.class.getSimpleName();
+
         EventWrapper<ClassInvitationCreatedEvent> event = new EventWrapper<>(
-                ClassInvitationCreatedEvent.class.getSimpleName(),
+                routingKey,
                 invitation
         );
 
-        try {
-            String json = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend(json);
-        } catch (JsonProcessingException e) {
-            throw new UncheckedIOException("Error serializing event: ", e);
-        }
+        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+        log.info("Event published to exchange='{}', routingKey='{}', payload={}",
+                exchange, routingKey, event);
     }
 }

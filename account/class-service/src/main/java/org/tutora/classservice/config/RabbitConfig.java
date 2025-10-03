@@ -11,28 +11,22 @@ public class RabbitConfig {
     @Value("${spring.rabbitmq.template.exchange}")
     private String exchangeName;
 
-    @Value("${spring.rabbitmq.template.routing-key}")
-    private String routingKey;
-
-    @Value("${spring.rabbitmq.template.default-receive-queue}")
-    private String queueName;
-
     @Bean
     public Exchange notificationExchange() {
-        return ExchangeBuilder.topicExchange(exchangeName).durable(true).build();
+        return ExchangeBuilder.fanoutExchange(exchangeName).durable(true).build();
     }
 
     @Bean
-    public Queue invitationQueue() {
-        return QueueBuilder.durable(routingKey).build();
+    public Queue classInvitationQueue() {
+        return QueueBuilder.durable("ClassInvitationCreatedEvent").build();
     }
 
     @Bean
-    public Binding binding(Queue invitationQueue, Exchange notificationExchange) {
+    public Binding binding(Queue classInvitationQueue, Exchange notificationExchange) {
         return BindingBuilder
-                .bind(invitationQueue)
+                .bind(classInvitationQueue)
                 .to(notificationExchange)
-                .with(queueName)
+                .with("ClassInvitationCreatedEvent")
                 .noargs();
     }
 }

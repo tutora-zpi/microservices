@@ -33,8 +33,17 @@ public class Classroom {
     @Builder.Default
     private List<Member> members = new ArrayList<>();
 
+    @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Invitation> invitations = new ArrayList<>();
+
     public void addUserClass(Member member) {
         members.add(member);
         member.setClassroom(this);
+    }
+
+    public void addInvitation(Invitation invitation) {
+        invitations.add(invitation);
+        invitation.setClassroom(this);
     }
 }

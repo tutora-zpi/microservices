@@ -68,4 +68,16 @@ public class ClassController {
         return ResponseEntity
                 .ok(classMapper.toDto(classroom));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteClass(@PathVariable UUID id, @AuthenticationPrincipal Jwt principal) {
+        log.info("Request to delete class with id: {}", id);
+        UUID userId = UUID.fromString(authService.getUserId(principal));
+
+        classService.deleteClass(id, userId);
+
+        return ResponseEntity
+                .noContent()
+                .build();
+    }
 }

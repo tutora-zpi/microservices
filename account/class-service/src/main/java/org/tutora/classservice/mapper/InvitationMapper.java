@@ -16,6 +16,6 @@ public interface InvitationMapper {
 
     @Named("mapStatusesToString")
     default String mapStatusesToString(final InvitationStatus status) {
-        return status.toString();
+        return status.getStatusName().toString();
     }
 }
