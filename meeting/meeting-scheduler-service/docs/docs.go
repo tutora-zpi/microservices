@@ -45,7 +45,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -61,7 +61,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -95,7 +95,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -111,7 +111,7 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -147,7 +147,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -163,13 +163,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request due to invalid data or DTO type",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "405": {
                         "description": "Method not allowed (only POST supported)",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -203,7 +203,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -219,13 +219,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad request due to invalid data or DTO type",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "405": {
                         "description": "Method not allowed (only POST supported)",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -256,7 +256,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/response.Response"
+                                    "$ref": "#/definitions/server.Response"
                                 },
                                 {
                                     "type": "object",
@@ -272,19 +272,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Empty class id",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     },
                     "404": {
                         "description": "Not found or not started yet",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
-                        }
-                    },
-                    "405": {
-                        "description": "Method not allowed (only GET supported)",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "$ref": "#/definitions/server.Response"
                         }
                     }
                 }
@@ -321,7 +315,7 @@ const docTemplate = `{
         "dto.MeetingDTO": {
             "type": "object",
             "properties": {
-                "meetingID": {
+                "meetingId": {
                     "description": "Meeting unique identifier",
                     "type": "string"
                 },
@@ -396,7 +390,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.Response": {
+        "server.Response": {
             "description": "Standard API response format containing message, data, and success status",
             "type": "object",
             "properties": {
@@ -419,8 +413,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "default localhost:8080",
-	BasePath:         "/api/v1",
+	Host:             "localhost:8003",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Meeting Scheduler API",
 	Description:      "Serivce to requesting meetings in .tutora",

@@ -1,8 +1,8 @@
 package rest
 
 import (
-	"meeting-scheduler-service/internal/infrastructure/handlers"
 	"meeting-scheduler-service/internal/infrastructure/middleware"
+	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
 	"net/http"
 
 	_ "meeting-scheduler-service/docs"
@@ -13,11 +13,13 @@ import (
 
 func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	router := mux.NewRouter()
+
 	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
 
-	router.PathPrefix("/api/v1/docs/").Handler(httpSwagger.WrapHandler)
-
 	api := router.PathPrefix("/api/v1").Subrouter()
+
+	api.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
+	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
 	api.Handle("/meeting/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
 	api.Handle("/meeting/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)

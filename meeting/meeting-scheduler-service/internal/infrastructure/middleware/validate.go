@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"meeting-scheduler-service/internal/domain/dto"
-	"meeting-scheduler-service/internal/infrastructure/response"
+	"meeting-scheduler-service/internal/infrastructure/server"
 	"net/http"
 )
 
@@ -27,19 +27,19 @@ func Validate(next http.Handler) http.Handler {
 
 		dtoInstance := constructor()
 		if err := json.NewDecoder(r.Body).Decode(dtoInstance); err != nil {
-			response.NewResponse(w, "Failed to decode body", http.StatusBadRequest, nil)
+			server.NewResponse(w, "Failed to decode body", http.StatusBadRequest, nil)
 			return
 		}
 
 		switch v := dtoInstance.(type) {
 		case *dto.StartMeetingDTO:
 			if err := v.IsValid(); err != nil {
-				response.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
+				server.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
 				return
 			}
 		case *dto.EndMeetingDTO:
 			if err := v.IsValid(); err != nil {
-				response.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
+				server.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
 				return
 			}
 		}

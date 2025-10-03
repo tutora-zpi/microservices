@@ -1,0 +1,144 @@
+definitions:
+  dto.DeleteNotificationsDTO:
+    properties:
+      ids:
+        description: |-
+          IDs notifications to remove
+          required: true
+        items:
+          type: string
+        type: array
+    type: object
+  dto.NotificationDTO:
+    properties:
+      body:
+        description: Description
+        type: string
+      createdAt:
+        description: Timestamp of creation time in seconds (unix)
+        type: integer
+      id:
+        description: Notification identificator
+        type: string
+      metadata:
+        additionalProperties: {}
+        description: Additional information which is unique for other notification
+          types
+        type: object
+      receiver:
+        allOf:
+        - $ref: '#/definitions/dto.UserDTO'
+        description: Receiver informations
+      redirectionLink:
+        description: A part of link used to navigate user after clicking notification
+        example: /meeting/some_id
+        type: string
+      sender:
+        allOf:
+        - $ref: '#/definitions/dto.UserDTO'
+        description: Sender informations
+      title:
+        description: Title
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/enums.NotificationType'
+        description: Type of notification system either invitation
+    type: object
+  dto.UserDTO:
+    properties:
+      firstName:
+        type: string
+      id:
+        type: string
+      lastName:
+        type: string
+    type: object
+  enums.NotificationType:
+    enum:
+    - invitation
+    - system
+    type: string
+    x-enum-varnames:
+    - INVITATION
+    - SYSTEM
+  server.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8888
+info:
+  contact: {}
+  description: Service responsible for notification delivery
+  title: Notifications Serivce API
+  version: "1.0"
+paths:
+  /api/v1/notification:
+    delete:
+      consumes:
+      - application/json
+      description: Removes one or more notifications for a given user
+      parameters:
+      - description: IDs of notifications to delete
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DeleteNotificationsDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid body or Missing user id
+          schema:
+            $ref: '#/definitions/server.Response'
+        "404":
+          description: Notification not found
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Deletes notifications
+      tags:
+      - notifications
+    get:
+      description: Paginated reponse adjusted for infinite scroll
+      parameters:
+      - description: Number of notifications to display, limit range (0, 20] if number
+          is invalid then limit is set to 10
+        in: query
+        name: limit
+        type: integer
+      - description: ID of the last notification for pagination, not required during
+          first fetch.
+        in: query
+        name: last_notification_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification's data
+          schema:
+            allOf:
+            - $ref: '#/definitions/server.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NotificationDTO'
+              type: object
+        "400":
+          description: Missing user id
+          schema:
+            $ref: '#/definitions/server.Response'
+        "404":
+          description: No notifications yet
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: List with user's notifications
+      tags:
+      - notifications
+swagger: "2.0"
