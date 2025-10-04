@@ -5,4 +5,8 @@ public record ClassInvitationCreatedEvent(
         String className,
         String receiverId
 ) implements Event {
+    @Override
+    public String name() {
+        return this.getClass().getSimpleName();
+    }
 }

@@ -1,4 +1,4 @@
-package org.tutora.classservice.event;
+package org.tutora.userservice.event;
 
 public interface Event {
     String name();

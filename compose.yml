@@ -121,6 +121,8 @@ services:
     depends_on:
       user_service_db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - tutora_net
 

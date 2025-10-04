@@ -20,15 +20,15 @@ public class NotificationPublisher {
     private String exchange;
 
     public void sendClassInvitation(ClassInvitationCreatedEvent invitation) {
-        String routingKey = ClassInvitationCreatedEvent.class.getSimpleName();
+        String pattern = invitation.name();
 
         EventWrapper<ClassInvitationCreatedEvent> event = new EventWrapper<>(
-                routingKey,
+                pattern,
                 invitation
         );
 
-        rabbitTemplate.convertAndSend(exchange, routingKey, event);
-        log.info("Event published to exchange='{}', routingKey='{}', payload={}",
-                exchange, routingKey, event);
+        rabbitTemplate.convertAndSend(exchange, pattern, event);
+        log.info("Event published to exchange='{}', pattern='{}', payload={}",
+                exchange, pattern, event);
     }
 }
