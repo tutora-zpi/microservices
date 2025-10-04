@@ -8,6 +8,11 @@ public record UserDetailsRespondedEvent(
         UserDetails receiver
 ) implements Event {
 
+    @Override
+    public String name() {
+        return this.getClass().getSimpleName();
+    }
+
     public record UserDetails(
             String id,
             String firstName,

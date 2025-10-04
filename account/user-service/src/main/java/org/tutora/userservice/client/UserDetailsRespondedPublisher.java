@@ -41,9 +41,11 @@ public class UserDetailsRespondedPublisher {
                         .toList()
         );
 
+        UserDetailsRespondedEvent event = new UserDetailsRespondedEvent(notificationId, senderDetails, receiverDetails);
+
         var wrapper = new EventWrapper<>(
-                UserDetailsRespondedEvent.class.getSimpleName(),
-                new UserDetailsRespondedEvent(notificationId, senderDetails, receiverDetails)
+                event.name(),
+                event
         );
         rabbitTemplate.convertAndSend(userExchange, "", wrapper);
         log.info("Published UserDetailsRespondedEvent for notificationId={} -> {}", notificationId, wrapper);

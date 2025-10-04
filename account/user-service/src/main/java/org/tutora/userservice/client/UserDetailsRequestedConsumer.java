@@ -30,10 +30,6 @@ public class UserDetailsRequestedConsumer {
 
         var event = wrapper.data();
         log.info("Received UserDetailsRequestedEvent: {}", event);
-        if (event.notificationId() == null || event.notificationId().isEmpty()) {
-            log.warn("Received event with null notificationId, skipping processing");
-            return;
-        }
 
         try {
             var sender = userService.findById(UUID.fromString(event.senderId()));

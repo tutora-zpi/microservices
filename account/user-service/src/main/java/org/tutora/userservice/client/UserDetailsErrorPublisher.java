@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.tutora.userservice.event.EventWrapper;
 import org.tutora.userservice.event.UserDetailsErrorEvent;
 
 @Component
@@ -16,6 +17,9 @@ public class UserDetailsErrorPublisher {
     private String userExchange;
 
     public void sendErrorEvent(UserDetailsErrorEvent event) {
-        rabbitTemplate.convertAndSend(userExchange, "", event);
+        rabbitTemplate.convertAndSend(userExchange, "", new EventWrapper<>(
+                event.name(),
+                event
+        ));
     }
 }
