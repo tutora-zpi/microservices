@@ -27,17 +27,21 @@ type Notification struct {
 	Metadata map[metadata.Key]any `bson:"metadata"`
 }
 
-func NewPartialNotification(notificationType enums.NotificationType, receiverID, senderID string, metadata map[metadata.Key]any) Notification {
+func NewNotification(
+	notificationType enums.NotificationType,
+	receiver, sender dto.UserDTO, title, body, redirectionLink string, metadata map[metadata.Key]any) Notification {
 	return Notification{
 		ID:        bson.NewObjectID(),
 		CreatedAt: bson.NewObjectID().Timestamp().Unix(),
 		Status:    enums.PENDING,
 
 		Type:     notificationType,
-		Receiver: *NewPartialUser(receiverID),
-		Sender:   *NewPartialUser(senderID),
+		Receiver: *NewUserFromDTO(receiver),
+		Sender:   *NewUserFromDTO(sender),
+		Title:    title,
+		Body:     body,
 
-		RedirectionLink: "",
+		RedirectionLink: redirectionLink,
 		Metadata:        metadata,
 	}
 }

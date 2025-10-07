@@ -50,17 +50,7 @@ func main() {
 
 	dispatcher.Register(
 		&classinvitation.ClassInvitationCreatedEvent{},
-		eventhandler.NewClassInvitationCreatedHandler(broker, repo),
-	)
-
-	dispatcher.Register(
-		&classinvitation.ClassInvitationReadyEvent{},
-		eventhandler.NewClassInvitationReadyHandler(manager, repo),
-	)
-
-	dispatcher.Register(
-		&classinvitation.UserDetailsRespondedEvent{},
-		eventhandler.NewUserDetailsResponsedHandler(broker, repo),
+		eventhandler.NewClassInvitationCreatedHandler(manager, repo),
 	)
 
 	dispatcher.Register(

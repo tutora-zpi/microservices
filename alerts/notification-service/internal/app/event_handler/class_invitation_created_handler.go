@@ -6,19 +6,18 @@ import (
 	"fmt"
 	"log"
 	"notification-serivce/internal/app/interfaces"
-	"notification-serivce/internal/domain/event"
 	classinvitation "notification-serivce/internal/domain/event/class_invitation"
 	"notification-serivce/internal/domain/repository"
 )
 
 type ClassInvitationCreatedHandler struct {
-	broker interfaces.Broker
-	repo   repository.NotificationRepository
+	publisher interfaces.NotificationManager
+	repo      repository.NotificationRepository
 }
 
-func NewClassInvitationCreatedHandler(broker interfaces.Broker,
+func NewClassInvitationCreatedHandler(publisher interfaces.NotificationManager,
 	repo repository.NotificationRepository) interfaces.EventHandler {
-	return &ClassInvitationCreatedHandler{repo: repo, broker: broker}
+	return &ClassInvitationCreatedHandler{repo: repo, publisher: publisher}
 }
 
 func (c *ClassInvitationCreatedHandler) Handle(body []byte) error {
@@ -33,17 +32,17 @@ func (c *ClassInvitationCreatedHandler) Handle(body []byte) error {
 	}
 
 	result, err := c.repo.Save(ctx, newEvent.Notification())
-	if err != nil {
+	dto := result[0]
+	if err != nil || dto == nil {
 		log.Printf("An error occured during saving partial notification: %s\n", err.Error())
 		return err
 	}
 
-	userDetails := classinvitation.NewUserDetailsRequestedEvent(result[0])
+	if err = c.publisher.Push(*dto); err != nil {
+		return err
+	}
 
-	wrapped := event.NewEventWrapper(userDetails)
-
-	if err := c.broker.Publish(wrapped); err != nil {
-		log.Printf("An error occured during publishing %s: %s\n", userDetails.Name(), err.Error())
+	if err = c.repo.MarkAsDelivered(ctx, dto.ID); err != nil {
 		return err
 	}
 
