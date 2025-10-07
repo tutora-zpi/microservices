@@ -9,6 +9,7 @@ import (
 	"meeting-scheduler-service/internal/infrastructure/redis"
 	"meeting-scheduler-service/internal/infrastructure/rest"
 	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
+	"meeting-scheduler-service/internal/infrastructure/security"
 	"meeting-scheduler-service/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -18,13 +19,15 @@ import (
 )
 
 func init() {
-	if os.Getenv(config.APP_ENV) == "" {
+	env := os.Getenv(config.APP_ENV)
+
+	if env == "" || env == "localhost" || env == "127.0.0.1" {
 		if err := godotenv.Load(); err != nil {
 			log.Panic(".env* file not found. Please check path or provide one.")
 		}
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {

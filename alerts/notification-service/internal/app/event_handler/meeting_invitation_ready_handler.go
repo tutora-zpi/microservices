@@ -8,7 +8,6 @@ import (
 	"notification-serivce/internal/app/interfaces"
 	meetinginvitation "notification-serivce/internal/domain/event/meeting_invitation"
 	"notification-serivce/internal/domain/repository"
-	"time"
 )
 
 type MeetingInvitationReadyEventHandler struct {
@@ -40,20 +39,12 @@ func (m *MeetingInvitationReadyEventHandler) Handle(body []byte) error {
 		return err
 	}
 
-	for _, result := range results {
-		startTime := time.Unix(result.CreatedAt, 0)
-
-		if err := m.publisher.Push(
-			*result.AppendTitle(fmt.Sprintf("%s, meeting has already started!", result.Receiver.FirstName)).
-				AppendBody(fmt.Sprintf("Meeting was scheduled on %02d:%02d. Click down below to join!",
-					startTime.Hour(), startTime.Minute())),
-		); err != nil {
-			return err
-		}
-	}
-
 	ids := []string{}
 	for _, result := range results {
+		if err := m.publisher.Push(*result); err != nil {
+			return err
+		}
+
 		ids = append(ids, result.ID)
 	}
 

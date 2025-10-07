@@ -4,6 +4,7 @@ import (
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/enums"
 	"notification-serivce/internal/domain/metadata"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -17,6 +18,9 @@ type Notification struct {
 
 	Receiver User `bson:"receiver"`
 	Sender   User `bson:"sender"`
+
+	Title string `bson:"title"`
+	Body  string `bson:"body"`
 
 	RedirectionLink string `bson:"redirectionLink"`
 
@@ -48,4 +52,14 @@ func (n *Notification) DTO() *dto.NotificationDTO {
 		RedirectionLink: n.RedirectionLink,
 		Metadata:        n.Metadata,
 	}
+}
+
+func (n *Notification) SetTitleAndBody(title, body string) {
+	n.Title = title
+	n.Body = body
+}
+
+func (n *Notification) GetHourAndMinute() (hour, minute int) {
+	startTime := time.Unix(n.CreatedAt, 0)
+	return startTime.Hour(), startTime.Minute()
 }

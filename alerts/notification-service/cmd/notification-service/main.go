@@ -24,7 +24,9 @@ import (
 )
 
 func init() {
-	if os.Getenv(config.APP_ENV) == "" {
+	env := os.Getenv(config.APP_ENV)
+
+	if env == "" || env == "localhost" || env == "127.0.0.1" {
 		if err := godotenv.Load(); err != nil {
 			log.Panic(".env* file not found. Please check path or provide one.")
 		}
