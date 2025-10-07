@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutora.classservice.client.NotificationPublisher;
+import org.tutora.classservice.dto.UserDto;
 import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.entity.*;
 import org.tutora.classservice.exception.*;
@@ -31,32 +32,34 @@ public class InvitationServiceImpl implements InvitationService {
     private final MemberRepository memberRepository;
 
     @Override
-    public Invitation inviteUser(UUID senderId, UUID classId, UUID userId) {
+    public Invitation inviteUser(UserDto sender, UUID classId, UserDto receiver) {
         Classroom classroom = classService.getClassById(classId);
 
+        UUID senderId = UUID.fromString(sender.id());
         if (!hasAuthority(senderId, classId, RoleName.HOST)) {
             throw new UnauthorizedActionException("classroom", classId, "send invitation to classroom");
         }
 
-        if (memberRepository.existsByClassroomIdAndUserId(classId, userId)) {
-            throw new UserAlreadyInClassException(userId, classId);
+        UUID receiverId = UUID.fromString(receiver.id());
+        if (memberRepository.existsByClassroomIdAndUserId(classId, receiverId)) {
+            throw new UserAlreadyInClassException(receiverId, classId);
         }
 
-        Optional<Invitation> existingInvitation = invitationRepository.findByClassroomIdAndUserId(classId, userId);
+        Optional<Invitation> existingInvitation = invitationRepository.findByClassroomIdAndUserId(classId, receiverId);
         if(existingInvitation.isPresent()) {
             Invitation inv = existingInvitation.get();
             switch (inv.getStatus().getStatusName()) {
-                case DECLINED -> throw new UserRejectedInvitationException(userId, classId);
-                case INVITED -> throw new UserAlreadyInvitedException(userId, classId);
+                case DECLINED -> throw new UserRejectedInvitationException(receiverId, classId);
+                case INVITED -> throw new UserAlreadyInvitedException(receiverId, classId);
             }
         }
 
-        Invitation inv = saveInvitation(classroom, userId);
+        Invitation inv = saveInvitation(classroom, receiverId);
 
         notificationPublisher.sendClassInvitation(new ClassInvitationCreatedEvent(
-                senderId.toString(),
                 classroom.getName(),
-                userId.toString()
+                receiver,
+                sender
         ));
 
         return inv;

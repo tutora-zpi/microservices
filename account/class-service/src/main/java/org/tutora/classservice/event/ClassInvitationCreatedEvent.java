@@ -1,9 +1,11 @@
 package org.tutora.classservice.event;
 
+import org.tutora.classservice.dto.UserDto;
+
 public record ClassInvitationCreatedEvent(
-        String senderId,
         String className,
-        String receiverId
+        UserDto receiver,
+        UserDto sender
 ) implements Event {
     @Override
     public String name() {

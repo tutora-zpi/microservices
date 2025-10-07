@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.tutora.classservice.dto.InvitationCreateRequest;
 import org.tutora.classservice.dto.InvitationDto;
 import org.tutora.classservice.entity.Invitation;
 import org.tutora.classservice.mapper.InvitationMapper;
@@ -49,16 +50,18 @@ public class InvitationController {
                 .ok(invitationDtos);
     }
 
-    @PostMapping("/{classId}/users/{userId}")
+    @PostMapping
     public ResponseEntity<InvitationDto> inviteUser(
-            @AuthenticationPrincipal Jwt principal,
-            @PathVariable UUID classId,
-            @PathVariable UUID userId
+            @RequestBody InvitationCreateRequest request
     ) {
-        UUID senderId = UUID.fromString(authService.getUserId(principal));
-        log.info("User [{}] invites [{}] to class [{}]", senderId, userId, classId);
+        log.info("User [{}] invites [{}] to class [{}]",
+                request.sender().id(), request.receiver().id(), request.classId());
 
-        Invitation inv = invitationService.inviteUser(senderId, classId, userId);
+        Invitation inv = invitationService.inviteUser(
+                request.sender(),
+                UUID.fromString(request.classId()),
+                request.receiver()
+        );
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(invitationMapper.toDto(inv));
