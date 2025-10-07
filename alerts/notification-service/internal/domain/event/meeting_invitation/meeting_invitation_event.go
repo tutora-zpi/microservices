@@ -34,7 +34,7 @@ func (m *MeetingStartedEvent) Notifications() []models.Notification {
 		notification := base
 		notification.ID = bson.NewObjectID()
 		hour, minute := notification.GetHourAndMinute()
-		notification.Receiver = *models.NewUser(receiver.ID, receiver.FirstName, receiver.LastName, "")
+		notification.Receiver = *models.NewUser(receiver.ID, receiver.FirstName, receiver.LastName)
 
 		title := fmt.Sprintf("%s, meeting has already started!", notification.Receiver.FirstName)
 		body := fmt.Sprintf("Meeting was scheduled on %02d:%02d. Click down below to join!",

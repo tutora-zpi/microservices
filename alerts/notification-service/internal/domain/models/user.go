@@ -9,7 +9,6 @@ type User struct {
 	ID        string `bson:"_id"`
 	FirstName string `bson:"firstName"`
 	LastName  string `bson:"lastName"`
-	Role      string `bson:"role"`
 }
 
 func NewPartialUser(id string) *User {
@@ -20,12 +19,19 @@ func NewPartialUser(id string) *User {
 	}
 }
 
-func NewUser(id, firstName, lastName, role string) *User {
+func NewUser(id, firstName, lastName string) *User {
 	return &User{
 		ID:        id,
 		FirstName: firstName,
 		LastName:  lastName,
-		Role:      role,
+	}
+}
+
+func NewUserFromDTO(dto dto.UserDTO) *User {
+	return &User{
+		ID:        dto.ID,
+		FirstName: dto.FirstName,
+		LastName:  dto.LastName,
 	}
 }
 
