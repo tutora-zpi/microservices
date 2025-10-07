@@ -23,11 +23,8 @@ const DEFAULT_HOST string = "localhost"
 
 func NewServer(router *mux.Router) *Server {
 	port := os.Getenv(config.APP_PORT)
-	host := os.Getenv(config.APP_ENV)
 
-	if host == "" || host == "docker" {
-		host = DEFAULT_HOST
-	}
+	host := DEFAULT_HOST
 
 	if port == "" {
 		port = DEFAULT_PORT

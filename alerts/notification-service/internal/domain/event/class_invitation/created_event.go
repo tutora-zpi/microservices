@@ -22,5 +22,11 @@ func (c *ClassInvitationCreatedEvent) Notification() models.Notification {
 		metadata.CLASS_NAME: c.ClassName,
 	}
 
-	return models.NewPartialNotification(enums.INVITATION, c.ReceiverID, c.SenderID, metadata)
+	notification := models.NewPartialNotification(enums.INVITATION, c.ReceiverID, c.SenderID, metadata)
+	notification.RedirectionLink = c.buildLink()
+	return notification
+}
+
+func (c *ClassInvitationCreatedEvent) buildLink() string {
+	return "/dashboard/invitations"
 }

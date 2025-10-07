@@ -19,11 +19,9 @@ type notificationRepositoryImpl struct {
 	database *database.Database
 }
 
-// Delete implements repository.NotificationRepository.
-func (r *notificationRepositoryImpl) Delete(ctx context.Context, clientID string, ids ...string) error {
+func castToObjectIds(ids ...string) ([]bson.ObjectID, error) {
 	var objectIDs []bson.ObjectID
 	var err error
-	var uid bson.ObjectID
 
 	for _, id := range ids {
 		uid, err := bson.ObjectIDFromHex(id)
@@ -35,25 +33,33 @@ func (r *notificationRepositoryImpl) Delete(ctx context.Context, clientID string
 	}
 
 	if len(objectIDs) == 0 {
-		return nil
+		return []bson.ObjectID{}, fmt.Errorf("empty result list")
 	}
 
-	uid, err = bson.ObjectIDFromHex(clientID)
+	return objectIDs, err
+}
+
+// Delete implements repository.NotificationRepository.
+func (r *notificationRepositoryImpl) Delete(ctx context.Context, clientID string, ids ...string) error {
+	objectIDs, err := castToObjectIds(ids...)
+
 	if err != nil {
-		return fmt.Errorf("invalid hex string")
+		return err
 	}
 
 	filter := bson.M{
 		"$and": []bson.M{
 			{"_id": bson.M{"$in": objectIDs}},
-			{"receiver._id": uid},
+			{"receiver._id": clientID},
 		},
 	}
 
-	_, err = r.database.GetCollection().DeleteMany(ctx, filter)
+	result, err := r.database.GetCollection().DeleteMany(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to delete notifications: %w", err)
 	}
+
+	log.Printf("Deleted %d for %s", result.DeletedCount, clientID)
 
 	return nil
 }
