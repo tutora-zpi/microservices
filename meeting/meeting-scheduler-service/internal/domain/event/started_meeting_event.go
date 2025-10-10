@@ -19,7 +19,7 @@ func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
 	event := &MeetingStartedEvent{
 		MeetingID:   uuid.New().String(),
 		Members:     dto.Members,
-		StartedTime: time.Now(),
+		StartedTime: time.Now().UTC(),
 	}
 
 	return event

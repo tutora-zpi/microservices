@@ -10,5 +10,6 @@ type MeetingRepository interface {
 	Append(ctx context.Context, meeting *models.Meeting) error
 	Get(ctx context.Context, classID string) (*dto.MeetingDTO, error)
 	Delete(ctx context.Context, classID string) error
+	Exists(ctx context.Context, classID string) bool
 	Close()
 }

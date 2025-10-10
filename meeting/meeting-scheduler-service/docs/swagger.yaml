@@ -41,6 +41,45 @@ definitions:
         description: Meetings title
         type: string
     type: object
+  dto.PlanMeetingDTO:
+    properties:
+      classId:
+        description: |-
+          Class id - where meeting will be started (UUIDv4)
+          required: true
+        type: string
+      finishDate:
+        description: |-
+          Finish Date - date and time when meeting finshes, use toISOString to cast your date
+          required: true
+        example: "2025-10-10T12:50:05+02:00"
+        type: string
+      members:
+        description: |-
+          Members participating in the meeting (minimum 2)
+          required: true
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        minItems: 2
+        type: array
+      startDate:
+        description: |-
+          Start Date - date and time when meeting starts, use toISOString to cast your date
+          required: true
+        example: "2025-10-10T12:36:05+02:00"
+        type: string
+      title:
+        description: |-
+          The title of the class eg. C++ Object oriented: pointers
+          reqiured: true
+        type: string
+    required:
+    - classId
+    - finishDate
+    - members
+    - startDate
+    - title
+    type: object
   dto.StartMeetingDTO:
     properties:
       classId:
@@ -209,6 +248,31 @@ paths:
       summary: End a meeting
       tags:
       - ending meetings
+  /api/v1/meeting/plan:
+    post:
+      consumes:
+      - application/json
+      description: Used to plan meetings and starts meeting automatically at start
+        date
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Meeting planned successfully!
+          schema:
+            allOf:
+            - $ref: '#/definitions/server.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PlanMeetingDTO'
+              type: object
+        "400":
+          description: Invalid body | meeting already started | meeting already planned
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Plan meeting for the future
+      tags:
+      - meetings class plan
   /api/v1/meeting/start:
     post:
       consumes:

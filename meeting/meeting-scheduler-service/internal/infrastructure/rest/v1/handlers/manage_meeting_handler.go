@@ -37,6 +37,8 @@ func NewManageMeetingHandler(m interfaces.ManageMeeting) ManageMeetingHandler {
 // @Router /api/v1/meeting/start [post]
 // @Router /api/v1/meeting/start [put]
 func (m *ManageMeetingHandler) StartMeeting(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	body := middleware.GetDTO(r)
 	startDTO, ok := body.(*dto.StartMeetingDTO)
 	if !ok {
@@ -44,7 +46,7 @@ func (m *ManageMeetingHandler) StartMeeting(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	meeting, err := m.manager.Start(*startDTO)
+	meeting, err := m.manager.Start(ctx, *startDTO)
 	if err != nil {
 		server.NewResponse(w, err.Error(), http.StatusBadRequest, nil)
 		return
@@ -65,6 +67,8 @@ func (m *ManageMeetingHandler) StartMeeting(w http.ResponseWriter, r *http.Reque
 // @Router /api/v1/meeting/end [post]
 // @Router /api/v1/meeting/end [delete]
 func (m *ManageMeetingHandler) EndMeeting(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	body := middleware.GetDTO(r)
 	endDTO, ok := body.(*dto.EndMeetingDTO)
 	if !ok {
@@ -72,7 +76,7 @@ func (m *ManageMeetingHandler) EndMeeting(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err := m.manager.Stop(*endDTO)
+	err := m.manager.Stop(ctx, *endDTO)
 	if err != nil {
 		server.NewResponse(w, err.Error(), http.StatusBadRequest, nil)
 		return
@@ -92,6 +96,8 @@ func (m *ManageMeetingHandler) EndMeeting(w http.ResponseWriter, r *http.Request
 // @Failure 404 {object} server.Response "Not found or not started yet"
 // @Router /api/v1/meeting/{class_id} [get]
 func (m *ManageMeetingHandler) GetActiveMeeting(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	vars := mux.Vars(r)
 	classID := vars["class_id"]
 	if classID == "" {
@@ -99,11 +105,53 @@ func (m *ManageMeetingHandler) GetActiveMeeting(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	dto, err := m.manager.ActiveMeeting(classID)
+	dto, err := m.manager.ActiveMeeting(ctx, classID)
 	if err != nil {
 		server.NewResponse(w, "Not found or not started yet", http.StatusNotFound, nil)
 		return
 	}
 
 	server.NewResponse(w, "Found active meeting", http.StatusOK, *dto)
+}
+
+// PlanMeeting godoc
+// @Summary Plan meeting for the future
+// @Description Used to plan meetings and starts meeting automatically at start date
+// @Tags meetings class plan
+// @Accept json
+// @Produce json
+// @Success 201 {object} server.Response{data=dto.PlanMeetingDTO} "Meeting planned successfully!"
+// @Failure 400 {object} server.Response "Invalid body | meeting already started | meeting already planned"
+// @Router /api/v1/meeting/plan [post]
+func (m *ManageMeetingHandler) PlanMeeting(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	body := middleware.GetDTO(r)
+	planDTO, ok := body.(*dto.PlanMeetingDTO)
+	if !ok {
+		server.NewResponse(w, "Invalid body", http.StatusBadRequest, nil)
+		return
+	}
+
+	meetingDTO, err := m.manager.Plan(ctx, *planDTO)
+	if err != nil {
+		server.NewResponse(w, err.Error(), http.StatusBadRequest, nil)
+		return
+	}
+
+	server.NewResponse(w, "Meeting planned successfully!", http.StatusCreated, *meetingDTO)
+}
+
+func (m *ManageMeetingHandler) CancelPlannedMeeting(w http.ResponseWriter, r *http.Request) {
+	// ctx := r.Context()
+
+	// logic
+	server.NewResponse(w, "Not impl", http.StatusNotFound, nil)
+}
+
+func (m *ManageMeetingHandler) GetPlannedMeetings(w http.ResponseWriter, r *http.Request) {
+	// ctx := r.Context()
+
+	// logic
+	server.NewResponse(w, "Not impl", http.StatusNotFound, nil)
 }

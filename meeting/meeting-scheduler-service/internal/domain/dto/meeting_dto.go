@@ -21,3 +21,11 @@ func NewMeetingDTO(meetingID string, members []UserDTO, timestamp *int64, title 
 		Title:     title,
 	}
 }
+
+func (dto *MeetingDTO) GetStartMeetingDTO(classID string) *StartMeetingDTO {
+	return &StartMeetingDTO{
+		Members: dto.Members,
+		ClassID: classID,
+		Title:   dto.Title,
+	}
+}

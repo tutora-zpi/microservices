@@ -1,97 +1,44 @@
 package messaging
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"meeting-scheduler-service/internal/app/interfaces"
+	"meeting-scheduler-service/internal/domain/broker"
 	"meeting-scheduler-service/internal/domain/event"
-	"meeting-scheduler-service/internal/infrastructure/config"
-	"os"
+	"meeting-scheduler-service/internal/infrastructure/bus"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-const fanout string = "fanout"
-
-const RETRIES int = 3
-
-var rabbitmqURL string
+const (
+	fanout = "fanout"
+)
 
 type RabbitMQBroker struct {
 	connection *amqp.Connection
 	channel    *amqp.Channel
+	dispatcher bus.Dispachable
 
-	publishingCfg amqp.Publishing
+	config RabbitConfig
 }
 
-// Close implements Broker.
-func (r *RabbitMQBroker) Close() {
-	if err := r.channel.Close(); err != nil {
-		log.Println("Failed to close channel")
-	}
-
-	if err := r.connection.Close(); err != nil {
-		log.Println("Failed to close connection")
-	}
-}
-
-// Publish implements Broker.
-func (r *RabbitMQBroker) Publish(eventToSend event.Event, exchangeChannels ...string) error {
-	for _, channel := range exchangeChannels {
-		if err := r.reconnect(channel); err != nil {
-			log.Printf("Failed to reconnect to rabbitmq: %v\n", err)
-			return err
-		}
-
-		wrapper := event.EventWrapper{
-			Pattern: eventToSend.Name(),
-			Data:    eventToSend,
-		}
-
-		body, err := wrapper.ToJson()
-		if err != nil {
-			return fmt.Errorf("failed to marshal event: %w", err)
-		}
-
-		err = r.channel.Publish(
-			channel,
-			wrapper.Pattern,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType: "application/json",
-				Body:        body,
-			},
-		)
-		if err != nil {
-			return fmt.Errorf("failed to publish message: %w", err)
-		}
-
-		log.Printf("Published event to exchange %s: %s", channel, string(body))
-	}
-	return nil
-}
-
-func NewRabbitBroker() interfaces.Broker {
-
-	rabbitmqURL = buildConnectionString()
-
-	conn, err := connect(rabbitmqURL)
+func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
+	conn, err := connect(rabbitMQConfig.Retries, rabbitMQConfig.RabbitMQURL())
 	if err != nil {
-		log.Panicln("Failed to connect to RabbitMQ, check your config or RabbitMQ")
+		return nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Panicf("Failed to open channel: %v\n", err)
+		return nil, fmt.Errorf("failed to open channel: %v", err)
 	}
 
-	exchangeName := os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME)
-	notificationExchangeChannel := os.Getenv(config.NOTIFICATION_EXCHANGE_QUEUE_NAME)
-
-	if err := declareExchange(ch, exchangeName, notificationExchangeChannel); err != nil {
-		log.Panicf("Failed to declare exchange: %v\n", err)
+	if err := declareExchanges(ch, rabbitMQConfig.ExchangeNames...); err != nil {
+		return nil, fmt.Errorf("failed to declare exchanges: %v", err)
 	}
 
 	log.Println("Successfully connected to RabbitMQ")
@@ -99,26 +46,156 @@ func NewRabbitBroker() interfaces.Broker {
 	return &RabbitMQBroker{
 		connection: conn,
 		channel:    ch,
+		dispatcher: dispatcher,
+		config:     rabbitMQConfig,
+	}, nil
+}
+
+func (this *RabbitMQBroker) Close() {
+	if this.channel != nil {
+		_ = this.channel.Close()
+	}
+	if this.connection != nil {
+		_ = this.connection.Close()
 	}
 }
 
-func (r *RabbitMQBroker) reconnect(exchangeChannels ...string) error {
-	for _, channel := range exchangeChannels {
-		if r.channel == nil || r.connection.IsClosed() {
-			connStr := buildConnectionString()
+func (this *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
+	if err := this.ensureConnected(dest.Exchange); err != nil {
+		return fmt.Errorf("failed to ensure connection: %w", err)
+	}
 
-			conn, err := connect(connStr)
-			if err != nil {
-				return fmt.Errorf("reconnect failed: %w", err)
-			}
-			ch, err := conn.Channel()
-			if err != nil {
-				return fmt.Errorf("failed to open channel after reconnect: %w", err)
-			}
-			r.connection = conn
-			r.channel = ch
+	wrapper := event.EventWrapper{
+		Pattern: ev.Name(),
+		Data:    ev,
+	}
 
-			if err := declareExchange(r.channel, channel); err != nil {
+	body, err := json.Marshal(wrapper)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	pub := amqp.Publishing{
+		ContentType: "application/json",
+		Body:        body,
+		Timestamp:   time.Now(),
+	}
+
+	var exchange string
+	var routingKey string
+
+	switch {
+	case dest.Exchange != "":
+		exchange = dest.Exchange
+		routingKey = dest.RoutingKey
+	case dest.Queue != "":
+		exchange = ""
+		routingKey = dest.Queue
+	default:
+		return fmt.Errorf("no destination specified")
+	}
+
+	if err := this.channel.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
+	return nil
+}
+
+func (this *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, destinations ...broker.Destination) error {
+	for _, dest := range destinations {
+		if err := this.Publish(ctx, ev, dest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *RabbitMQBroker) Consume(ctx context.Context) error {
+	if err := this.ensureConnected(); err != nil {
+		return fmt.Errorf("failed to reconnect: %w", err)
+	}
+
+	q, err := this.channel.QueueDeclare(
+		"",
+		false,
+		false,
+		true,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	for _, p := range this.dispatcher.AvailablePatterns() {
+		if err := this.channel.QueueBind(q.Name, p, "", false, nil); err != nil {
+			return fmt.Errorf("failed to bind pattern %s: %w", p, err)
+		}
+	}
+
+	msgs, err := this.channel.Consume(q.Name, "", false, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to consume: %w", err)
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Stopping consumer due to context cancel")
+				return
+			case msg, ok := <-msgs:
+				if !ok {
+					log.Println("Consumer channel closed")
+					return
+				}
+
+				if len(msg.Body) == 0 {
+					log.Println("Skipping empty event")
+					_ = msg.Ack(false)
+					continue
+				}
+
+				var wrapper event.EventWrapper
+				pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
+				if err != nil {
+					log.Printf("Failed to decode event: %v", err)
+					_ = msg.Nack(false, false)
+					continue
+				}
+
+				if err := this.dispatcher.HandleEvent(ctx, pattern, data); err != nil {
+					log.Printf("Error handling event %s: %v", pattern, err)
+				}
+
+				_ = msg.Ack(false)
+			}
+		}
+	}()
+
+	log.Println("Waiting for events...")
+	return nil
+}
+
+func (this *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
+	if this.connection == nil || this.connection.IsClosed() {
+		conn, err := connect(this.config.Retries, this.config.RabbitMQURL())
+		if err != nil {
+			return err
+		}
+
+		ch, err := conn.Channel()
+		if err != nil {
+			return err
+		}
+
+		this.connection = conn
+		this.channel = ch
+
+		if len(exchangeNames) > 0 {
+			if err := declareExchanges(this.channel, exchangeNames...); err != nil {
 				return err
 			}
 		}
@@ -126,56 +203,29 @@ func (r *RabbitMQBroker) reconnect(exchangeChannels ...string) error {
 	return nil
 }
 
-func declareExchange(ch *amqp.Channel, exchangeNames ...string) error {
-	for _, exchangeName := range exchangeNames {
-		if err := ch.ExchangeDeclare(
-			exchangeName,
-			fanout,
-			true,
-			false,
-			false,
-			false,
-			nil,
-		); err != nil {
-			return fmt.Errorf("failed to declare exchange after reconnect: %w", err)
+func declareExchanges(ch *amqp.Channel, exchangeNames ...string) error {
+	for _, name := range exchangeNames {
+		if name == "" {
+			continue
 		}
-
+		if err := ch.ExchangeDeclare(name, fanout, true, false, false, false, nil); err != nil {
+			return fmt.Errorf("failed to declare exchange %s: %w", name, err)
+		}
 	}
 	return nil
 }
 
-func buildConnectionString() string {
-	url := os.Getenv(config.RABBITMQ_URL)
-
-	if url == "" {
-		pass := os.Getenv(config.RABBITMQ_DEFAULT_PASS)
-		user := os.Getenv(config.RABBITMQ_DEFAULT_USER)
-		port := os.Getenv(config.RABBITMQ_PORT)
-		host := os.Getenv(config.RABBITMQ_HOST)
-
-		if pass == "" || user == "" || host == "" || port == "" {
-			return ""
-		}
-
-		url = fmt.Sprintf("amqp://%s:%s@%s:%s", user, pass, host, port)
-	}
-
-	return url
-}
-
-func connect(connStr string) (*amqp.Connection, error) {
+func connect(retries int, url string) (*amqp.Connection, error) {
 	var conn *amqp.Connection
 	var err error
 
-	for attempts := range RETRIES {
-		conn, err = amqp.Dial(connStr)
-		if err != nil {
-			log.Printf("Failed to connect to RabbitMQ: %v. Retrying (%d/%d)...", err, attempts+1, RETRIES)
-			time.Sleep(3 * time.Second)
-			continue
+	for attempt := 1; attempt <= retries; attempt++ {
+		conn, err = amqp.Dial(url)
+		if err == nil {
+			return conn, nil
 		}
-		return conn, nil
+		log.Printf("Failed to connect to RabbitMQ: %v (retry %d/%d)", err, attempt, retries)
+		time.Sleep(3 * time.Second)
 	}
-
-	return nil, fmt.Errorf("could not connect to RabbitMQ: %w", err)
+	return nil, fmt.Errorf("could not connect to RabbitMQ after retries: %w", err)
 }

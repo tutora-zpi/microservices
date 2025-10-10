@@ -21,9 +21,17 @@ func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	api.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
-	api.Handle("/meeting/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
-	api.Handle("/meeting/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)
-	api.Handle("/meeting/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetActiveMeeting))).Methods(http.MethodGet)
+	// api.Handle("/meeting/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
+	// api.Handle("/meeting/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)
+	// api.Handle("/meeting/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetActiveMeeting))).Methods(http.MethodGet)
+
+	// api.Handle("/meeting/plan", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.PlanMeeting)))).Methods(http.MethodPost)
+
+	api.Handle("/meeting/start", middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting))).Methods(http.MethodPost, http.MethodPut)
+	api.Handle("/meeting/end", middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting))).Methods(http.MethodPost, http.MethodDelete)
+	api.Handle("/meeting/{class_id}", http.HandlerFunc(meetingHandler.GetActiveMeeting)).Methods(http.MethodGet)
+
+	api.Handle("/meeting/plan", middleware.Validate(http.HandlerFunc(meetingHandler.PlanMeeting))).Methods(http.MethodPost)
 
 	return router
 }

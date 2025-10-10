@@ -16,12 +16,12 @@ func NewMeetingEndedEvent(dto dto.EndMeetingDTO) *MeetingEndedEvent {
 	event := &MeetingEndedEvent{
 		MeetingID: dto.MeetingID,
 		Members:   dto.Members,
-		EndedTime: time.Now(),
+		EndedTime: time.Now().UTC(),
 	}
 
 	return event
 }
 
 func (m *MeetingEndedEvent) Name() string {
-	return reflect.TypeOf(m).Name()
+	return reflect.TypeOf(*m).Name()
 }

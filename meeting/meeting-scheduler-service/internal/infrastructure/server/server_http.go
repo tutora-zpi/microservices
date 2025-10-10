@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"meeting-scheduler-service/internal/infrastructure/config"
+	"meeting-scheduler-service/internal/config"
 	"net/http"
 	"os"
 	"time"

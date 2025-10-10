@@ -2,7 +2,7 @@ package security
 
 import (
 	"log"
-	"meeting-scheduler-service/internal/infrastructure/config"
+	"meeting-scheduler-service/internal/config"
 	"os"
 	"time"
 

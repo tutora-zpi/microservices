@@ -110,6 +110,47 @@
                 }
             }
         },
+        "/api/v1/meeting/plan": {
+            "post": {
+                "description": "Used to plan meetings and starts meeting automatically at start date",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "meetings class plan"
+                ],
+                "summary": "Plan meeting for the future",
+                "responses": {
+                    "201": {
+                        "description": "Meeting planned successfully!",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/server.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PlanMeetingDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body | meeting already started | meeting already planned",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/meeting/start": {
             "put": {
                 "description": "Starts a meeting based on the provided DTO",
@@ -325,6 +366,44 @@
                 },
                 "title": {
                     "description": "Meetings title",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PlanMeetingDTO": {
+            "type": "object",
+            "required": [
+                "classId",
+                "finishDate",
+                "members",
+                "startDate",
+                "title"
+            ],
+            "properties": {
+                "classId": {
+                    "description": "Class id - where meeting will be started (UUIDv4)\nrequired: true",
+                    "type": "string"
+                },
+                "finishDate": {
+                    "description": "Finish Date - date and time when meeting finshes, use toISOString to cast your date\nrequired: true",
+                    "type": "string",
+                    "example": "2025-10-10T12:50:05+02:00"
+                },
+                "members": {
+                    "description": "Members participating in the meeting (minimum 2)\nrequired: true",
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "$ref": "#/definitions/dto.UserDTO"
+                    }
+                },
+                "startDate": {
+                    "description": "Start Date - date and time when meeting starts, use toISOString to cast your date\nrequired: true",
+                    "type": "string",
+                    "example": "2025-10-10T12:36:05+02:00"
+                },
+                "title": {
+                    "description": "The title of the class eg. C++ Object oriented: pointers\nreqiured: true",
                     "type": "string"
                 }
             }
