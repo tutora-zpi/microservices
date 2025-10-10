@@ -21,17 +21,17 @@ func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	api.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
-	// api.Handle("/meeting/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
-	// api.Handle("/meeting/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)
-	// api.Handle("/meeting/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetActiveMeeting))).Methods(http.MethodGet)
+	meeting := api.PathPrefix("/meeting").Subrouter()
 
-	// api.Handle("/meeting/plan", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.PlanMeeting)))).Methods(http.MethodPost)
+	meeting.Handle("/`start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
+	meeting.Handle("/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)
+	meeting.Handle("/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetActiveMeeting))).Methods(http.MethodGet)
 
-	api.Handle("/meeting/start", middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting))).Methods(http.MethodPost, http.MethodPut)
-	api.Handle("/meeting/end", middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting))).Methods(http.MethodPost, http.MethodDelete)
-	api.Handle("/meeting/{class_id}", http.HandlerFunc(meetingHandler.GetActiveMeeting)).Methods(http.MethodGet)
+	plan := meeting.PathPrefix("/plan").Subrouter()
 
-	api.Handle("/meeting/plan", middleware.Validate(http.HandlerFunc(meetingHandler.PlanMeeting))).Methods(http.MethodPost)
+	plan.Handle("", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.PlanMeeting)))).Methods(http.MethodPost)
+	plan.Handle("/{id}/cancel", middleware.IsAuth(http.HandlerFunc(meetingHandler.CancelPlannedMeeting))).Methods(http.MethodDelete)
+	plan.Handle("/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetPlannedMeetings))).Methods(http.MethodGet)
 
 	return router
 }

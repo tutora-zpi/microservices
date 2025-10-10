@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"meeting-scheduler-service/internal/domain/dto"
+	"time"
 )
 
 type Meeting struct {
@@ -21,10 +22,12 @@ func (m *Meeting) ToJSON() []byte {
 }
 
 func (m *Meeting) ToDTO() *dto.MeetingDTO {
+	start := time.Unix(m.Timestamp, 0).UTC().Truncate(time.Minute)
+
 	return &dto.MeetingDTO{
-		MeetingID: m.MeetingID,
-		Timestamp: &m.Timestamp,
-		Title:     m.Title,
-		Members:   []dto.UserDTO{},
+		MeetingID:   m.MeetingID,
+		StartedDate: &start,
+		Title:       m.Title,
+		Members:     []dto.UserDTO{},
 	}
 }

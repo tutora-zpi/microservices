@@ -13,22 +13,29 @@ import (
 )
 
 type ManageMeetingImlp struct {
-	Broker                    interfaces.Broker
-	MeetingRepository         repository.MeetingRepository
-	PlannedMeetingsRepository repository.PlannedMeetingsRepository
+	broker                    interfaces.Broker
+	meetingRepository         repository.MeetingRepository
+	plannedMeetingsRepository repository.PlannedMeetingsRepository
 
-	NotificationExchange string
-	MeetingExchange      string
+	notificationExchange string
+	neetingExchange      string
 }
 
 // CancelPlannedMeeting implements interfaces.ManageMeeting.
 func (m *ManageMeetingImlp) CancelPlannedMeeting(ctx context.Context, id int) error {
-	panic("unimplemented")
+	log.Printf("Cancelling planned meeting with: %d", id)
+	if err := m.plannedMeetingsRepository.CancelMeeting(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetPlannedMeetings implements interfaces.ManageMeeting.
-func (m *ManageMeetingImlp) GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetings) ([]dto.PlannedMeetingDTO, error) {
-	results, err := m.PlannedMeetingsRepository.GetPlannedMeetings(ctx, dto)
+func (m *ManageMeetingImlp) GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetingsDTO) ([]dto.PlannedMeetingDTO, error) {
+	log.Printf("Getting planned meetings [%v]\n", dto)
+
+	results, err := m.plannedMeetingsRepository.GetPlannedMeetings(ctx, dto)
 	if err != nil {
 		return nil, err
 	}
@@ -39,27 +46,28 @@ func (m *ManageMeetingImlp) GetPlannedMeetings(ctx context.Context, dto dto.Fetc
 // LoadMorePlannedMeetings implements interfaces.ManageMeeting.
 func (m *ManageMeetingImlp) LoadMorePlannedMeetings(ctx context.Context, interval time.Duration) ([]dto.PlanMeetingDTO, error) {
 	// time window
-	start := time.Now().UTC().Add(-time.Minute * 2)
-	before := time.Now().UTC().Add(interval)
+	now := time.Now().UTC()
+	start := now.Add(-time.Minute)
+	before := now.Add(interval)
 
-	results, err := m.PlannedMeetingsRepository.ProcessPlannedMeetings(ctx, start, before)
+	results, err := m.plannedMeetingsRepository.ProcessPlannedMeetings(ctx, start, before)
 
 	return results, err
 }
 
 // Plan implements interfaces.ManageMeeting.
-func (m *ManageMeetingImlp) Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*dto.PlanMeetingDTO, error) {
+func (m *ManageMeetingImlp) Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*dto.PlannedMeetingDTO, error) {
 	log.Printf("Planning meeting on %s", dto.StartDate.Format(time.RFC3339))
 
-	if m.MeetingRepository.Exists(ctx, dto.ClassID) {
+	if m.meetingRepository.Exists(ctx, dto.ClassID) {
 		return nil, fmt.Errorf("meeting has already started")
 	}
 
-	if !m.PlannedMeetingsRepository.CanStartAnotherMeeting(ctx, dto) {
+	if !m.plannedMeetingsRepository.CanStartAnotherMeeting(ctx, dto) {
 		return nil, fmt.Errorf("unable to start another cause of meeting collisions")
 	}
 
-	createdMeeting, err := m.PlannedMeetingsRepository.CreatePlannedMeetings(ctx, dto)
+	createdMeeting, err := m.plannedMeetingsRepository.CreatePlannedMeetings(ctx, dto)
 
 	if err != nil {
 		log.Println(err)
@@ -69,8 +77,8 @@ func (m *ManageMeetingImlp) Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*
 	log.Printf("Meeting with id: %s successfully planned\n", dto.ClassID)
 
 	plannedMeetingEvent := event.NewPlannedMeetingEvent(dto)
-	dest := broker.NewExchangeDestination(plannedMeetingEvent, m.NotificationExchange)
-	if err := m.Broker.Publish(ctx, plannedMeetingEvent, dest); err != nil {
+	dest := broker.NewExchangeDestination(plannedMeetingEvent, m.notificationExchange)
+	if err := m.broker.Publish(ctx, plannedMeetingEvent, dest); err != nil {
 		log.Printf("Failed to publish notification: %v\n", err)
 	}
 
@@ -79,13 +87,14 @@ func (m *ManageMeetingImlp) Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*
 
 // ActiveMeeting implements interfaces.ManageMeeting.
 func (m *ManageMeetingImlp) ActiveMeeting(ctx context.Context, classID string) (*dto.MeetingDTO, error) {
-	return m.MeetingRepository.Get(ctx, classID)
+	log.Printf("Checking for active meetings in class: %s\n", classID)
+	return m.meetingRepository.Get(ctx, classID)
 }
 
 // Start implements ManageMeeting.
 func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.StartMeetingDTO) (*dto.MeetingDTO, error) {
 	log.Println("Starting meeting")
-	if m.MeetingRepository.Exists(ctx, startedMeetingDto.ClassID) {
+	if m.meetingRepository.Exists(ctx, startedMeetingDto.ClassID) {
 		return nil, fmt.Errorf("meeting has already started")
 	}
 
@@ -93,7 +102,7 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	meeting := meetingStartedEvent.NewMeeting(startedMeetingDto.ClassID, startedMeetingDto.Title)
 
-	err := m.MeetingRepository.Append(ctx, meeting)
+	err := m.meetingRepository.Append(ctx, meeting)
 	if err != nil {
 		log.Println(err)
 		return nil, fmt.Errorf("failed to add new meeting to cache")
@@ -101,9 +110,9 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	log.Printf("Appended to cache new meeting in class: %s\n", meeting.ClassID)
 
-	destinations := broker.NewMultipleDestination(meetingStartedEvent, m.MeetingExchange, m.NotificationExchange)
+	destinations := broker.NewMultipleDestination(meetingStartedEvent, m.neetingExchange, m.notificationExchange)
 
-	err = m.Broker.PublishMultiple(
+	err = m.broker.PublishMultiple(
 		ctx,
 		meetingStartedEvent,
 		destinations...,
@@ -116,20 +125,28 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	log.Println("Successfully published events")
 
-	result := dto.NewMeetingDTO(meetingStartedEvent.MeetingID, meetingStartedEvent.Members, &meeting.Timestamp, meeting.Title)
+	result := dto.NewMeetingDTO(
+		meetingStartedEvent.MeetingID,
+		meetingStartedEvent.Members,
+		meetingStartedEvent.StartedTime,
+		meetingStartedEvent.FinishTime,
+		meeting.Title,
+	)
 
 	return result, nil
 }
 
 // Stop implements ManageMeeting.
 func (m *ManageMeetingImlp) Stop(ctx context.Context, endMeetingDto dto.EndMeetingDTO) error {
+	log.Println("Stopping meeting...")
+
 	meetingEndedEvent := event.NewMeetingEndedEvent(endMeetingDto)
-	err := m.MeetingRepository.Delete(ctx, endMeetingDto.ClassID)
+	err := m.meetingRepository.Delete(ctx, endMeetingDto.ClassID)
 	if err != nil {
 		return err
 	}
 
-	err = m.Broker.Publish(ctx, meetingEndedEvent, broker.NewExchangeDestination(meetingEndedEvent, m.MeetingExchange))
+	err = m.broker.Publish(ctx, meetingEndedEvent, broker.NewExchangeDestination(meetingEndedEvent, m.neetingExchange))
 
 	if err != nil {
 		return fmt.Errorf("failed to stop meeting, try again")
@@ -148,10 +165,10 @@ func NewManageMeeting(
 	meetingExchange string,
 ) interfaces.ManageMeeting {
 	return &ManageMeetingImlp{
-		Broker:                    broker,
-		MeetingRepository:         meetingRepo,
-		PlannedMeetingsRepository: plannedMeetingsRepo,
-		NotificationExchange:      notificationExchange,
-		MeetingExchange:           meetingExchange,
+		broker:                    broker,
+		meetingRepository:         meetingRepo,
+		plannedMeetingsRepository: plannedMeetingsRepo,
+		notificationExchange:      notificationExchange,
+		neetingExchange:           meetingExchange,
 	}
 }

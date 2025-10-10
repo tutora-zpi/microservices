@@ -13,10 +13,6 @@ type PlanMeetingDTO struct {
 	// Start Date - date and time when meeting starts, use toISOString to cast your date
 	// required: true
 	StartDate time.Time `json:"startDate" validate:"required" example:"2025-10-10T12:36:05+02:00"`
-
-	// Finish Date - date and time when meeting finshes, use toISOString to cast your date
-	// required: true
-	FinishDate time.Time `json:"finishDate" validate:"required" example:"2025-10-10T12:50:05+02:00"`
 }
 
 func (dto *PlanMeetingDTO) IsValid() error {
@@ -48,11 +44,8 @@ func (dto *PlanMeetingDTO) IsValid() error {
 }
 
 func (dto *PlanMeetingDTO) ConvertTimeToUTC() {
-	dto.StartDate = dto.StartDate.Truncate(time.Minute)
-	dto.FinishDate = dto.FinishDate.Truncate(time.Minute)
-
-	dto.StartDate = dto.StartDate.UTC()
-	dto.FinishDate = dto.FinishDate.UTC()
+	dto.StartDate = dto.StartDate.UTC().Truncate(time.Minute)
+	dto.FinishDate = dto.FinishDate.UTC().Truncate(time.Minute)
 }
 
 func (dto *PlanMeetingDTO) GetDate() string {

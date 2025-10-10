@@ -37,17 +37,8 @@ cp .env.sample .env
 
 All documentation you can find on swagger **/api/v1/docs**.
 
-### MeetingDTO:
-
-```ts
-interface MeetingDTO {
-    meetingId: string
-    title: string
-    timestamp?: number | null
-    members?: UserDTO[] | null
-}
-```
-
 ## Scheduling
 
-Will be provided later...
+Every minute planner fetches planned meetings and system set these meetings as a processed ones. Then planner try to start meetings but when method returns an error, planner adds meeting to list and on another gorutine tries to start it again.    
+
+To plan new meeting use `POST` method **/api/v1/meeting/plan**.

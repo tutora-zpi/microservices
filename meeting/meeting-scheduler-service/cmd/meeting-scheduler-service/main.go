@@ -11,6 +11,7 @@ import (
 	"meeting-scheduler-service/internal/infrastructure/redis"
 	"meeting-scheduler-service/internal/infrastructure/rest"
 	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
+	"meeting-scheduler-service/internal/infrastructure/security"
 	"meeting-scheduler-service/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -71,7 +72,7 @@ func init() {
 	setupPostgresConfig()
 	setupRabbitMQConfig()
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
@@ -91,7 +92,6 @@ func main() {
 	defer broker.Close()
 
 	// REDIS REPO
-
 	meetingRepo, err := redis.NewMeetingRepo(initCtx, redisConfig)
 	if err != nil {
 		log.Panicf("Failed to create redis repo: %v", err)
@@ -108,7 +108,7 @@ func main() {
 	meetingManager := usecase.NewManageMeeting(broker, meetingRepo, plannedMeetingsRepo, os.Getenv(config.NOTIFICATION_EXCHANGE_QUEUE_NAME), os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME))
 
 	// PLANNER
-	planner := usecase.NewPlanner(context.Background(), meetingManager, usecase.PlannerConfig{
+	planner := usecase.NewPlanner(meetingManager, usecase.PlannerConfig{
 		FetchIntervalMinutes: 1,
 	})
 

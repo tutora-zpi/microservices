@@ -6,6 +6,7 @@ import (
 	"meeting-scheduler-service/internal/domain/dto"
 	"meeting-scheduler-service/internal/domain/validator"
 	"meeting-scheduler-service/internal/infrastructure/server"
+	"meeting-scheduler-service/pkg"
 	"net/http"
 )
 
@@ -29,13 +30,13 @@ func Validate(next http.Handler) http.Handler {
 
 		dtoInstance := constructor()
 		if err := json.NewDecoder(r.Body).Decode(dtoInstance); err != nil {
-			server.NewResponse(w, "Failed to decode body", http.StatusBadRequest, nil)
+			server.NewResponse(w, pkg.Ptr("Failed to decode body"), http.StatusBadRequest, nil)
 			return
 		}
 
 		if validatable, ok := dtoInstance.(validator.Validator); ok {
 			if err := validatable.IsValid(); err != nil {
-				server.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
+				server.NewResponse(w, pkg.Ptr("Invalid body error: "+err.Error()), http.StatusBadRequest, nil)
 				return
 			}
 		}

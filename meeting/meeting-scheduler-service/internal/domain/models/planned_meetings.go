@@ -22,7 +22,20 @@ type PlannedMeeting struct {
 	IsProcessed bool           `gorm:"index:idx_meeting_processed_start,priority:1;default:false"`
 }
 
-func (p *PlannedMeeting) DTO() (*dto.PlanMeetingDTO, error) {
+func (p *PlannedMeeting) ToPlannedMeetingDTO() (*dto.PlannedMeetingDTO, error) {
+	planMeeting, err := p.ToPlanMeetingDTO()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.PlannedMeetingDTO{
+		ID:             int(p.ID),
+		PlanMeetingDTO: *planMeeting,
+	}, nil
+}
+
+func (p *PlannedMeeting) ToPlanMeetingDTO() (*dto.PlanMeetingDTO, error) {
 	var members []dto.UserDTO
 	if err := json.Unmarshal(p.Members, &members); err != nil {
 		return nil, err
@@ -30,12 +43,12 @@ func (p *PlannedMeeting) DTO() (*dto.PlanMeetingDTO, error) {
 
 	return &dto.PlanMeetingDTO{
 		StartMeetingDTO: dto.StartMeetingDTO{
-			ClassID: p.ClassID,
-			Title:   p.Title,
-			Members: members,
+			ClassID:    p.ClassID,
+			Title:      p.Title,
+			Members:    members,
+			FinishDate: p.FinishDate,
 		},
-		StartDate:  p.StartDate,
-		FinishDate: p.FinishDate,
+		StartDate: p.StartDate,
 	}, nil
 }
 

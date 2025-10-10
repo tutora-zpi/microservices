@@ -153,7 +153,9 @@ func (p *planner) StartCron(ctx context.Context) {
 	log.Println("Planner cron started with interval:", spec)
 }
 
-func NewPlanner(ctx context.Context, meetingManager interfaces.ManageMeeting, config PlannerConfig) interfaces.MeetingPlanner {
+func NewPlanner(meetingManager interfaces.ManageMeeting, config PlannerConfig) interfaces.MeetingPlanner {
+	ctx := context.Background()
+
 	p := &planner{
 		scheduledMeetings: make(map[int64][]dto.PlanMeetingDTO),
 		unsentMeetings:    make([]dto.PlanMeetingDTO, 0),
