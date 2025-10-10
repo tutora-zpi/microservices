@@ -11,5 +11,7 @@ type ManageMeeting interface {
 	Stop(ctx context.Context, dto dto.EndMeetingDTO) error
 	ActiveMeeting(ctx context.Context, classID string) (*dto.MeetingDTO, error)
 	Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*dto.PlanMeetingDTO, error)
-	GetPlannedMeetings(ctx context.Context, interval time.Duration) ([]dto.PlanMeetingDTO, error)
+	LoadMorePlannedMeetings(ctx context.Context, interval time.Duration) ([]dto.PlanMeetingDTO, error)
+	GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetings) ([]dto.PlannedMeetingDTO, error)
+	CancelPlannedMeeting(ctx context.Context, id int) error
 }

@@ -21,8 +21,23 @@ type ManageMeetingImlp struct {
 	MeetingExchange      string
 }
 
+// CancelPlannedMeeting implements interfaces.ManageMeeting.
+func (m *ManageMeetingImlp) CancelPlannedMeeting(ctx context.Context, id int) error {
+	panic("unimplemented")
+}
+
 // GetPlannedMeetings implements interfaces.ManageMeeting.
-func (m *ManageMeetingImlp) GetPlannedMeetings(ctx context.Context, interval time.Duration) ([]dto.PlanMeetingDTO, error) {
+func (m *ManageMeetingImlp) GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetings) ([]dto.PlannedMeetingDTO, error) {
+	results, err := m.PlannedMeetingsRepository.GetPlannedMeetings(ctx, dto)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// LoadMorePlannedMeetings implements interfaces.ManageMeeting.
+func (m *ManageMeetingImlp) LoadMorePlannedMeetings(ctx context.Context, interval time.Duration) ([]dto.PlanMeetingDTO, error) {
 	// time window
 	start := time.Now().UTC().Add(-time.Minute * 2)
 	before := time.Now().UTC().Add(interval)

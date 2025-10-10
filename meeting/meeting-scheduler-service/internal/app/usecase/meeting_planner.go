@@ -87,7 +87,7 @@ func (p *planner) Listen(ctx context.Context) {
 
 // LoadScheduledMeetings implements MeetingPlanner.
 func (p *planner) LoadScheduledMeetings(ctx context.Context) error {
-	plannedMeetings, err := p.meetingManager.GetPlannedMeetings(ctx, p.plannerConfig.Interval())
+	plannedMeetings, err := p.meetingManager.LoadMorePlannedMeetings(ctx, p.plannerConfig.Interval())
 	if err != nil {
 		return err
 	}

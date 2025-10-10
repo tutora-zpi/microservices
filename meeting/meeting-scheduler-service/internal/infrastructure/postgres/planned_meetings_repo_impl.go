@@ -18,6 +18,21 @@ type plannedMeetingsRepoImpl struct {
 	db *gorm.DB
 }
 
+// CancelMeeting implements repository.PlannedMeetingsRepository.
+func (p *plannedMeetingsRepoImpl) CancelMeeting(ctx context.Context, id int) error {
+	if err := p.db.WithContext(ctx).Delete(models.PlannedMeeting{}, id).Error; err != nil {
+		log.Printf("Error during soft deletion: %v\n", err)
+		return fmt.Errorf("failed to update status of planned meeting")
+	}
+
+	return nil
+}
+
+// GetPlannedMeetings implements repository.PlannedMeetingsRepository.
+func (p *plannedMeetingsRepoImpl) GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetings) ([]dto.PlannedMeetingDTO, error) {
+	panic("unimplemented")
+}
+
 // CanStartAnotherMeeting implements repository.PlannedMeetingsRepository.
 func (p *plannedMeetingsRepoImpl) CanStartAnotherMeeting(ctx context.Context, meeting dto.PlanMeetingDTO) bool {
 	var model models.PlannedMeeting
