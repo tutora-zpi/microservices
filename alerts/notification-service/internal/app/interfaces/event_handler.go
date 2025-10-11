@@ -1,5 +1,7 @@
 package interfaces
 
+import "context"
+
 type EventHandler interface {
-	Handle(body []byte) error
+	Handle(ctx context.Context, body []byte) error
 }

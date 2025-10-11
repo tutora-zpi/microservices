@@ -1,16 +1,23 @@
 package bus
 
 import (
+	"context"
 	"log"
 	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/domain/event"
 )
 
+type Dispachable interface {
+	Register(evt event.Event, handler interfaces.EventHandler)
+	HandleEvent(ctx context.Context, queueName string, msg []byte) error
+	AvailablePatterns() []string
+}
+
 type Dispatcher struct {
 	registry *HandlerRegistry[interfaces.EventHandler]
 }
 
-func NewDispatcher() *Dispatcher {
+func NewDispatcher() Dispachable {
 	return &Dispatcher{
 		registry: NewHandlerRegistry[interfaces.EventHandler](),
 	}
@@ -20,7 +27,7 @@ func (d *Dispatcher) Register(evt event.Event, handler interfaces.EventHandler) 
 	d.registry.Register(evt.Name(), handler)
 }
 
-func (d *Dispatcher) HandleEvent(queueName string, msg []byte) error {
+func (d *Dispatcher) HandleEvent(ctx context.Context, queueName string, msg []byte) error {
 	log.Printf("Handling event from '%s'\n", queueName)
 
 	handlers := d.registry.GetHandlers(queueName)
@@ -30,7 +37,7 @@ func (d *Dispatcher) HandleEvent(queueName string, msg []byte) error {
 	}
 
 	for _, h := range handlers {
-		if err := h.Handle(msg); err != nil {
+		if err := h.Handle(ctx, msg); err != nil {
 			log.Printf("Error handling event %s: %v", queueName, err)
 		}
 	}

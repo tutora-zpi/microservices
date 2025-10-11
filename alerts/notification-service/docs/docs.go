@@ -113,6 +113,28 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/notification/stream": {
+            "get": {
+                "description": "Server-Sent Events (SSE) stream for sending notifications in real-time.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Stream user notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT token for auth",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
         }
     },
     "definitions": {
@@ -225,12 +247,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8888",
+	Version:          "",
+	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Notifications Serivce API",
-	Description:      "Service responsible for notification delivery",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

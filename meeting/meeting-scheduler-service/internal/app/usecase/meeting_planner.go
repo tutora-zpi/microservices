@@ -24,7 +24,7 @@ type planner struct {
 	scheduledMeetings map[int64][]dto.PlanMeetingDTO
 	unsentMeetings    []dto.PlanMeetingDTO
 
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	cron  cron.Cron
 
 	meetingManager interfaces.ManageMeeting
@@ -39,7 +39,6 @@ func (p *planner) RerunNotStartedMeetings(ctx context.Context) error {
 		case <-ctx.Done():
 			fmt.Println("Planner stopped:", ctx.Err())
 			return ctx.Err()
-
 		default:
 			p.mutex.Lock()
 			for i := 0; i < len(p.unsentMeetings); i++ {
@@ -126,8 +125,8 @@ func (p *planner) addToScheduledMeetings(meeting dto.PlanMeetingDTO) {
 }
 
 func (p *planner) getMeetings(now int64) []dto.PlanMeetingDTO {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	if meetings, ok := p.scheduledMeetings[now]; !ok {
 		return []dto.PlanMeetingDTO{}
@@ -159,7 +158,7 @@ func NewPlanner(meetingManager interfaces.ManageMeeting, config PlannerConfig) i
 	p := &planner{
 		scheduledMeetings: make(map[int64][]dto.PlanMeetingDTO),
 		unsentMeetings:    make([]dto.PlanMeetingDTO, 0),
-		mutex:             sync.Mutex{},
+		mutex:             sync.RWMutex{},
 		meetingManager:    meetingManager,
 		cron:              *cron.New(),
 		plannerConfig:     config,

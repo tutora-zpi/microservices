@@ -20,9 +20,8 @@ func NewMeetingInvitationReadyEventHandler(publisher interfaces.NotificationMana
 	return &MeetingInvitationReadyEventHandler{repo: repo, publisher: publisher}
 }
 
-func (m *MeetingInvitationReadyEventHandler) Handle(body []byte) error {
+func (m *MeetingInvitationReadyEventHandler) Handle(ctx context.Context, body []byte) error {
 	log.Println("MeetingStartedEvent received")
-	ctx := context.Background()
 
 	newEvent := meetinginvitation.MeetingStartedEvent{}
 

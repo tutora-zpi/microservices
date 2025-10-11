@@ -4,7 +4,7 @@ import (
 	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/enums"
 	"notification-serivce/internal/domain/metadata"
-	"time"
+	"notification-serivce/pkg"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -17,7 +17,6 @@ type Notification struct {
 	Status enums.NotificationStatus `bson:"status"`
 
 	Receiver User `bson:"receiver"`
-	Sender   User `bson:"sender"`
 
 	Title string `bson:"title"`
 	Body  string `bson:"body"`
@@ -27,43 +26,25 @@ type Notification struct {
 	Metadata map[metadata.Key]any `bson:"metadata"`
 }
 
-func NewNotification(
-	notificationType enums.NotificationType,
-	receiver, sender dto.UserDTO, title, body, redirectionLink string, metadata map[metadata.Key]any) Notification {
-	return Notification{
-		ID:        bson.NewObjectID(),
-		CreatedAt: bson.NewObjectID().Timestamp().Unix(),
-		Status:    enums.PENDING,
-
-		Type:     notificationType,
-		Receiver: *NewUserFromDTO(receiver),
-		Sender:   *NewUserFromDTO(sender),
-		Title:    title,
-		Body:     body,
-
-		RedirectionLink: redirectionLink,
-		Metadata:        metadata,
-	}
-}
-
 func (n *Notification) DTO() *dto.NotificationDTO {
 	return &dto.NotificationDTO{
 		ID:              n.ID.Hex(),
 		Receiver:        n.Receiver.DTO(),
-		Sender:          n.Sender.DTO(),
 		CreatedAt:       n.CreatedAt,
 		Type:            n.Type,
 		RedirectionLink: n.RedirectionLink,
 		Metadata:        n.Metadata,
+		Title:           n.Title,
+		Body:            n.Body,
 	}
 }
 
-func (n *Notification) SetTitleAndBody(title, body string) {
-	n.Title = title
-	n.Body = body
-}
-
-func (n *Notification) GetHourAndMinute() (hour, minute int) {
-	startTime := time.Unix(n.CreatedAt, 0)
-	return startTime.Hour(), startTime.Minute()
+func InitInvitationNotification() *Notification {
+	return &Notification{
+		ID:        bson.NewObjectID(),
+		CreatedAt: pkg.GenerateTimestamp(),
+		Type:      enums.INVITATION,
+		Status:    enums.CREATED,
+		Metadata:  map[metadata.Key]any{},
+	}
 }
