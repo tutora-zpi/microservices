@@ -51,17 +51,19 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (i
 	}, nil
 }
 
-func (this *RabbitMQBroker) Close() {
-	if this.channel != nil {
-		_ = this.channel.Close()
+func (r *RabbitMQBroker) Close() {
+	if r.channel != nil {
+		_ = r.channel.Close()
 	}
-	if this.connection != nil {
-		_ = this.connection.Close()
+	if r.connection != nil {
+		_ = r.connection.Close()
 	}
+
+	log.Println("RabbitMQ connection successfully closed")
 }
 
-func (this *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
-	if err := this.ensureConnected(dest.Exchange); err != nil {
+func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
+	if err := r.ensureConnected(dest.Exchange); err != nil {
 		return fmt.Errorf("failed to ensure connection: %w", err)
 	}
 
@@ -95,7 +97,7 @@ func (this *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest br
 		return fmt.Errorf("no destination specified")
 	}
 
-	if err := this.channel.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
+	if err := r.channel.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
@@ -103,85 +105,18 @@ func (this *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest br
 	return nil
 }
 
-func (this *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, destinations ...broker.Destination) error {
+func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, destinations ...broker.Destination) error {
 	for _, dest := range destinations {
-		if err := this.Publish(ctx, ev, dest); err != nil {
+		if err := r.Publish(ctx, ev, dest); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (this *RabbitMQBroker) Consume(ctx context.Context) error {
-	if err := this.ensureConnected(); err != nil {
-		return fmt.Errorf("failed to reconnect: %w", err)
-	}
-
-	q, err := this.channel.QueueDeclare(
-		"",
-		false,
-		false,
-		true,
-		false,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare queue: %w", err)
-	}
-
-	for _, p := range this.dispatcher.AvailablePatterns() {
-		if err := this.channel.QueueBind(q.Name, p, "", false, nil); err != nil {
-			return fmt.Errorf("failed to bind pattern %s: %w", p, err)
-		}
-	}
-
-	msgs, err := this.channel.Consume(q.Name, "", false, false, false, false, nil)
-	if err != nil {
-		return fmt.Errorf("failed to consume: %w", err)
-	}
-
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Println("Stopping consumer due to context cancel")
-				return
-			case msg, ok := <-msgs:
-				if !ok {
-					log.Println("Consumer channel closed")
-					return
-				}
-
-				if len(msg.Body) == 0 {
-					log.Println("Skipping empty event")
-					_ = msg.Ack(false)
-					continue
-				}
-
-				var wrapper event.EventWrapper
-				pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
-				if err != nil {
-					log.Printf("Failed to decode event: %v", err)
-					_ = msg.Nack(false, false)
-					continue
-				}
-
-				if err := this.dispatcher.HandleEvent(ctx, pattern, data); err != nil {
-					log.Printf("Error handling event %s: %v", pattern, err)
-				}
-
-				_ = msg.Ack(false)
-			}
-		}
-	}()
-
-	log.Println("Waiting for events...")
-	return nil
-}
-
-func (this *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
-	if this.connection == nil || this.connection.IsClosed() {
-		conn, err := connect(this.config.Retries, this.config.RabbitMQURL())
+func (r *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
+	if r.connection == nil || r.connection.IsClosed() {
+		conn, err := connect(r.config.Retries, r.config.RabbitMQURL())
 		if err != nil {
 			return err
 		}
@@ -191,11 +126,11 @@ func (this *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
 			return err
 		}
 
-		this.connection = conn
-		this.channel = ch
+		r.connection = conn
+		r.channel = ch
 
 		if len(exchangeNames) > 0 {
-			if err := declareExchanges(this.channel, exchangeNames...); err != nil {
+			if err := declareExchanges(r.channel, exchangeNames...); err != nil {
 				return err
 			}
 		}

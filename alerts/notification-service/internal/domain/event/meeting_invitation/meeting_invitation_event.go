@@ -3,12 +3,14 @@ package meetinginvitation
 import (
 	"fmt"
 	"notification-serivce/internal/domain/dto"
+	"notification-serivce/internal/domain/metadata"
 	"notification-serivce/internal/domain/models"
 	"reflect"
 	"time"
 )
 
 type MeetingStartedEvent struct {
+	ClassID     string        `json:"classId"`
 	MeetingID   string        `json:"meetingId"`
 	Members     []dto.UserDTO `json:"members"`
 	StartedTime time.Time     `json:"startedTime"` // ISO 8601 format
@@ -16,7 +18,7 @@ type MeetingStartedEvent struct {
 }
 
 func (m *MeetingStartedEvent) Notifications() []models.Notification {
-	notifications := make([]models.Notification, 0, len(m.Members))
+	notifications := make([]models.Notification, len(m.Members))
 
 	for i, receiver := range m.Members {
 		notifications[i] = *m.MeetingNotification(receiver)
@@ -40,6 +42,8 @@ func (m *MeetingStartedEvent) MeetingNotification(user dto.UserDTO) *models.Noti
 
 	base.RedirectionLink = m.buildLink()
 
+	base.Metadata[metadata.CLASS_ID] = m.ClassID
+
 	return base
 }
 
@@ -48,5 +52,5 @@ func (m *MeetingStartedEvent) Name() string {
 }
 
 func (m *MeetingStartedEvent) buildLink() string {
-	return fmt.Sprintf("/meeting/%s", m.MeetingID)
+	return fmt.Sprintf("/room/%s/meeting/%s", m.ClassID, m.MeetingID)
 }

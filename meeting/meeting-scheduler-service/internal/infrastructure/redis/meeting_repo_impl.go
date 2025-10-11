@@ -29,9 +29,9 @@ func (m *meetingRepoImpl) Exists(ctx context.Context, classID string) bool {
 // Append implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Append(ctx context.Context, meeting *models.Meeting) error {
 	key := m.temporaryMeeting(meeting.ClassID)
-	log.Printf("Appending item under: %s\n", key)
+	log.Printf("Appending item under: %s", key)
 
-	_, err := m.client.Set(ctx, key, meeting.ToJSON(), time.Duration(time.Minute*70)).Result()
+	_, err := m.client.Set(ctx, key, meeting.Json(), time.Duration(time.Minute*60)).Result()
 	if err != nil {
 		return fmt.Errorf("failed to append new value with key:%s", meeting.ClassID)
 	}
@@ -52,7 +52,7 @@ func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 // Get implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.MeetingDTO, error) {
 	key := m.temporaryMeeting(classID)
-	log.Printf("Getting key: %s\n", key)
+	log.Printf("Getting key: %s", key)
 
 	result, err := m.client.Get(ctx, key).Result()
 	if err == redis.Nil {
@@ -68,8 +68,8 @@ func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.Meeting
 		return nil, fmt.Errorf("failed to unmarshal meeting for key %s: %w", key, err)
 	}
 
-	log.Printf("Found meeting for key %s\n", key)
-	return meeting.ToDTO(), nil
+	log.Printf("Found meeting for key %s", key)
+	return meeting.DTO(), nil
 }
 
 func NewMeetingRepo(ctx context.Context, redisConfig RedisConfig) (repository.MeetingRepository, error) {
@@ -97,9 +97,9 @@ func NewMeetingRepo(ctx context.Context, redisConfig RedisConfig) (repository.Me
 
 func (m *meetingRepoImpl) Close() {
 	if err := m.client.Close(); err != nil {
-		log.Printf("Failed to close redis client: %v\n", err)
+		log.Printf("Failed to close redis client: %v", err)
 		return
 	}
 
-	log.Println("Successfully closed connection.")
+	log.Println("Redis Successfully closed connection.")
 }

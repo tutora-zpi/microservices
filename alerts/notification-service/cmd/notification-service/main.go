@@ -29,11 +29,13 @@ var mongoConfig mongo.MongoConfig
 
 func setupMongoConfig() {
 	mongoConfig = mongo.MongoConfig{
-		User: os.Getenv(config.MONGO_USER),
-		Pass: os.Getenv(config.MONGO_PASS),
-		Host: os.Getenv(config.MONGO_HOST),
-		Port: os.Getenv(config.MONGO_PORT),
-		Uri:  os.Getenv(config.MONGO_URI),
+		User:       os.Getenv(config.MONGO_USER),
+		Pass:       os.Getenv(config.MONGO_PASS),
+		Host:       os.Getenv(config.MONGO_HOST),
+		Port:       os.Getenv(config.MONGO_PORT),
+		Uri:        os.Getenv(config.MONGO_URI),
+		DbName:     os.Getenv(config.MONGO_DB_NAME),
+		Collection: os.Getenv(config.MONGO_COLLECTION),
 	}
 }
 

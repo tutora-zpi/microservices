@@ -18,7 +18,7 @@ type PlannedMeetingEvent struct {
 }
 
 func (p *PlannedMeetingEvent) Notifications() []models.Notification {
-	notifications := make([]models.Notification, 0, len(p.Members))
+	notifications := make([]models.Notification, len(p.Members))
 
 	for i, receiver := range p.Members {
 		notifications[i] = *p.PlannedMeetingNotification(receiver)

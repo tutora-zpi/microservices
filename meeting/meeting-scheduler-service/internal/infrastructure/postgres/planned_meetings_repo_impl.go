@@ -86,6 +86,8 @@ func (p *plannedMeetingsRepoImpl) CanStartAnotherMeeting(ctx context.Context, me
 func (p *plannedMeetingsRepoImpl) Close() {
 	sqlDB, _ := p.db.DB()
 	sqlDB.Close()
+
+	log.Println("PostgreSQL successfully closed")
 }
 
 // CreatePlannedMeetings implements repository.PlannedMeetingsRepository.

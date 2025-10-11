@@ -21,9 +21,8 @@ func NewMeetingInvitationReadyEventHandler(publisher interfaces.NotificationMana
 }
 
 func (m *MeetingInvitationReadyEventHandler) Handle(ctx context.Context, body []byte) error {
-	log.Println("MeetingStartedEvent received")
-
 	newEvent := meetinginvitation.MeetingStartedEvent{}
+	log.Printf("[%s] received", newEvent.Name())
 
 	if err := json.Unmarshal(body, &newEvent); err != nil {
 		log.Printf("Failed to unmarshal: %s\n", err.Error())

@@ -102,6 +102,7 @@ func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, de
 	}
 	return nil
 }
+
 func (r *RabbitMQBroker) Consume(ctx context.Context) error {
 	if err := r.ensureConnected(r.config.NotificationExchange); err != nil {
 		return err

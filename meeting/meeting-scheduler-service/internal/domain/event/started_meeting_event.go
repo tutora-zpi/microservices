@@ -10,6 +10,7 @@ import (
 )
 
 type MeetingStartedEvent struct {
+	ClassID     string        `json:"classId"`
 	MeetingID   string        `json:"meetingId"`
 	Members     []dto.UserDTO `json:"members"`
 	StartedTime time.Time     `json:"startedTime"` // ISO 8601 format
@@ -22,6 +23,7 @@ func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
 		Members:     dto.Members,
 		StartedTime: time.Now().UTC().Truncate(time.Minute),
 		FinishTime:  dto.FinishDate,
+		ClassID:     dto.ClassID,
 	}
 }
 
@@ -29,11 +31,17 @@ func (m *MeetingStartedEvent) Name() string {
 	return reflect.TypeOf(*m).Name()
 }
 
-func (m *MeetingStartedEvent) NewMeeting(classID, title string) *models.Meeting {
+func (m *MeetingStartedEvent) NewMeeting(dto dto.StartMeetingDTO) *models.Meeting {
+	ids := make([]string, len(dto.Members))
+	for i, user := range dto.Members {
+		ids[i] = user.ID
+	}
+
 	return &models.Meeting{
-		MeetingID: m.MeetingID,
-		Timestamp: m.StartedTime.Unix(),
-		Title:     title,
-		ClassID:   classID,
+		MeetingID:  m.MeetingID,
+		Timestamp:  m.StartedTime.Unix(),
+		ClassID:    m.ClassID,
+		Title:      dto.Title,
+		MembersIDs: ids,
 	}
 }

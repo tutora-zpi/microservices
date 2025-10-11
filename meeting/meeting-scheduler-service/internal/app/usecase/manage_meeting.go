@@ -100,7 +100,7 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	meetingStartedEvent := event.NewMeetingStartedEvent(startedMeetingDto)
 
-	meeting := meetingStartedEvent.NewMeeting(startedMeetingDto.ClassID, startedMeetingDto.Title)
+	meeting := meetingStartedEvent.NewMeeting(startedMeetingDto)
 
 	err := m.meetingRepository.Append(ctx, meeting)
 	if err != nil {

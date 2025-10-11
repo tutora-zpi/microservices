@@ -21,7 +21,6 @@ type MongoConfig struct {
 
 func (m *MongoConfig) URL() string {
 	uri := os.Getenv(config.MONGO_URI)
-
 	if _, err := url.Parse(uri); err != nil || uri == "" {
 		host := os.Getenv(config.MONGO_HOST)
 		port := os.Getenv(config.MONGO_PORT)
