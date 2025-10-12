@@ -1,12 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Service responsible for notification delivery",
-        "title": "Notifications Serivce API",
-        "contact": {},
-        "version": "1.0"
+        "contact": {}
     },
-    "host": "localhost:8888",
     "paths": {
         "/api/v1/notification": {
             "get": {
@@ -105,6 +101,28 @@
                         }
                     }
                 }
+            }
+        },
+        "/api/v1/notification/stream": {
+            "get": {
+                "description": "Server-Sent Events (SSE) stream for sending notifications in real-time.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Stream user notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT token for auth",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
             }
         }
     },

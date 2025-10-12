@@ -124,7 +124,7 @@ func (conn *SSEConnection) SendSSEEvent(eventType string, data []byte) error {
 		log.Printf("Warning: Sending empty data to client %s", conn.ClientID)
 	}
 
-	timestamp := time.Now().Unix()
+	timestamp := time.Now().UTC().Unix()
 
 	message := fmt.Sprintf("id: %d\nevent: %s\ndata: %s\n\n", timestamp, eventType, data)
 

@@ -101,20 +101,9 @@ eventSource.onmessage = (event) => {
 
 Service listens on given types of events. List is down below.
 
-### ClassInvitation Flow
-
-**Note**: if you use **RabbitMQ dashboard** to testing purposes, make sure you paste raw json without comments.
-
-**Events**: [class invitation events](./internal/domain/event/class_invitation/)
-
-`ClassService` publishes an event [ClassInvitationCreatedEvent](./internal/domain/event/class_invitation/created_event.go) then `NotificationService` creates partial entry in database and requests for more data to `UserService` using [UserDetailsRequestedEvent](./internal/domain/event/class_invitation/user_details_requested_event.go). When `UserService` will return data by publishing event called [UserDetailsRespondedEvent](./internal/domain/event/class_invitation/user_details_responded_event.go), `NotificationService` updates fields and creates domain event [ClassInvitationReadyEvent](./internal/domain/event/class_invitation/ready_event.go) and finally pushes notification to infrastructre layer.
 
 
-### MeetingInivtationEvent
 
-**Events**: [meeting invitation event](./internal/domain/event/meeting_invitation/meeting_invitation_event.go)
-
-Receives an event, saves in database and then pushes notification to infrastructre layer.
 
 ## API Documentation
 
@@ -170,4 +159,3 @@ Used to delete user, returns nothing (204).
   "ids": ["68bc910570b5d96a4c46bd54", "68bc910570b5d96a4c46bd59"]
 }
 ```
-

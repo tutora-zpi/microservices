@@ -70,12 +70,8 @@ definitions:
       success:
         type: boolean
     type: object
-host: localhost:8888
 info:
   contact: {}
-  description: Service responsible for notification delivery
-  title: Notifications Serivce API
-  version: "1.0"
 paths:
   /api/v1/notification:
     delete:
@@ -139,6 +135,21 @@ paths:
           schema:
             $ref: '#/definitions/server.Response'
       summary: List with user's notifications
+      tags:
+      - notifications
+  /api/v1/notification/stream:
+    get:
+      description: Server-Sent Events (SSE) stream for sending notifications in real-time.
+      parameters:
+      - description: JWT token for auth
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses: {}
+      summary: Stream user notifications
       tags:
       - notifications
 swagger: "2.0"

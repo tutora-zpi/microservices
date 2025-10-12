@@ -23,9 +23,8 @@ func NewRouter(manager interfaces.NotificationManager, service interfaces.Notifi
 	api.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
-	api.Handle("/stream", middleware.IsAuth(http.HandlerFunc(sseHandler.StreamNotifications))).Methods(http.MethodGet)
-
 	notifcation := api.PathPrefix("/notification").Subrouter()
+	notifcation.Handle("/stream", middleware.IsAuth(http.HandlerFunc(sseHandler.StreamNotifications))).Methods(http.MethodGet)
 	notifcation.Handle("", middleware.IsAuth(http.HandlerFunc(httpHandler.FetchNotifications))).Methods(http.MethodGet)
 	notifcation.Handle("", middleware.IsAuth(http.HandlerFunc(httpHandler.DeleteNotifications))).Methods(http.MethodDelete)
 

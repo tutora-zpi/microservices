@@ -188,8 +188,8 @@ services:
     networks:
       - tutora_net
 
-  meeting_scheduler_service_db:
-    container_name: meeting_scheduler_db
+  meeting_scheduler_service_cache:
+    container_name: meeting_scheduler_cache
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -202,6 +202,23 @@ services:
       retries: 5
     volumes:
       - cache:/data
+    networks:
+      - tutora_net
+
+  meeting_scheduler_service_db:
+    container_name: meeting_scheduler_db
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${SCHEDULER_POSTGRES_DB}
+      POSTGRES_USER: ${SCHEDULER_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${SCHEDULER_POSTGRES_PASSWORD}
+    ports:
+      - "${SCHEDULER_POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SCHEDULER_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - tutora_net
 

@@ -8,7 +8,7 @@ import (
 )
 
 type NotificationManager interface {
-	Subscribe(clientID string) (chan []byte, context.CancelFunc, error)
+	Subscribe(ctx context.Context, clientID string) (chan []byte, error)
 	Unsubscribe(clientID string)
 	Push(dto dto.NotificationDTO) error
 	IsClientConnected(clientID string) bool

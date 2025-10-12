@@ -1,6 +1,9 @@
 package dto
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/go-playground/validator/v10"
 )
 
@@ -18,6 +21,14 @@ type StartMeetingDTO struct {
 	// The title of the class eg. C++ Object oriented: pointers
 	// reqiured: true
 	Title string `json:"title" validate:"required"`
+
+	// Finish Date - date and time when meeting finshes, use toISOString to cast your date
+	// required: true
+	FinishDate time.Time `json:"finishDate" validate:"required" example:"2025-10-10T12:50:05+02:00"`
+}
+
+func (dto *StartMeetingDTO) ConvertTimeToUTC() {
+	dto.FinishDate = dto.FinishDate.UTC().Truncate(time.Minute)
 }
 
 func (dto *StartMeetingDTO) IsValid() error {
@@ -26,6 +37,12 @@ func (dto *StartMeetingDTO) IsValid() error {
 	if err := v.Struct(dto); err != nil {
 		return err
 	}
+
+	if dto.FinishDate.Before(time.Now()) {
+		return fmt.Errorf("finish date must be in the future")
+	}
+
+	dto.ConvertTimeToUTC()
 
 	for _, member := range dto.Members {
 		if err := member.IsValid(); err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 type notificationManagerImpl struct {
-	mu                 sync.RWMutex
+	mutex              sync.RWMutex
 	clients            map[string]chan []byte
 	notificationBuffer *NotificationBuffer
 	bufferingEnabled   bool
@@ -21,37 +21,37 @@ type notificationManagerImpl struct {
 
 func NewManager() interfaces.NotificationManager {
 	manager := &notificationManagerImpl{
-		clients:            make(map[string]chan []byte),
-		connectionTracker:  make(map[string]time.Time),
-		bufferingEnabled:   false,
-		notificationBuffer: nil,
+		clients:           make(map[string]chan []byte),
+		connectionTracker: make(map[string]time.Time),
+		bufferingEnabled:  false,
 	}
-	log.Printf("NotificationManager created - buffering disabled by default")
 	return manager
 }
 
 func (m *notificationManagerImpl) EnableBuffering(maxSize int, ttl time.Duration) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	m.notificationBuffer = NewNotificationBuffer(maxSize, ttl)
 	m.bufferingEnabled = true
 	log.Printf("Buffering ENABLED: maxSize=%d, ttl=%v", maxSize, ttl)
 }
 
-func (m *notificationManagerImpl) Subscribe(clientID string) (chan []byte, context.CancelFunc, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *notificationManagerImpl) Subscribe(ctx context.Context, clientID string) (chan []byte, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	lastConnection := m.connectionTracker[clientID]
 	m.connectionTracker[clientID] = time.Now()
 
 	oldChan, exists := m.clients[clientID]
-
 	clientChan := make(chan []byte, 200)
-	_, cancel := context.WithCancel(context.Background())
-
 	m.clients[clientID] = clientChan
+
+	go func() {
+		<-ctx.Done()
+		m.Unsubscribe(clientID)
+	}()
 
 	log.Printf("Client %s subscribed (total clients: %d)", clientID, len(m.clients))
 
@@ -61,11 +61,67 @@ func (m *notificationManagerImpl) Subscribe(clientID string) (chan []byte, conte
 	}
 
 	if !lastConnection.IsZero() && time.Since(lastConnection) < 2*time.Minute {
-		log.Printf("Quick reconnect detected for client %s (last seen: %v ago)",
-			clientID, time.Since(lastConnection))
+		log.Printf("Quick reconnect detected for client %s (last seen: %v ago)", clientID, time.Since(lastConnection))
 	}
 
-	return clientChan, cancel, nil
+	return clientChan, nil
+}
+
+func (m *notificationManagerImpl) Push(dto dto.NotificationDTO) error {
+	m.mutex.RLock()
+	clientChan, exists := m.clients[dto.Receiver.ID]
+	clientCount := len(m.clients)
+	m.mutex.RUnlock()
+
+	data := dto.JSON()
+	log.Printf("Client %s, exists: %t, total clients: %d, buffering: %t",
+		dto.Receiver.ID, exists, clientCount, m.bufferingEnabled)
+
+	if !m.isClientActivelyConnected(dto.Receiver.ID) {
+		m.bufferIfEnabled(dto)
+		return nil
+	}
+
+	select {
+	case clientChan <- data:
+		log.Printf("Notification sent to client %s", dto.Receiver.ID)
+		return nil
+	default:
+		m.bufferIfEnabled(dto)
+		log.Printf("Channel full for client %s", dto.Receiver.ID)
+		return fmt.Errorf("client %s channel full", dto.Receiver.ID)
+	}
+}
+
+func (m *notificationManagerImpl) bufferIfEnabled(dto dto.NotificationDTO) {
+	if m.bufferingEnabled && m.notificationBuffer != nil {
+		m.notificationBuffer.AddNotification(dto)
+		log.Println("Notification buffered")
+	} else {
+		log.Println("Buffering disabled")
+	}
+}
+
+func (m *notificationManagerImpl) IsClientConnected(clientID string) bool {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return m.isClientActivelyConnected(clientID)
+}
+
+func (m *notificationManagerImpl) isClientActivelyConnected(clientID string) bool {
+	ch, exists := m.clients[clientID]
+	return exists && ch != nil
+}
+
+func (m *notificationManagerImpl) Unsubscribe(clientID string) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if ch, exists := m.clients[clientID]; exists {
+		close(ch)
+		delete(m.clients, clientID)
+		log.Printf("Client %s unsubscribed (total clients: %d)", clientID, len(m.clients))
+	}
 }
 
 func (m *notificationManagerImpl) GetBufferedNotifications(clientID string) []*buffer.BufferedNotification {
@@ -75,66 +131,7 @@ func (m *notificationManagerImpl) GetBufferedNotifications(clientID string) []*b
 	return nil
 }
 
-func (m *notificationManagerImpl) Push(dto dto.NotificationDTO) error {
-	m.mu.RLock()
-	clientChan, exists := m.clients[dto.Receiver.ID]
-	clientCount := len(m.clients)
-	m.mu.RUnlock()
-
-	data := dto.JSON()
-	log.Printf("Client %s, exists: %t, total clients: %d, buffering: %t",
-		dto.Receiver.ID, exists, clientCount, m.bufferingEnabled)
-
-	isActuallyConnected := exists && clientChan != nil
-
-	if !isActuallyConnected {
-		if m.bufferingEnabled && m.notificationBuffer != nil {
-			m.notificationBuffer.AddNotification(dto)
-			log.Println("Notification buffered")
-		} else {
-			log.Println("Buffering disabled")
-		}
-		return nil
-	}
-
-	select {
-	case clientChan <- data:
-		log.Printf("Notification sent to client %s", dto.Receiver.ID)
-		return nil
-
-	default:
-		if m.bufferingEnabled && m.notificationBuffer != nil {
-			m.notificationBuffer.AddNotification(dto)
-			log.Printf("Channel full for client %s - notification buffered\n", dto.Receiver.ID)
-		} else {
-			log.Printf("Channel full for client %s - buffering disabled\n", dto.Receiver.ID)
-		}
-		return fmt.Errorf("client %s channel full", dto.Receiver.ID)
-	}
-}
-
-func (m *notificationManagerImpl) IsClientConnected(clientID string) bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	clientChan, exists := m.clients[clientID]
-	return exists && clientChan != nil
-}
-
-func (m *notificationManagerImpl) Unsubscribe(clientID string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if clientChan, exists := m.clients[clientID]; exists {
-		close(clientChan)
-		delete(m.clients, clientID)
-		log.Printf("Client %s unsubscribed (total clients: %d)", clientID, len(m.clients))
-	}
-}
-
 func (m *notificationManagerImpl) FlushBufferedNotification(clientID string, clientChan chan []byte) int {
-	log.Println("Flushing buffered notifications")
-
 	if !m.bufferingEnabled || m.notificationBuffer == nil {
 		return 0
 	}
@@ -154,12 +151,12 @@ func (m *notificationManagerImpl) FlushBufferedNotification(clientID string, cli
 	}
 
 	if sentCount > 0 {
-		log.Printf("Flushed %d buffered notificationss to client %s", sentCount, clientID)
+		log.Printf("Flushed %d buffered notifications to client %s", sentCount, clientID)
 	}
 	return sentCount
 }
 
-func (m *notificationManagerImpl) AcknowledgeNotification(clientID string, notificationID string) {
+func (m *notificationManagerImpl) AcknowledgeNotification(clientID string, notificationID int64) {
 	if m.bufferingEnabled && m.notificationBuffer != nil {
 		m.notificationBuffer.AcknowledgeNotification(clientID, notificationID)
 	}
