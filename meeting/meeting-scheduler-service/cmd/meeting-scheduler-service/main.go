@@ -60,6 +60,21 @@ func setupRabbitMQConfig() {
 	}
 }
 
+func setupRedisConfig() {
+    db := 0
+    if v := os.Getenv(config.REDIS_DB); v != "" {
+        if parsed, err := strconv.Atoi(v); err == nil {
+            db = parsed
+        }
+    }
+
+    redisConfig = redis.RedisConfig{
+        Addr:     os.Getenv(config.REDIS_ADDR),
+        Password: os.Getenv(config.REDIS_PASSWORD),
+        DB:       db,
+    }
+}
+
 func init() {
 	env := os.Getenv(config.APP_ENV)
 
@@ -71,6 +86,7 @@ func init() {
 
 	setupPostgresConfig()
 	setupRabbitMQConfig()
+	setupRedisConfig()
 
 	security.FetchSignKey()
 }
