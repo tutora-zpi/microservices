@@ -16,6 +16,16 @@ type hub struct {
 	meetings      sync.Map // map[meetingid]map][userid]client -> room id -> set
 }
 
+// RemoveMeetingMemeber implements interfaces.HubManager.
+func (h *hub) RemoveMeetingMemeber(meetingID string, client interfaces.Client) {
+	meetingInterface, _ := h.meetings.Load(meetingID)
+	meeting := meetingInterface.(*Meeting)
+
+	meeting.mu.Lock()
+	defer meeting.mu.Unlock()
+	delete(meeting.members, client.ID())
+}
+
 // RemoveGlobalMember implements interfaces.HubManager.
 func (h *hub) RemoveGlobalMember(client interfaces.Client) {
 	log.Printf("Removing new user: %s", client.ID())
@@ -46,7 +56,7 @@ func (h *hub) EmitGlobal(messageType int, payload []byte) {
 	})
 }
 
-func (h *hub) Emit(meetingID string, messageType int, payload []byte) {
+func (h *hub) Emit(meetingID string, messageType int, payload []byte, pred func(id string) bool) {
 	value, ok := h.meetings.Load(meetingID)
 	if !ok {
 		return
@@ -58,8 +68,10 @@ func (h *hub) Emit(meetingID string, messageType int, payload []byte) {
 	defer meeting.mu.RUnlock()
 
 	for _, client := range meeting.members {
-		if err := client.GetConnection().WriteMessage(messageType, payload); err != nil {
-			log.Printf("Error sending to %s: %v", client.ID(), err)
+		if pred(client.ID()) {
+			if err := client.GetConnection().WriteMessage(messageType, payload); err != nil {
+				log.Printf("Error sending to %s: %v", client.ID(), err)
+			}
 		}
 	}
 }

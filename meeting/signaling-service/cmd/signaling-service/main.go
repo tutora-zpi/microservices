@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	generalHandler "signaling-service/internal/app/socket_event_handler/general"
+	generalDomain "signaling-service/internal/domain/ws_event/general"
 	"signaling-service/internal/infrastructure/bus"
 	"signaling-service/internal/infrastructure/cache"
 	"signaling-service/internal/infrastructure/rest"
@@ -28,6 +30,10 @@ func main() {
 	hub := ws.NewHub()
 
 	dispacher := bus.NewDispatcher()
+
+	dispacher.Register(&generalDomain.UserJoinedEvent{}, generalHandler.NewUserJoinedHandler(hub))
+	dispacher.Register(&generalDomain.UserLeftEvent{}, generalHandler.NewUserLeftHandler(hub))
+	dispacher.Register(&generalDomain.HeartbeatEvent{}, generalHandler.NewHeartbeatHandler(hub))
 
 	tokenService := cache.NewTokenService(nil)
 

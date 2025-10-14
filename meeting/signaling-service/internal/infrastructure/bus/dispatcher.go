@@ -24,11 +24,12 @@ func NewDispatcher() Dispachable {
 }
 
 func (d *Dispatcher) Register(evt event.Event, handler interfaces.EventHandler) {
+	log.Printf("Registering %s", evt.Name())
 	d.registry.Register(evt.Name(), handler)
 }
 
 func (d *Dispatcher) HandleEvent(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error {
-	log.Printf("Handling event from '%s'\n", eventType)
+	log.Printf("Handling event from '%s'", eventType)
 
 	handlers := d.registry.GetHandlers(eventType)
 	if len(handlers) == 0 {
@@ -38,6 +39,7 @@ func (d *Dispatcher) HandleEvent(ctx context.Context, eventType string, msg []by
 
 	for _, h := range handlers {
 		if err := h.Handle(ctx, msg, client); err != nil {
+			log.Println(string(msg))
 			log.Printf("Error handling event %s: %v", eventType, err)
 		}
 	}

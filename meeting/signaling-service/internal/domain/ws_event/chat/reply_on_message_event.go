@@ -14,10 +14,6 @@ func (r *ReplyOnMessageEvent) IsValid() error {
 	return validate.Struct(r)
 }
 
-func (r *ReplyOnMessageEvent) Type() string {
+func (r *ReplyOnMessageEvent) Name() string {
 	return "reply"
-}
-
-func (u *ReplyOnMessageEvent) Name() string {
-	return u.Type()
 }

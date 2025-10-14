@@ -14,10 +14,6 @@ func (s *SendMessageEvent) IsValid() error {
 	return validate.Struct(s)
 }
 
-func (s *SendMessageEvent) Type() string {
+func (s *SendMessageEvent) Name() string {
 	return "send-message"
-}
-
-func (u *SendMessageEvent) Name() string {
-	return u.Type()
 }

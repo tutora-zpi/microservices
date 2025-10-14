@@ -19,10 +19,6 @@ func (r *ReactOnMessageEvent) IsValid() error {
 	return validate.Struct(r)
 }
 
-func (r *ReactOnMessageEvent) Type() string {
+func (r *ReactOnMessageEvent) Name() string {
 	return "react"
-}
-
-func (u *ReactOnMessageEvent) Name() string {
-	return u.Type()
 }

@@ -10,27 +10,29 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type userJoinedHandler struct {
+type userLeftHandler struct {
 	hubManager interfaces.HubManager
 }
 
 // Handle implements interfaces.EventHandler.
-func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
-	var dest general.UserJoinedEvent
+func (u *userLeftHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
+	var dest general.UserLeftEvent
 
 	if err := json.Unmarshal(body, &dest); err != nil {
 		return fmt.Errorf("failed to decode: %v", err)
 	}
 
-	u.hubManager.AddMeetingMember(dest.RoomID, client)
+	u.hubManager.RemoveMeetingMemeber(dest.RoomID, client)
 
-	welcomeMsg := fmt.Appendf(nil, "%s has joined to room: %s", client.ID(), dest.RoomID)
+	welcomeMsg := fmt.Appendf(nil, "%s has left room: %s", client.ID(), dest.RoomID)
 
 	u.hubManager.Emit(dest.RoomID, websocket.TextMessage, welcomeMsg, func(id string) bool { return true })
+
+	client.GetConnection().Close()
 
 	return nil
 }
 
-func NewUserJoinedHandler(hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &userJoinedHandler{hubManager: hubManager}
+func NewUserLeftHandler(hubManager interfaces.HubManager) interfaces.EventHandler {
+	return &userLeftHandler{hubManager: hubManager}
 }

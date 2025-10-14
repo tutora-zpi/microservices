@@ -76,6 +76,8 @@ func (c *clientImpl) Listen(ctx context.Context, handler func(ctx context.Contex
 				return
 			}
 
+			log.Println(string(msg))
+
 			switch messageType {
 			case websocket.TextMessage:
 				wrapper, err := wsevent.DecodeSocketEventWrapper(msg)

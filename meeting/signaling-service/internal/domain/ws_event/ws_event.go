@@ -15,12 +15,12 @@ type SocketEvent interface {
 }
 
 type SocketEventWrapper struct {
-	// socket events name
 	Type string `json:"type"`
 
-	Payload []byte `json:"data"`
+	// socket events name
+	Name string `json:"name"`
 
-	Metadata map[string]any `json:"meta,omitempty"`
+	Payload []byte `json:"data"`
 }
 
 func DecodeSocketEventWrapper(payload []byte) (*SocketEventWrapper, error) {

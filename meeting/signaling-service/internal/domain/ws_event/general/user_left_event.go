@@ -11,10 +11,6 @@ func (u *UserLeftEvent) IsValid() error {
 	return validate.Struct(u)
 }
 
-func (u *UserLeftEvent) Type() string {
-	return "user-left"
-}
-
 func (u *UserLeftEvent) Name() string {
-	return u.Type()
+	return "user-left"
 }
