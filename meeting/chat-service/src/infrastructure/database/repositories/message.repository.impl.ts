@@ -138,16 +138,28 @@ export class MessageRepositoryImpl implements IMessageRepository {
   private async populateAndMap(messageID: string): Promise<MessageDTO> {
     const message = await this.messageModel
       .findById(messageID)
-      .populate('reactions.user', '_id avatarURL firstName lastName')
+      .populate({
+      path: 'reactions',
+      populate: {
+        path: 'user',
+        select: '_id avatarURL firstName lastName',
+      },
+    })
       .populate({
         path: 'answers',
         options: { sort: { sentAt: 1 } },
         populate: [
-          { path: 'sender', select: '_id avatarURL firstName lastName' },
-          { path: 'reactions.user', select: '_id avatarURL firstName lastName' },
-        ],
-      })
-      .exec();
+        { path: 'sender', select: '_id avatarURL firstName lastName' },
+        { 
+          path: 'reactions',
+          populate: {
+            path: 'user',
+            select: '_id avatarURL firstName lastName',
+          },
+        },
+      ],
+    })
+    .exec();
 
     if (!message) throw new UnknownException(`Message ${messageID} not found`);
 
