@@ -26,7 +26,7 @@ type connImpl struct {
 
 // WriteMessage implements models.Connection.
 func (c *connImpl) WriteMessage(messageType int, payload []byte) error {
-	return c.WriteMessage(messageType, payload)
+	return c.conn.WriteMessage(messageType, payload)
 }
 
 // Close implements models.Connection.
@@ -59,7 +59,7 @@ func (c *clientImpl) ID() string {
 
 // Listen implements Client.
 func (c *clientImpl) Listen(ctx context.Context, handler func(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	c.cancel = cancel
 	defer cancel()
 	defer c.GetConnection().Close()
@@ -76,10 +76,9 @@ func (c *clientImpl) Listen(ctx context.Context, handler func(ctx context.Contex
 				return
 			}
 
-			log.Println(string(msg))
-
 			switch messageType {
 			case websocket.TextMessage:
+
 				wrapper, err := wsevent.DecodeSocketEventWrapper(msg)
 
 				if err != nil {
@@ -87,13 +86,15 @@ func (c *clientImpl) Listen(ctx context.Context, handler func(ctx context.Contex
 					continue
 				}
 
-				err = handler(ctx, wrapper.Type, wrapper.Payload, c)
+				err = handler(ctx, wrapper.Name, wrapper.Payload, c)
 				if err != nil {
 					log.Println(err)
 				}
 
 			case websocket.CloseMessage:
 				log.Printf("Client %s closed connection", c.ID())
+				return
+			case websocket.PingMessage:
 				return
 			default:
 				log.Println("Unsupported messageType")

@@ -6,15 +6,15 @@ import (
 	"log"
 	"net/http"
 	"signaling-service/internal/app/interfaces"
-	"signaling-service/internal/infrastructure/security"
+	security "signaling-service/internal/infrastructure/security/jwt"
 	"strings"
 )
 
 const (
 	auth   string = "Authorization"
 	bearer string = "Bearer "
-	id     string = "userID"
-	token  string = "token"
+	ID     string = "userID"
+	Token  string = "token"
 )
 
 func (h *handlers) IsAuth(next http.Handler) http.Handler {
@@ -32,12 +32,12 @@ func (h *handlers) IsAuth(next http.Handler) http.Handler {
 
 		ctx := r.Context()
 
-		if err := h.tokenService.SaveToken(ctx, tokenStr, ttl); err != nil {
+		if err := h.tokenRepo.SaveToken(ctx, tokenStr, ttl); err != nil {
 			log.Printf("Failed to save token: %v", err)
 		}
 
-		ctx = context.WithValue(ctx, id, userID)
-		ctx = context.WithValue(ctx, token, tokenStr)
+		ctx = context.WithValue(ctx, ID, userID)
+		ctx = context.WithValue(ctx, Token, tokenStr)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
@@ -49,9 +49,8 @@ func (h *handlers) WithAuth(
 ) func(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error {
 
 	return func(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error {
-		tokenValue := ctx.Value(token)
-		token, ok := tokenValue.(string)
-		if !ok || !h.tokenService.DoesTokenExists(ctx, token) {
+		token, ok := ctx.Value(Token).(string)
+		if !ok || !h.tokenRepo.DoesTokenExists(ctx, token) {
 			client.GetConnection().Close()
 			h.hub.RemoveGlobalMember(client)
 			return fmt.Errorf("unauthorized")

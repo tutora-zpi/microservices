@@ -3,11 +3,9 @@ package general
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"signaling-service/internal/app/interfaces"
+	wsevent "signaling-service/internal/domain/ws_event"
 	"signaling-service/internal/domain/ws_event/general"
-
-	"github.com/gorilla/websocket"
 )
 
 type userLeftHandler struct {
@@ -16,19 +14,25 @@ type userLeftHandler struct {
 
 // Handle implements interfaces.EventHandler.
 func (u *userLeftHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
-	var dest general.UserLeftEvent
+	var event general.UserLeftEvent
 
-	if err := json.Unmarshal(body, &dest); err != nil {
-		return fmt.Errorf("failed to decode: %v", err)
+	if err := json.Unmarshal(body, &event); err != nil {
+		return err
 	}
 
-	u.hubManager.RemoveMeetingMemeber(dest.RoomID, client)
+	ids := u.hubManager.RemoveRoomMember(event.RoomID, client)
 
-	welcomeMsg := fmt.Appendf(nil, "%s has left room: %s", client.ID(), dest.RoomID)
+	if len(ids) == 0 {
+		return nil
+	}
 
-	u.hubManager.Emit(dest.RoomID, websocket.TextMessage, welcomeMsg, func(id string) bool { return true })
+	roomUsers := general.RoomUsersEvent{
+		Users: ids,
+	}
 
-	client.GetConnection().Close()
+	bytes, _ := wsevent.EncodeSocketEventWrapper(&roomUsers, roomUsers.Name())
+
+	u.hubManager.Emit(event.RoomID, bytes, func(id string) bool { return true })
 
 	return nil
 }

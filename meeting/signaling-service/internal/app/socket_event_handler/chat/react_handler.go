@@ -4,26 +4,35 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"signaling-service/internal/app/interfaces"
+	"signaling-service/internal/config"
+	"signaling-service/internal/domain/broker"
 	"signaling-service/internal/domain/ws_event/chat"
+	"signaling-service/internal/infrastructure/bus"
 )
 
 type reactHandler struct {
-	hubManager interfaces.HubManager
+	hubManager  interfaces.HubManager
+	eventBuffer bus.EventBuffer
+	exchange    string
 }
 
 // Handle implements interfaces.EventHandler.
-func (u *reactHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
-	var dest chat.ReactOnMessageEvent
-	if err := json.Unmarshal(body, &dest); err != nil {
-		return fmt.Errorf("failed to decode %s payload", dest.Name())
+func (r *reactHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
+	var event chat.ReactOnMessageEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		return fmt.Errorf("failed to decode %s payload", event.Name())
 	}
 
-	// u.hubManager.Emit(dest.ChatID, websocket.TextMessage, body, func(id string) bool { return id != dest.UserTyperID })
+	go r.hubManager.Emit(event.ChatID, body, func(id string) bool { return true })
+
+	r.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, r.exchange))
 
 	return nil
 }
 
-func NewReactHandler(hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &reactHandler{hubManager: hubManager}
+func NewReactHandler(hubManager interfaces.HubManager, eventBuffer bus.EventBuffer) interfaces.EventHandler {
+	ex := os.Getenv(config.CHAT_EXCHANGE)
+	return &reactHandler{hubManager: hubManager, eventBuffer: eventBuffer, exchange: ex}
 }

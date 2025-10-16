@@ -1,4 +1,4 @@
-package redis
+package repository
 
 import (
 	"context"
@@ -69,25 +69,11 @@ func (s *statusRepoImpl) Save(ctx context.Context, userID string, status enum.Us
 	return nil
 }
 
-func NewStatusRepository(ctx context.Context, redisConfig RedisConfig) (repository.StatusRepository, error) {
-	opts := &redis.Options{
-		Addr:     redisConfig.Addr,
-		Password: redisConfig.Password,
-		DB:       redisConfig.DB,
-	}
-
-	client := redis.NewClient(opts)
-
-	pong, err := client.Ping(ctx).Result()
-	if err != nil || pong != "PONG" {
-		return nil, fmt.Errorf("failed to ping Redis: %w", err)
-	}
-	log.Println("Successfully connected to Redis:", pong)
-
+func NewStatusRepository(client *redis.Client) repository.StatusRepository {
 	return &statusRepoImpl{
 		client: client,
 		temporaryStatus: func(suffix string) string {
 			return fmt.Sprintf("status:%s", suffix)
 		},
-	}, nil
+	}
 }

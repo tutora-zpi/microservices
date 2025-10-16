@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"signaling-service/internal/app/interfaces"
 	"signaling-service/internal/domain/ws_event/chat"
-
-	"github.com/gorilla/websocket"
 )
 
 type userTypingHandler struct {
@@ -21,7 +19,7 @@ func (u *userTypingHandler) Handle(ctx context.Context, body []byte, client inte
 		return fmt.Errorf("failed to decode %s payload", dest.Name())
 	}
 
-	u.hubManager.Emit(dest.ChatID, websocket.TextMessage, body, func(id string) bool { return id != dest.UserTyperID })
+	u.hubManager.Emit(dest.ChatID, body, func(id string) bool { return id != dest.UserTyperID })
 
 	return nil
 }

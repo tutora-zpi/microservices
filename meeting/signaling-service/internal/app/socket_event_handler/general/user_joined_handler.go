@@ -4,33 +4,47 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"signaling-service/internal/app/interfaces"
+	wsevent "signaling-service/internal/domain/ws_event"
 	"signaling-service/internal/domain/ws_event/general"
-
-	"github.com/gorilla/websocket"
 )
 
 type userJoinedHandler struct {
-	hubManager interfaces.HubManager
+	hubManager   interfaces.HubManager
+	cacheService interfaces.CacheEventService
 }
 
 // Handle implements interfaces.EventHandler.
 func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
-	var dest general.UserJoinedEvent
-
-	if err := json.Unmarshal(body, &dest); err != nil {
-		return fmt.Errorf("failed to decode: %v", err)
+	var event general.UserJoinedEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		return fmt.Errorf("failed to decode %s payload", event.Name())
 	}
 
-	u.hubManager.AddMeetingMember(dest.RoomID, client)
+	ids := u.hubManager.AddRoomMember(event.RoomID, client)
 
-	welcomeMsg := fmt.Appendf(nil, "%s has joined to room: %s", client.ID(), dest.RoomID)
+	roomUsers := general.RoomUsersEvent{Users: ids}
+	bytes, _ := wsevent.EncodeSocketEventWrapper(&roomUsers, roomUsers.Name())
 
-	u.hubManager.Emit(dest.RoomID, websocket.TextMessage, welcomeMsg, func(id string) bool { return true })
+	go u.hubManager.Emit(event.RoomID, bytes, func(id string) bool { return true })
+
+	go func() {
+		payloads, eventsErr := u.cacheService.GetLastEventsData(ctx, event.RoomID)
+		snapshot, snapErr := u.cacheService.GetSnapshot(ctx, event.RoomID)
+
+		if snapErr != nil || eventsErr != nil {
+			log.Printf("Failed to flush data: %v, %v", snapErr, eventsErr)
+			return
+		}
+
+		payloads = append(payloads, snapshot)
+		u.hubManager.EmitToClientInRoom(event.RoomID, client.ID(), payloads)
+	}()
 
 	return nil
 }
 
-func NewUserJoinedHandler(hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &userJoinedHandler{hubManager: hubManager}
+func NewUserJoinedHandler(hubManager interfaces.HubManager, cacheService interfaces.CacheEventService) interfaces.EventHandler {
+	return &userJoinedHandler{hubManager: hubManager, cacheService: cacheService}
 }

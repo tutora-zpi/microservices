@@ -14,7 +14,7 @@ type Status struct {
 func DecodeStatus(body []byte) (*Status, error) {
 	var status Status
 	if err := json.Unmarshal(body, &status); err != nil {
-		return nil, fmt.Errorf("failed to decode body")
+		return nil, err
 	}
 
 	return &status, nil

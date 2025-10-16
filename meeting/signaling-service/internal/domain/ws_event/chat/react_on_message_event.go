@@ -3,12 +3,12 @@ package chat
 import "github.com/go-playground/validator/v10"
 
 type ReactOnMessageEvent struct {
-	MessageID string `json:"messageID" validate:"required,uuid"`
+	MessageID string `json:"messageId" validate:"required,uuid"`
 
-	UserID string `json:"userID" validate:"required,uuid"`
+	UserID string `json:"userId" validate:"required,uuid"`
 
 	// Chat ID is create basing on meeting id
-	ChatID string `json:"chatID" validate:"required,uuid"`
+	ChatID string `json:"chatId" validate:"required,uuid"`
 
 	Emoji string `json:"emoji" validate:"required,emoji"`
 }

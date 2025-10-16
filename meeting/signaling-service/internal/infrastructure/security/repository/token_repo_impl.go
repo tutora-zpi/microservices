@@ -1,4 +1,4 @@
-package cache
+package security
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type TokenService interface {
+type TokenRepository interface {
 	DoesTokenExists(ctx context.Context, token string) bool
 	SaveToken(ctx context.Context, token string, ttl time.Duration) error
 }
 
-type tokenServiceImpl struct {
+type tokenRepoImpl struct {
 	client   *redis.Client
 	tokenKey func(suffix string) string
 }
 
 // SaveToken implements TokenService.
-func (t *tokenServiceImpl) SaveToken(ctx context.Context, token string, ttl time.Duration) error {
+func (t *tokenRepoImpl) SaveToken(ctx context.Context, token string, ttl time.Duration) error {
 	key := t.tokenKey(token)
 	value := fmt.Sprint(ttl)
 
@@ -39,7 +39,7 @@ func (t *tokenServiceImpl) SaveToken(ctx context.Context, token string, ttl time
 }
 
 // DoesTokenExists implements TokenService.
-func (t *tokenServiceImpl) DoesTokenExists(ctx context.Context, token string) bool {
+func (t *tokenRepoImpl) DoesTokenExists(ctx context.Context, token string) bool {
 	key := t.tokenKey(token)
 
 	existsNumber, err := t.client.Exists(ctx, key).Result()
@@ -52,8 +52,8 @@ func (t *tokenServiceImpl) DoesTokenExists(ctx context.Context, token string) bo
 	return existsNumber == 1
 }
 
-func NewTokenService(client *redis.Client) TokenService {
-	return &tokenServiceImpl{
+func NewTokenService(client *redis.Client) TokenRepository {
+	return &tokenRepoImpl{
 		client: client,
 		tokenKey: func(suffix string) string {
 			return fmt.Sprintf("token:%s", suffix)
