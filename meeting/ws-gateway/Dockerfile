@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/ws-gateway ./cmd/ws_gateway
+RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/ws-gateway ./cmd/ws-gateway
 
 FROM alpine:latest AS runner
 
