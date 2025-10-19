@@ -11,5 +11,4 @@ type MeetingRepository interface {
 	Get(ctx context.Context, classID string) (*dto.MeetingDTO, error)
 	Delete(ctx context.Context, classID string) error
 	Exists(ctx context.Context, classID string) bool
-	Close()
 }

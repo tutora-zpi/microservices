@@ -20,7 +20,7 @@ func (s *meetingStartedHandler) Handle(ctx context.Context, body []byte) error {
 		return fmt.Errorf("failed to decode: %w", err)
 	}
 
-	_, err := s.repo.Save(ctx, event.Members, event.MeetingID)
+	_, err := s.repo.Save(ctx, event.GetMemeberIDs(), event.MeetingID)
 
 	return err
 }

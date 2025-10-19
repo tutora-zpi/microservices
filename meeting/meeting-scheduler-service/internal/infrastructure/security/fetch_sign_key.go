@@ -13,7 +13,7 @@ func FetchSignKey() {
 	var err error
 	jwksURL := os.Getenv(config.JWKS_URL)
 	if jwksURL == "" {
-		log.Panicln("jwks url is empty")
+		log.Fatalln("jwks url is empty")
 		return
 	}
 

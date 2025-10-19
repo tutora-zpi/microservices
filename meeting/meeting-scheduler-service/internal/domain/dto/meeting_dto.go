@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 // MeetingDTO represents meeting details returned in responses.
 // swagger:model MeetingDTO

@@ -12,5 +12,4 @@ type PlannedMeetingsRepository interface {
 	CreatePlannedMeetings(ctx context.Context, dto dto.PlanMeetingDTO) (*dto.PlannedMeetingDTO, error)
 	GetPlannedMeetings(ctx context.Context, dto dto.FetchPlannedMeetingsDTO) ([]dto.PlannedMeetingDTO, error)
 	CancelMeeting(ctx context.Context, id int) error
-	Close()
 }

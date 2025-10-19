@@ -250,8 +250,28 @@ services:
     depends_on:
       notification_service_db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - tutora_net
+
+  ws_gateway:
+    build:
+      context: ./meeting/ws-gateway/
+      dockerfile: Dockerfile
+    container_name: ws_gateway
+    env_file:
+      - ./meeting/ws-gateway/.env
+    ports:
+      - "8010:8010"
+    depends_on:
+      meeting_scheduler_cache:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tutora_net
+
 
 volumes:
   pgdata:

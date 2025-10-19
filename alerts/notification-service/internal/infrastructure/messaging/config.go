@@ -2,7 +2,9 @@ package messaging
 
 import (
 	"fmt"
-	"net/url"
+	"log"
+	"notification-serivce/internal/config"
+	"os"
 )
 
 type RabbitConfig struct {
@@ -19,15 +21,30 @@ type RabbitConfig struct {
 	NotificationExchange string
 }
 
-func (r *RabbitConfig) RabbitMQURL() string {
-	_, err := url.Parse(r.URL)
-	if err == nil && r.URL != "" {
-		return r.URL
+func NewRabbitMQConfig() *RabbitConfig {
+	user := os.Getenv(config.RABBITMQ_DEFAULT_USER)
+	pass := os.Getenv(config.RABBITMQ_DEFAULT_PASS)
+	host := os.Getenv(config.RABBITMQ_HOST)
+	port := os.Getenv(config.RABBITMQ_PORT)
+	url := os.Getenv(config.RABBITMQ_URL)
+	exchange := os.Getenv(config.NOTIFICATION_EXCHANGE)
+
+	if url == "" {
+		if user == "" || pass == "" || host == "" || port == "" {
+			return nil
+		}
+		url = fmt.Sprintf("amqp://%s:%s@%s:%s", user, pass, host, port)
 	}
 
-	if r.User == "" || r.Pass == "" || r.Host == "" || r.Port == "" {
-		return ""
-	}
+	log.Println(url)
 
-	return fmt.Sprintf("amqp://%s:%s@%s:%s", r.User, r.Pass, r.Host, r.Port)
+	return &RabbitConfig{
+		User:                 user,
+		Pass:                 pass,
+		Host:                 host,
+		Port:                 port,
+		URL:                  url,
+		Retries:              3,
+		NotificationExchange: exchange,
+	}
 }

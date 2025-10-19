@@ -25,6 +25,7 @@ import (
 	myredis "ws-gateway/internal/infrastructure/redis"
 	"ws-gateway/internal/infrastructure/rest"
 	"ws-gateway/internal/infrastructure/rest/v1/handlers"
+	security "ws-gateway/internal/infrastructure/security/jwt"
 	securityRepo "ws-gateway/internal/infrastructure/security/repository"
 	"ws-gateway/internal/infrastructure/server"
 	"ws-gateway/internal/infrastructure/ws"
@@ -38,12 +39,10 @@ func init() {
 	env := os.Getenv(config.APP_ENV)
 
 	if env == "" || env == "localhost" || env == "127.0.0.1" {
-		if err := godotenv.Load(".env.local"); err != nil {
-			log.Fatalf(".env* file not found. Please check path or provide one.")
-		}
+		_ = godotenv.Load(".env.local")
 	}
 
-	// securityJWT.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
@@ -51,7 +50,7 @@ func main() {
 	var broker interfaces.Broker
 	var redisClient *redis.Client
 	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig()
-	var redisConfig myredis.RedisConfig = *myredis.NewRedisConfig()
+	var redisConfig myredis.RedisConfig = *myredis.NewRedisConfig(time.Second * 5)
 	var errors chan error = make(chan error, 2)
 	dispacher := bus.NewDispatcher()
 
@@ -66,7 +65,7 @@ func main() {
 
 	wg.Go(func() {
 		var err error
-		redisClient, err = myredis.NewRedis(initCtx, redisConfig, time.Second*5)
+		redisClient, err = myredis.NewRedis(initCtx, redisConfig)
 		if err != nil {
 			errors <- err
 		}

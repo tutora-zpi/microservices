@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type ConnectionConfig struct {
+type NotificationStreamConnectionConfig struct {
 	ClientID          string
 	Writer            http.ResponseWriter
 	Flusher           http.Flusher

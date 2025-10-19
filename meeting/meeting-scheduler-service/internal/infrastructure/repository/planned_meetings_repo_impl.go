@@ -1,4 +1,4 @@
-package postgres
+package repository
 
 import (
 	"context"
@@ -9,9 +9,7 @@ import (
 	"meeting-scheduler-service/internal/domain/repository"
 	"time"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type plannedMeetingsRepoImpl struct {
@@ -82,14 +80,6 @@ func (p *plannedMeetingsRepoImpl) CanStartAnotherMeeting(ctx context.Context, me
 	return err != nil
 }
 
-// Close implements repository.PlannedMeetingsRepository.
-func (p *plannedMeetingsRepoImpl) Close() {
-	sqlDB, _ := p.db.DB()
-	sqlDB.Close()
-
-	log.Println("PostgreSQL successfully closed")
-}
-
 // CreatePlannedMeetings implements repository.PlannedMeetingsRepository.
 func (p *plannedMeetingsRepoImpl) CreatePlannedMeetings(ctx context.Context, meeting dto.PlanMeetingDTO) (*dto.PlannedMeetingDTO, error) {
 	toInsert, err := models.NewPlannedMeeting(meeting)
@@ -154,18 +144,6 @@ func (p *plannedMeetingsRepoImpl) ProcessPlannedMeetings(
 	return results, tx.Commit().Error
 }
 
-func NewMeetingsRepository(postgresConfig PostgresConfig) (repository.PlannedMeetingsRepository, error) {
-	gormConfig := gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	}
-
-	db, err := gorm.Open(postgres.Open(postgresConfig.ConnectionString()), &gormConfig)
-	if err != nil {
-		log.Printf("Failed to connect with PostgreSQL: %v", err)
-		return nil, err
-	}
-
-	db.AutoMigrate(models.PlannedMeeting{})
-
-	return &plannedMeetingsRepoImpl{db: db}, nil
+func NewPlannedMeetingsRepository(db *gorm.DB) repository.PlannedMeetingsRepository {
+	return &plannedMeetingsRepoImpl{db: db}
 }

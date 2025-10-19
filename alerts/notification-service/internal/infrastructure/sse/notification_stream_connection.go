@@ -6,10 +6,24 @@ import (
 	"log"
 	"net/http"
 	"notification-serivce/internal/app/interfaces"
+	"notification-serivce/pkg"
 	"time"
 )
 
-type SSEConnection struct {
+type NotificationStreamConnectionInterface interface {
+	HandleEvents()
+	Cleanup()
+
+	GetClientID() string
+	GetChannel() chan []byte
+
+	SendWelcomeMessage() error
+	SendSSEComment(message string) error
+	SendSSEEvent(eventType string, data []byte) error
+	SendRetry(retryAfter int) error
+}
+
+type NotificationStreamConnection struct {
 	ClientID        string
 	Writer          http.ResponseWriter
 	Flusher         http.Flusher
@@ -25,9 +39,17 @@ type SSEConnection struct {
 	isHealthy         bool
 }
 
-func NewSSEConnection(config ConnectionConfig) *SSEConnection {
+func (conn *NotificationStreamConnection) GetChannel() chan []byte {
+	return conn.Channel
+}
+
+func (conn *NotificationStreamConnection) GetClientID() string {
+	return conn.ClientID
+}
+
+func NewNotificationStreamConnection(config NotificationStreamConnectionConfig) NotificationStreamConnectionInterface {
 	now := time.Now()
-	return &SSEConnection{
+	return &NotificationStreamConnection{
 		ClientID:        config.ClientID,
 		Writer:          config.Writer,
 		Flusher:         config.Flusher,
@@ -41,7 +63,7 @@ func NewSSEConnection(config ConnectionConfig) *SSEConnection {
 	}
 }
 
-func (conn *SSEConnection) HandleEvents() {
+func (conn *NotificationStreamConnection) HandleEvents() {
 	_ = conn.SendRetry(5)
 
 	_ = conn.SendSSEComment("Connection ready, checking for buffered notifications...")
@@ -94,12 +116,12 @@ func (conn *SSEConnection) HandleEvents() {
 	}
 }
 
-func (conn *SSEConnection) SendWelcomeMessage() error {
+func (conn *NotificationStreamConnection) SendWelcomeMessage() error {
 	return conn.SendSSEComment(fmt.Sprintf("SSE connection established for client %s at %s",
 		conn.ClientID, conn.ConnectionTime.Format(time.RFC3339)))
 }
 
-func (conn *SSEConnection) SendSSEComment(message string) error {
+func (conn *NotificationStreamConnection) SendSSEComment(message string) error {
 	if !conn.isHealthy {
 		return fmt.Errorf("connection is not healthy")
 	}
@@ -115,7 +137,7 @@ func (conn *SSEConnection) SendSSEComment(message string) error {
 	return nil
 }
 
-func (conn *SSEConnection) SendSSEEvent(eventType string, data []byte) error {
+func (conn *NotificationStreamConnection) SendSSEEvent(eventType string, data []byte) error {
 	if !conn.isHealthy {
 		return fmt.Errorf("connection is not healthy")
 	}
@@ -124,7 +146,7 @@ func (conn *SSEConnection) SendSSEEvent(eventType string, data []byte) error {
 		log.Printf("Warning: Sending empty data to client %s", conn.ClientID)
 	}
 
-	timestamp := time.Now().UTC().Unix()
+	timestamp := pkg.GenerateTimestamp()
 
 	message := fmt.Sprintf("id: %d\nevent: %s\ndata: %s\n\n", timestamp, eventType, data)
 
@@ -144,7 +166,7 @@ func (conn *SSEConnection) SendSSEEvent(eventType string, data []byte) error {
 	return nil
 }
 
-func (conn *SSEConnection) SendRetry(retryAfter int) error {
+func (conn *NotificationStreamConnection) SendRetry(retryAfter int) error {
 	_, err := fmt.Fprintf(conn.Writer, "retry: %d\n\n", retryAfter*1000) // milliseconds
 	if err != nil {
 		return fmt.Errorf("failed to write SSE retry: %w", err)
@@ -153,7 +175,7 @@ func (conn *SSEConnection) SendRetry(retryAfter int) error {
 	return nil
 }
 
-func (conn *SSEConnection) Cleanup() {
+func (conn *NotificationStreamConnection) Cleanup() {
 	if conn.HeartbeatTicker != nil {
 		conn.HeartbeatTicker.Stop()
 	}
@@ -165,7 +187,7 @@ func (conn *SSEConnection) Cleanup() {
 	log.Printf("SSE connection cleaned up for client: %s - Final stats: %+v", conn.ClientID, stats)
 }
 
-func (conn *SSEConnection) sendHeartbeat() error {
+func (conn *NotificationStreamConnection) sendHeartbeat() error {
 	log.Println("Sending heartbeat")
 	err := conn.SendSSEComment(fmt.Sprintf("heartbeat-%d", time.Now().Unix()))
 	if err == nil {
@@ -174,7 +196,7 @@ func (conn *SSEConnection) sendHeartbeat() error {
 	return err
 }
 
-func (conn *SSEConnection) checkConnectionHealth() bool {
+func (conn *NotificationStreamConnection) checkConnectionHealth() bool {
 	if time.Since(conn.lastActivity) > 5*time.Minute {
 		log.Printf("Connection for client %s appears stale (last activity: %v ago)",
 			conn.ClientID, time.Since(conn.lastActivity))

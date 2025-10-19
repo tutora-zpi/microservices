@@ -36,7 +36,7 @@ func (b *boardUpdateHandler) Handle(ctx context.Context, body []byte, client int
 
 	go b.hubManager.Emit(event.MeetingID, wrapper.ToBytes(), func(id string) bool { return true })
 
-	b.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, b.exchange))
+	go b.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, b.exchange))
 
 	go func() {
 		if err := b.cacheService.MakeSnapshot(ctx, wrapper, event.MeetingID); err != nil {

@@ -36,7 +36,7 @@ func (s *sendMessageHandler) Handle(ctx context.Context, body []byte, client int
 
 	go s.hubManager.Emit(event.ChatID, wrapper.ToBytes(), func(id string) bool { return true })
 
-	s.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, s.exchange))
+	go s.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, s.exchange))
 
 	go func() {
 		if err := s.cacheService.PushRecentEvent(ctx, wrapper, event.ChatID); err != nil {

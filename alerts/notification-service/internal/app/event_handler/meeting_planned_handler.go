@@ -36,14 +36,17 @@ func (c *MeetingPlannedHandler) Handle(ctx context.Context, body []byte) error {
 		return err
 	}
 
+	ids := []string{}
 	for _, result := range results {
-		if err = c.publisher.Push(*result); err != nil {
+		if err := c.publisher.Push(*result); err != nil {
 			return err
 		}
 
-		if err = c.repo.MarkAsDelivered(ctx, result.ID); err != nil {
-			return err
-		}
+		ids = append(ids, result.ID)
+	}
+
+	if err := c.repo.MarkAsDelivered(ctx, ids...); err != nil {
+		return err
 	}
 
 	return nil

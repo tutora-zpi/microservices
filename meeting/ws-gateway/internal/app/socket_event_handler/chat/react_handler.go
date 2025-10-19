@@ -33,7 +33,7 @@ func (r *reactHandler) Handle(ctx context.Context, body []byte, client interface
 
 	go r.hubManager.Emit(event.ChatID, wrapper.ToBytes(), func(id string) bool { return true })
 
-	r.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, r.exchange))
+	go r.eventBuffer.Add(&event, broker.NewExchangeDestination(&event, r.exchange))
 
 	return nil
 }

@@ -13,7 +13,7 @@ func FetchSignKey() {
 	var err error
 	jwksURL := os.Getenv(config.JWKS_URL)
 	if jwksURL == "" {
-		log.Panicln("jwks url is empty")
+		log.Fatalln("jwks url is empty")
 	}
 
 	JWKS, err = keyfunc.Get(jwksURL, keyfunc.Options{
@@ -25,7 +25,7 @@ func FetchSignKey() {
 	})
 
 	if err != nil {
-		log.Panicf("Failed to get JWKS from %s: %v\n", jwksURL, err)
+		log.Fatalf("Failed to get JWKS from %s: %v\n", jwksURL, err)
 	}
 	log.Println("Successfully initialized JWKS")
 }

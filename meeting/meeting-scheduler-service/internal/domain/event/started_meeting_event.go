@@ -38,10 +38,10 @@ func (m *MeetingStartedEvent) NewMeeting(dto dto.StartMeetingDTO) *models.Meetin
 	}
 
 	return &models.Meeting{
-		MeetingID:  m.MeetingID,
-		Timestamp:  m.StartedTime.Unix(),
-		ClassID:    m.ClassID,
-		Title:      dto.Title,
-		MembersIDs: ids,
+		MeetingID: m.MeetingID,
+		Timestamp: m.StartedTime.Unix(),
+		ClassID:   m.ClassID,
+		Title:     dto.Title,
+		MemberIDs: ids,
 	}
 }

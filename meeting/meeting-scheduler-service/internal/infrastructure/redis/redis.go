@@ -22,6 +22,7 @@ func NewRedis(ctx context.Context, redisConfig RedisConfig) (*redis.Client, erro
 
 	errCh := make(chan error, 1)
 	go func() {
+		defer close(errCh)
 		_, err := client.Ping(ctx).Result()
 		errCh <- err
 	}()
@@ -42,3 +43,32 @@ func NewRedis(ctx context.Context, redisConfig RedisConfig) (*redis.Client, erro
 	}
 }
 
+func Close(ctx context.Context, redisClient *redis.Client, redisConfig RedisConfig) {
+	if redisClient == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, redisConfig.Timeout)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(errCh)
+
+		err := redisClient.Close()
+
+		errCh <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		log.Printf("Closing Redis client took too much time (timeout: %s)", redisConfig.Timeout)
+	case err := <-errCh:
+		if err != nil {
+			log.Printf("Error while closing Redis client: %v", err)
+		} else {
+			log.Println("Successfully closed Redis client")
+		}
+	}
+}

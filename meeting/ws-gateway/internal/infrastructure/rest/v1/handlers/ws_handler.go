@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"ws-gateway/internal/infrastructure/ws"
 )
@@ -16,14 +17,14 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 
-	// id, ok := ctx.Value(ID).(string)
-	// if !ok {
-	// 	log.Println("Invalid type of id in context")
-	// 	return
-	// }
+	id, ok := ctx.Value(ID).(string)
+	if !ok {
+		log.Println("Invalid type of id in context")
+		return
+	}
 
-	/// TOODO CHANGE it
-	id := r.URL.Query().Get("id")
+	// /// TOODO CHANGE it
+	// id := r.URL.Query().Get("id")
 
 	client := ws.NewClient(id, conn)
 
@@ -31,9 +32,7 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	backgroundCtx := createBackgroundCtx(ctx)
 
-	// go client.Listen(backgroundCtx, h.WithAuth(h.dispatcher.HandleEvent))
-
-	go client.Listen(backgroundCtx, h.dispatcher.HandleEvent)
+	go client.Listen(backgroundCtx, h.WithAuth(h.dispatcher.HandleEvent))
 }
 
 func createBackgroundCtx(requestCtx context.Context) context.Context {

@@ -1,4 +1,4 @@
-FROM golang:1.24-bookworm AS builder 
+FROM golang:1.25-bookworm AS builder 
 
 WORKDIR /build
 
@@ -19,6 +19,6 @@ COPY --from=builder /go/bin/chat-service .
 
 RUN chmod +x ./chat-service
 
-EXPOSE 8003 
+EXPOSE 8002 
 
 CMD ["./chat-service"]

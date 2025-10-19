@@ -12,5 +12,4 @@ type NotificationRepository interface {
 	Get(ctx context.Context, receiverID string, lastNotificationID *string, limit int) ([]dto.NotificationDTO, error)
 	Update(ctx context.Context, fields map[string]any, id string) (*dto.NotificationDTO, error)
 	Delete(ctx context.Context, clientID string, ids ...string) error
-	Close(ctx context.Context) error
 }

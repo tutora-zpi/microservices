@@ -7,7 +7,7 @@ import "github.com/go-playground/validator/v10"
 type EndMeetingDTO struct {
 	// Meeting unique identifier (UUIDv4)
 	// required: true
-	MeetingID string `json:"meetingID" validate:"required,uuid4"`
+	MeetingID string `json:"meetingId" validate:"required,uuid4"`
 	// Class id - where meeting will be started (UUIDv4)
 	// required: true
 	ClassID string `json:"classId" validate:"required,uuid4"`

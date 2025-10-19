@@ -12,6 +12,7 @@ import (
 	"chat-service/internal/infrastructure/repository"
 	"chat-service/internal/infrastructure/rest"
 	"chat-service/internal/infrastructure/rest/v1/handlers"
+	"chat-service/internal/infrastructure/security"
 	"chat-service/internal/infrastructure/server"
 	"context"
 	"log"
@@ -29,12 +30,10 @@ func init() {
 	env := os.Getenv(config.APP_ENV)
 
 	if env == "" || env == "localhost" || env == "127.0.0.1" {
-		if err := godotenv.Load(".env.local"); err != nil {
-			log.Fatal(".env* file not found. Please check path or provide one.")
-		}
+		_ = godotenv.Load(".env.local")
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {

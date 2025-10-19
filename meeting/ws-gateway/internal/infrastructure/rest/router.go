@@ -12,7 +12,7 @@ func NewRouter(handlers handlers.Handlable) *mux.Router {
 
 	ws := router.PathPrefix("/ws").Subrouter()
 
-	// ws.Handle("", handlers.IsAuth(http.HandlerFunc(handlers.WebSocketHandler)))
-	ws.Handle("", http.HandlerFunc(handlers.WebSocketHandler))
+	ws.Handle("", handlers.IsAuth(http.HandlerFunc(handlers.WebSocketHandler)))
+	// ws.Handle("", http.HandlerFunc(handlers.WebSocketHandler))
 	return router
 }

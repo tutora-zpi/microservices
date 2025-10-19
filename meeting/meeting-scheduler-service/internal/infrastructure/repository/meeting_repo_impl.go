@@ -1,4 +1,4 @@
-package redis
+package repository
 
 import (
 	"context"
@@ -8,19 +8,19 @@ import (
 	"meeting-scheduler-service/internal/domain/dto"
 	"meeting-scheduler-service/internal/domain/models"
 	"meeting-scheduler-service/internal/domain/repository"
+	"meeting-scheduler-service/internal/infrastructure/cache"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type meetingRepoImpl struct {
-	client           *redis.Client
-	temporaryMeeting func(suffix string) string
+	client *redis.Client
 }
 
 // Exists implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Exists(ctx context.Context, classID string) bool {
-	key := m.temporaryMeeting(classID)
+	key := cache.MeetingKey(classID)
 
 	foundNumber, _ := m.client.Exists(ctx, key).Result()
 	return foundNumber > 0
@@ -28,10 +28,10 @@ func (m *meetingRepoImpl) Exists(ctx context.Context, classID string) bool {
 
 // Append implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Append(ctx context.Context, meeting *models.Meeting) error {
-	key := m.temporaryMeeting(meeting.ClassID)
+	key := cache.MeetingKey(meeting.ClassID)
 	log.Printf("Appending item under: %s", key)
 
-	_, err := m.client.Set(ctx, key, meeting.Json(), time.Duration(time.Minute*60)).Result()
+	_, err := m.client.Set(ctx, key, meeting.ToBytes(), time.Duration(time.Minute*60)).Result()
 	if err != nil {
 		return fmt.Errorf("failed to append new value with key:%s", meeting.ClassID)
 	}
@@ -40,7 +40,7 @@ func (m *meetingRepoImpl) Append(ctx context.Context, meeting *models.Meeting) e
 
 // Delete implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
-	key := m.temporaryMeeting(classID)
+	key := cache.MeetingKey(classID)
 	removedAmount, err := m.client.Del(ctx, key).Result()
 	if err != nil || removedAmount < 1 {
 		return fmt.Errorf("failed to delete value with id:%s", classID)
@@ -51,7 +51,7 @@ func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 
 // Get implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.MeetingDTO, error) {
-	key := m.temporaryMeeting(classID)
+	key := cache.MeetingKey(classID)
 	log.Printf("Getting key: %s", key)
 
 	result, err := m.client.Get(ctx, key).Result()
@@ -72,34 +72,8 @@ func (m *meetingRepoImpl) Get(ctx context.Context, classID string) (*dto.Meeting
 	return meeting.DTO(), nil
 }
 
-func NewMeetingRepo(ctx context.Context, redisConfig RedisConfig) (repository.MeetingRepository, error) {
-	opts := &redis.Options{
-		Addr:     redisConfig.Addr,
-		Password: redisConfig.Password,
-		DB:       redisConfig.DB,
-	}
-
-	client := redis.NewClient(opts)
-
-	pong, err := client.Ping(ctx).Result()
-	if err != nil || pong != "PONG" {
-		return nil, fmt.Errorf("failed to ping Redis: %w", err)
-	}
-	log.Println("Successfully connected to Redis:", pong)
-
+func NewMeetingRepository(client *redis.Client) repository.MeetingRepository {
 	return &meetingRepoImpl{
 		client: client,
-		temporaryMeeting: func(suffix string) string {
-			return fmt.Sprintf("meeting:%s", suffix)
-		},
-	}, nil
-}
-
-func (m *meetingRepoImpl) Close() {
-	if err := m.client.Close(); err != nil {
-		log.Printf("Failed to close redis client: %v", err)
-		return
 	}
-
-	log.Println("Redis Successfully closed connection.")
 }

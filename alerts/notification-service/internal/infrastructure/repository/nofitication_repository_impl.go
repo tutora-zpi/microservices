@@ -1,4 +1,4 @@
-package mongo
+package repository
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"notification-serivce/internal/domain/enums"
 	"notification-serivce/internal/domain/models"
 	"notification-serivce/internal/domain/repository"
+	nosql "notification-serivce/internal/infrastructure/mongo"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -15,39 +16,15 @@ import (
 )
 
 type notificationRepositoryImpl struct {
-	db *mongo.Collection
+	collection *mongo.Collection
 }
 
-// Close implements repository.NotificationRepository.
-func (r *notificationRepositoryImpl) Close(ctx context.Context) error {
-	log.Println("Closing connections...")
-
-	if err := r.db.Database().Client().Disconnect(ctx); err != nil {
-		return fmt.Errorf("failed to close connection: %s", err.Error())
-	}
-
-	log.Println("MongoDB connection closed successfully")
-	return nil
-}
-
-func NewNotificationRepository(ctx context.Context, mongoConfig MongoConfig) (repository.NotificationRepository, error) {
-
-	client, err := mongo.Connect(options.Client().ApplyURI(mongoConfig.URL()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect with database")
-	}
-
-	if err := client.Ping(ctx, nil); err != nil {
-		return nil, fmt.Errorf("failed to ping mongo db")
-	}
-
-	log.Println("Database pinged successfully!")
-
+func NewNotificationRepository(client *mongo.Client, mongoConfig nosql.MongoConfig) repository.NotificationRepository {
 	collection := client.Database(mongoConfig.DbName).Collection(mongoConfig.Collection)
 
 	return &notificationRepositoryImpl{
-		db: collection,
-	}, nil
+		collection: collection,
+	}
 }
 
 func castToObjectIds(ids ...string) ([]bson.ObjectID, error) {
@@ -85,7 +62,7 @@ func (r *notificationRepositoryImpl) Delete(ctx context.Context, clientID string
 		},
 	}
 
-	result, err := r.db.DeleteMany(ctx, filter)
+	result, err := r.collection.DeleteMany(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to delete notifications: %w", err)
 	}
@@ -105,7 +82,7 @@ func (r *notificationRepositoryImpl) Update(ctx context.Context, fields map[stri
 
 	update := bson.M{"$set": fields}
 
-	res := r.db.FindOneAndUpdate(
+	res := r.collection.FindOneAndUpdate(
 		ctx,
 		filter,
 		update,
@@ -144,7 +121,7 @@ func (r *notificationRepositoryImpl) MarkAsDelivered(ctx context.Context, ids ..
 	filter := bson.M{"_id": bson.M{"$in": objectIDs}}
 	update := bson.M{"$set": bson.M{"status": enums.DELIVERED}}
 
-	res, err := r.db.UpdateMany(ctx, filter, update)
+	res, err := r.collection.UpdateMany(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("failed to update notifications: %w", err)
 	}
@@ -161,7 +138,7 @@ func (r *notificationRepositoryImpl) Save(ctx context.Context, n ...models.Notif
 		return nil, fmt.Errorf("no notifications to save")
 	}
 
-	res, err := r.db.InsertMany(ctx, n)
+	res, err := r.collection.InsertMany(ctx, n)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save notifications: %w", err)
 	}
@@ -203,11 +180,10 @@ func (r *notificationRepositoryImpl) Get(ctx context.Context, receiverID string,
 		SetSort(bson.D{{Key: "_id", Value: -1}}).
 		SetLimit(int64(limit))
 
-	cursor, err := r.db.Find(ctx, filter, opts)
+	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
-	defer cursor.Close(ctx)
 
 	decoded, err := r.decodeNotifications(ctx, cursor)
 	if err != nil {
@@ -218,19 +194,14 @@ func (r *notificationRepositoryImpl) Get(ctx context.Context, receiverID string,
 }
 
 func (r *notificationRepositoryImpl) decodeNotifications(ctx context.Context, cursor *mongo.Cursor) ([]dto.NotificationDTO, error) {
-	var dtos []dto.NotificationDTO
-
-	for cursor.Next(ctx) {
-		var result models.Notification
-		if err := cursor.Decode(&result); err != nil {
-			return dtos, fmt.Errorf("failed to decode notification: %w", err)
-		}
-		dtos = append(dtos, *result.DTO())
+	var results []models.Notification
+	if err := cursor.All(ctx, &results); err != nil {
+		return nil, fmt.Errorf("failed to get all notifications: %w", err)
 	}
 
-	if err := cursor.Err(); err != nil {
-		return dtos, fmt.Errorf("cursor error: %w", err)
+	dtos := make([]dto.NotificationDTO, len(results))
+	for i, r := range results {
+		dtos[i] = *r.DTO()
 	}
-
 	return dtos, nil
 }
