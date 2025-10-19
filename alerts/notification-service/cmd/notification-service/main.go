@@ -20,6 +20,7 @@ import (
 	"notification-serivce/internal/infrastructure/mongo"
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
+	"notification-serivce/internal/infrastructure/security"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
 	"notification-serivce/internal/infrastructure/server"
 
@@ -34,7 +35,7 @@ func init() {
 		_ = godotenv.Load(".env.local")
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
