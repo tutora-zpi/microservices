@@ -1,8 +1,12 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "Service responsible for notification delivery",
+        "title": "Notifications Serivce API",
+        "contact": {},
+        "version": "1.0"
     },
+    "host": "localhost:8888",
     "paths": {
         "/api/v1/notification": {
             "get": {
@@ -171,14 +175,6 @@
                     "description": "A part of link used to navigate user after clicking notification",
                     "type": "string",
                     "example": "/meeting/some_id"
-                },
-                "sender": {
-                    "description": "Sender informations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.UserDTO"
-                        }
-                    ]
                 },
                 "title": {
                     "description": "Title",

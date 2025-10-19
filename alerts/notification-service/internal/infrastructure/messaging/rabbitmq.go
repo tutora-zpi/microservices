@@ -27,7 +27,7 @@ type RabbitMQBroker struct {
 }
 
 func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
-	conn, err := connect(rabbitMQConfig.Retries, rabbitMQConfig.RabbitMQURL())
+	conn, err := connect(rabbitMQConfig.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
 	}
@@ -153,7 +153,7 @@ func (r *RabbitMQBroker) Consume(ctx context.Context) error {
 
 func (r *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
 	if r.connection == nil || r.connection.IsClosed() {
-		conn, err := connect(r.config.Retries, r.config.RabbitMQURL())
+		conn, err := connect(r.config.URL)
 		if err != nil {
 			return err
 		}
@@ -187,17 +187,11 @@ func declareExchanges(ch *amqp.Channel, exchangeNames ...string) error {
 	return nil
 }
 
-func connect(retries int, url string) (*amqp.Connection, error) {
-	var conn *amqp.Connection
-	var err error
-
-	for attempt := 1; attempt <= retries; attempt++ {
-		conn, err = amqp.Dial(url)
-		if err == nil {
-			return conn, nil
-		}
-		log.Printf("Failed to connect to RabbitMQ: %v (retry %d/%d)", err, attempt, retries)
-		time.Sleep(3 * time.Second)
+func connect(url string) (*amqp.Connection, error) {
+	conn, err := amqp.Dial(url)
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to RabbitMQ: %v", err)
 	}
-	return nil, fmt.Errorf("could not connect to RabbitMQ after retries: %w", err)
+
+	return conn, nil
 }

@@ -34,12 +34,15 @@ type planner struct {
 
 // RerunNotStartedMeetings implements MeetingPlanner.
 func (p *planner) RerunNotStartedMeetings(ctx context.Context) error {
+	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Planner stopped:", ctx.Err())
+			log.Println("Planner stopped:", ctx.Err())
 			return ctx.Err()
-		default:
+		case <-ticker.C:
 			p.mutex.Lock()
 			for i := 0; i < len(p.unsentMeetings); i++ {
 				meeting := p.unsentMeetings[i]
@@ -53,19 +56,21 @@ func (p *planner) RerunNotStartedMeetings(ctx context.Context) error {
 				}
 			}
 			p.mutex.Unlock()
-			time.Sleep(10 * time.Second)
 		}
 	}
 }
 
 // Listen implements MeetingPlanner.
 func (p *planner) Listen(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Planner stopped:", ctx.Err())
+			log.Println("Planner stopped:", ctx.Err())
 			return
-		default:
+		case <-ticker.C:
 			now := time.Now().UTC().Unix()
 
 			meetings := p.getMeetings(now)
@@ -78,8 +83,6 @@ func (p *planner) Listen(ctx context.Context) {
 					p.removeFromScheduled(meeting)
 				}
 			}
-
-			time.Sleep(time.Second * 1)
 		}
 	}
 }
@@ -102,7 +105,7 @@ func (p *planner) removeFromScheduled(meeting dto.PlanMeetingDTO) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	delete(p.scheduledMeetings, meeting.StartDate.Unix())
+	delete(p.scheduledMeetings, meeting.StartDate.UTC().Unix())
 }
 
 func (p *planner) addToNotStarted(meeting dto.PlanMeetingDTO) {
@@ -116,11 +119,13 @@ func (p *planner) addToScheduledMeetings(meeting dto.PlanMeetingDTO) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if meetings, ok := p.scheduledMeetings[meeting.StartDate.Unix()]; ok {
+	startTimestamp := meeting.StartDate.UTC().Unix()
+
+	if meetings, ok := p.scheduledMeetings[startTimestamp]; ok {
 		meetings = append(meetings, meeting)
-		p.scheduledMeetings[meeting.StartDate.Unix()] = meetings
+		p.scheduledMeetings[startTimestamp] = meetings
 	} else {
-		p.scheduledMeetings[meeting.StartDate.Unix()] = []dto.PlanMeetingDTO{meeting}
+		p.scheduledMeetings[startTimestamp] = []dto.PlanMeetingDTO{meeting}
 	}
 }
 
@@ -135,7 +140,7 @@ func (p *planner) getMeetings(now int64) []dto.PlanMeetingDTO {
 	}
 }
 
-func (p *planner) StartCron(ctx context.Context) {
+func (p *planner) StartCron(ctx context.Context) error {
 	spec := fmt.Sprintf("@every %dm", p.plannerConfig.FetchIntervalMinutes)
 
 	_, err := p.cron.AddFunc(spec, func() {
@@ -145,16 +150,22 @@ func (p *planner) StartCron(ctx context.Context) {
 		}
 	})
 	if err != nil {
-		log.Fatalf("Failed to start cron job: %v", err)
+		return fmt.Errorf("failed to add cron job: %w", err)
 	}
 
 	p.cron.Start()
 	log.Println("Planner cron started with interval:", spec)
+
+	go func() {
+		<-ctx.Done()
+		log.Println("Stopping cron...")
+		p.cron.Stop()
+	}()
+
+	return nil
 }
 
-func NewPlanner(meetingManager interfaces.ManageMeeting, config PlannerConfig) interfaces.MeetingPlanner {
-	ctx := context.Background()
-
+func NewPlanner(rootCtx context.Context, meetingManager interfaces.ManageMeeting, config PlannerConfig) interfaces.MeetingPlanner {
 	p := &planner{
 		scheduledMeetings: make(map[int64][]dto.PlanMeetingDTO),
 		unsentMeetings:    make([]dto.PlanMeetingDTO, 0),
@@ -164,8 +175,8 @@ func NewPlanner(meetingManager interfaces.ManageMeeting, config PlannerConfig) i
 		plannerConfig:     config,
 	}
 
-	p.LoadScheduledMeetings(ctx)
-	p.StartCron(ctx)
+	p.LoadScheduledMeetings(rootCtx)
+	p.StartCron(rootCtx)
 
 	return p
 }

@@ -3,128 +3,103 @@ package main
 import (
 	"context"
 	"log"
+	"meeting-scheduler-service/internal/app/interfaces"
 	"meeting-scheduler-service/internal/app/usecase"
 	"meeting-scheduler-service/internal/config"
 	"meeting-scheduler-service/internal/infrastructure/bus"
 	"meeting-scheduler-service/internal/infrastructure/messaging"
 	"meeting-scheduler-service/internal/infrastructure/postgres"
 	"meeting-scheduler-service/internal/infrastructure/redis"
+	"meeting-scheduler-service/internal/infrastructure/repository"
 	"meeting-scheduler-service/internal/infrastructure/rest"
 	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
 	"meeting-scheduler-service/internal/infrastructure/security"
 	"meeting-scheduler-service/internal/infrastructure/server"
 	"os"
 	"os/signal"
-	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
+	redisdb "github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+
 	"github.com/joho/godotenv"
 )
-
-var postgresConfig postgres.PostgresConfig
-var redisConfig redis.RedisConfig
-var rabbitmqConfig messaging.RabbitConfig
-
-func setupPostgresConfig() {
-	sslMode, err := strconv.ParseBool(os.Getenv(config.POSTGRES_SSLMODE))
-	if err != nil {
-		sslMode = false
-	}
-
-	postgresConfig = postgres.PostgresConfig{
-		User:     os.Getenv(config.POSTGRES_USER),
-		Password: os.Getenv(config.POSTGRES_PASS),
-
-		Host: os.Getenv(config.POSTGRES_HOST),
-		Port: os.Getenv(config.POSTGRES_PORT),
-
-		DatabaseName: os.Getenv(config.POSTGRES_DBNAME),
-		SSLMode:      sslMode,
-	}
-}
-
-func setupRabbitMQConfig() {
-	rabbitmqConfig = messaging.RabbitConfig{
-		User:    os.Getenv(config.RABBITMQ_DEFAULT_USER),
-		Pass:    os.Getenv(config.RABBITMQ_DEFAULT_PASS),
-		Host:    os.Getenv(config.RABBITMQ_HOST),
-		Port:    os.Getenv(config.RABBITMQ_PORT),
-		URL:     os.Getenv(config.RABBITMQ_URL),
-		Retries: 3,
-
-		ExchangeNames: []string{
-			os.Getenv(config.NOTIFICATION_EXCHANGE_QUEUE_NAME),
-			os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME),
-		},
-	}
-}
-
-func setupRedisConfig() {
-    db := 0
-    if v := os.Getenv(config.REDIS_DB); v != "" {
-        if parsed, err := strconv.Atoi(v); err == nil {
-            db = parsed
-        }
-    }
-
-    redisConfig = redis.RedisConfig{
-        Addr:     os.Getenv(config.REDIS_ADDR),
-        Password: os.Getenv(config.REDIS_PASSWORD),
-        DB:       db,
-    }
-}
 
 func init() {
 	env := os.Getenv(config.APP_ENV)
 
 	if env == "" || env == "localhost" || env == "127.0.0.1" {
-		if err := godotenv.Load(".env.local"); err != nil {
-			log.Panic(".env* file not found. Please check path or provide one.")
-		}
+		_ = godotenv.Load(".env.local")
 	}
-
-	setupPostgresConfig()
-	setupRabbitMQConfig()
-	setupRedisConfig()
 
 	security.FetchSignKey()
 }
 
 func main() {
+	var redisClient *redisdb.Client
+	var postgresClient *gorm.DB
+	var postgresConfig postgres.PostgresConfig = *postgres.NewPostgresConfig(time.Second * 5)
+	var redisConfig redis.RedisConfig = *redis.NewRedisConfig(time.Second * 5)
+	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig(time.Second * 5)
+	var broker interfaces.Broker
+	var wg sync.WaitGroup
+
+	var errors chan error = make(chan error, 2)
+
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	initCtx, cancel := context.WithTimeout(rootCtx, 3*time.Second)
-	defer cancel()
-
-	// BROKER
 	dispatcher := bus.NewDispatcher()
-	broker, err := messaging.NewRabbitBroker(rabbitmqConfig, dispatcher)
-	if err != nil {
-		log.Panicf("Failed to create broker: %v", err)
+	wg.Go(func() {
+		var err error
+		broker, err = messaging.NewRabbitBroker(rabbitmqConfig, dispatcher)
+		if err != nil {
+			errors <- err
+		}
+	})
+
+	wg.Go(func() {
+		var err error
+		redisClient, err = redis.NewRedis(rootCtx, redisConfig)
+		if err != nil {
+			errors <- err
+		}
+
+	})
+
+	wg.Go(func() {
+		var err error
+		postgresClient, err = postgres.NewPostgres(rootCtx, postgresConfig)
+		if err != nil {
+			errors <- err
+		}
+
+	})
+
+	wg.Wait()
+	close(errors)
+
+	for err := range errors {
+		log.Fatalf("Error during services init: %v", err)
 	}
 
-	defer broker.Close()
+	closeCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer func() {
+		postgres.Close(closeCtx, postgresClient, postgresConfig)
+		redis.Close(closeCtx, redisClient, redisConfig)
+		broker.Close(closeCtx, time.Second*5)
 
-	// REDIS REPO
-	meetingRepo, err := redis.NewMeetingRepo(initCtx, redisConfig)
-	if err != nil {
-		log.Panicf("Failed to create redis repo: %v", err)
-	}
-	defer meetingRepo.Close()
+		cancel()
+	}()
 
-	plannedMeetingsRepo, err := postgres.NewMeetingsRepository(postgresConfig)
-	if err != nil {
-		log.Panicf("Failed to create postgres repo: %v", err)
-	}
-	defer plannedMeetingsRepo.Close()
+	meetingRepo := repository.NewMeetingRepository(redisClient)
+	plannedMeetingsRepo := repository.NewPlannedMeetingsRepository(postgresClient)
 
-	// APP
-	meetingManager := usecase.NewManageMeeting(broker, meetingRepo, plannedMeetingsRepo, os.Getenv(config.NOTIFICATION_EXCHANGE_QUEUE_NAME), os.Getenv(config.EVENT_EXCHANGE_QUEUE_NAME))
+	meetingManager := usecase.NewManageMeeting(broker, meetingRepo, plannedMeetingsRepo, rabbitmqConfig.NotificationExchange, rabbitmqConfig.MeetingExchange)
 
-	// PLANNER
-	planner := usecase.NewPlanner(meetingManager, usecase.PlannerConfig{
+	planner := usecase.NewPlanner(rootCtx, meetingManager, usecase.PlannerConfig{
 		FetchIntervalMinutes: 1,
 	})
 

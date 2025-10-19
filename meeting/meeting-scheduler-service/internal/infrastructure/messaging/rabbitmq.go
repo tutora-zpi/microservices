@@ -27,7 +27,7 @@ type RabbitMQBroker struct {
 }
 
 func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
-	conn, err := connect(rabbitMQConfig.Retries, rabbitMQConfig.RabbitMQURL())
+	conn, err := connect(rabbitMQConfig.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
 	}
@@ -37,7 +37,7 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (i
 		return nil, fmt.Errorf("failed to open channel: %v", err)
 	}
 
-	if err := declareExchanges(ch, rabbitMQConfig.ExchangeNames...); err != nil {
+	if err := declareExchanges(ch, rabbitMQConfig.NotificationExchange, rabbitMQConfig.MeetingExchange); err != nil {
 		return nil, fmt.Errorf("failed to declare exchanges: %v", err)
 	}
 
@@ -51,15 +51,32 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (i
 	}, nil
 }
 
-func (r *RabbitMQBroker) Close() {
-	if r.channel != nil {
-		_ = r.channel.Close()
-	}
-	if r.connection != nil {
-		_ = r.connection.Close()
-	}
+func (r *RabbitMQBroker) Close(ctx context.Context, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 
-	log.Println("RabbitMQ connection successfully closed")
+	var errors chan error = make(chan error, 2)
+
+	go func() {
+		if r.channel != nil {
+			errors <- r.channel.Close()
+		}
+
+		if r.connection != nil {
+			errors <- r.connection.Close()
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		log.Println("Failed to disconned with RabbitMQ due to timeout")
+	case errs := <-errors:
+		if errs != nil {
+			log.Printf("Error during closing RabbitMQ connection")
+			return
+		}
+		log.Println("RabbitMQ connection successfully closed")
+	}
 }
 
 func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
@@ -116,7 +133,7 @@ func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, de
 
 func (r *RabbitMQBroker) ensureConnected(exchangeNames ...string) error {
 	if r.connection == nil || r.connection.IsClosed() {
-		conn, err := connect(r.config.Retries, r.config.RabbitMQURL())
+		conn, err := connect(r.config.URL)
 		if err != nil {
 			return err
 		}
@@ -150,17 +167,11 @@ func declareExchanges(ch *amqp.Channel, exchangeNames ...string) error {
 	return nil
 }
 
-func connect(retries int, url string) (*amqp.Connection, error) {
-	var conn *amqp.Connection
-	var err error
-
-	for attempt := 1; attempt <= retries; attempt++ {
-		conn, err = amqp.Dial(url)
-		if err == nil {
-			return conn, nil
-		}
-		log.Printf("Failed to connect to RabbitMQ: %v (retry %d/%d)", err, attempt, retries)
-		time.Sleep(3 * time.Second)
+func connect(url string) (*amqp.Connection, error) {
+	conn, err := amqp.Dial(url)
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to RabbitMQ after retries: %w", err)
 	}
-	return nil, fmt.Errorf("could not connect to RabbitMQ after retries: %w", err)
+
+	return conn, nil
 }

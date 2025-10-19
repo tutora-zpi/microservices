@@ -29,21 +29,27 @@ func (c *ClassInvitationCreatedHandler) Handle(ctx context.Context, body []byte)
 		return fmt.Errorf("an error occured during casting into event struct")
 	}
 
-	results, err := c.repo.Save(ctx, *newEvent.NotificationForReceiver(), *newEvent.NotificationForSender())
+	notificationForReceiver := *newEvent.NotificationForReceiver()
+	nofiticationForSender := *newEvent.NotificationForSender()
+
+	results, err := c.repo.Save(ctx, notificationForReceiver, nofiticationForSender)
 
 	if err != nil || len(results) != 2 {
 		log.Printf("An error occured during saving notification: %s\n", err.Error())
 		return err
 	}
 
+	ids := []string{}
 	for _, result := range results {
-		if err = c.publisher.Push(*result); err != nil {
+		if err := c.publisher.Push(*result); err != nil {
 			return err
 		}
 
-		if err = c.repo.MarkAsDelivered(ctx, result.ID); err != nil {
-			return err
-		}
+		ids = append(ids, result.ID)
+	}
+
+	if err := c.repo.MarkAsDelivered(ctx, ids...); err != nil {
+		return err
 	}
 
 	return nil

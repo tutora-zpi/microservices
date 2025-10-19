@@ -5,10 +5,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	eventhandler "notification-serivce/internal/app/event_handler"
+	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/app/service"
 	"notification-serivce/internal/config"
 	classinvitation "notification-serivce/internal/domain/event/class_invitation"
@@ -17,39 +19,14 @@ import (
 	"notification-serivce/internal/infrastructure/messaging"
 	"notification-serivce/internal/infrastructure/mongo"
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
+	"notification-serivce/internal/infrastructure/repository"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
-	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
+
+	mongodb "go.mongodb.org/mongo-driver/v2/mongo"
 
 	"github.com/joho/godotenv"
 )
-
-var rabbitmqConfig messaging.RabbitConfig
-var mongoConfig mongo.MongoConfig
-
-func setupMongoConfig() {
-	mongoConfig = mongo.MongoConfig{
-		User:       os.Getenv(config.MONGO_USER),
-		Pass:       os.Getenv(config.MONGO_PASS),
-		Host:       os.Getenv(config.MONGO_HOST),
-		Port:       os.Getenv(config.MONGO_PORT),
-		Uri:        os.Getenv(config.MONGO_URI),
-		DbName:     os.Getenv(config.MONGO_DB_NAME),
-		Collection: os.Getenv(config.MONGO_COLLECTION),
-	}
-}
-
-func setupRabbitMQConfig() {
-	rabbitmqConfig = messaging.RabbitConfig{
-		User:                 os.Getenv(config.RABBITMQ_DEFAULT_USER),
-		Pass:                 os.Getenv(config.RABBITMQ_DEFAULT_PASS),
-		Host:                 os.Getenv(config.RABBITMQ_HOST),
-		Port:                 os.Getenv(config.RABBITMQ_PORT),
-		URL:                  os.Getenv(config.RABBITMQ_URL),
-		Retries:              3,
-		NotificationExchange: os.Getenv(config.NOTIFICATION_EXCHANGE),
-	}
-}
 
 func init() {
 	env := os.Getenv(config.APP_ENV)
@@ -57,13 +34,17 @@ func init() {
 		_ = godotenv.Load(".env.local")
 	}
 
-	setupRabbitMQConfig()
-	setupMongoConfig()
-
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {
+	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig()
+	var mongoConfig mongo.MongoConfig = *mongo.NewMongoConfig()
+	var broker interfaces.Broker
+	var mongoClient *mongodb.Client
+	var wg sync.WaitGroup
+	var errors chan error = make(chan error, 2)
+
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -72,22 +53,41 @@ func main() {
 	manager := notificationmanager.NewManager()
 	manager.EnableBuffering(1000, 30*time.Minute)
 
-	repo, err := mongo.NewNotificationRepository(rootCtx, mongoConfig)
-	if err != nil {
-		log.Panicf("failed to create repository: %v", err)
-	}
-	defer func() {
-		if err := repo.Close(rootCtx); err != nil {
-			log.Panicf("failed to close repository: %v", err)
+	wg.Go(func() {
+		var err error
+		mongoClient, err = mongo.NewMongoClient(rootCtx, mongoConfig, time.Second*5)
+		if err != nil {
+			errors <- err
 		}
+	})
+
+	wg.Go(func() {
+		var err error
+		broker, err = messaging.NewRabbitBroker(rabbitmqConfig, dispatcher)
+		if err != nil {
+			errors <- err
+		}
+	})
+
+	wg.Wait()
+
+	close(errors)
+
+	for err := range errors {
+		log.Fatalf("Error during initialization: %v", err)
+	}
+
+	cleanCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+
+	defer func() {
+		mongo.Close(cleanCtx, mongoClient, time.Second*5)
+
+		cancel()
 	}()
 
-	service := service.NewNotificationSerivce(repo)
+	repo := repository.NewNotificationRepository(mongoClient, mongoConfig)
 
-	broker, err := messaging.NewRabbitBroker(rabbitmqConfig, dispatcher)
-	if err != nil {
-		log.Panic(err)
-	}
+	service := service.NewNotificationSerivce(repo)
 
 	dispatcher.Register(
 		&classinvitation.ClassInvitationCreatedEvent{},
@@ -105,7 +105,7 @@ func main() {
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 
 	go func() {
-		if err = broker.Consume(rootCtx); err != nil {
+		if err := broker.Consume(rootCtx); err != nil {
 			log.Println(err)
 		}
 	}()

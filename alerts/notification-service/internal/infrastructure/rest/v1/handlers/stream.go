@@ -63,18 +63,18 @@ func (h *SSEHandler) StreamNotifications(w http.ResponseWriter, r *http.Request)
 	}()
 
 	if err := conn.SendWelcomeMessage(); err != nil {
-		log.Printf("Failed to send welcome message to client %s: %v", conn.ClientID, err)
+		log.Printf("Failed to send welcome message to client %s: %v", conn.GetClientID(), err)
 		return
 	}
 
-	h.manager.FlushBufferedNotification(conn.ClientID, conn.Channel)
+	h.manager.FlushBufferedNotification(conn.GetClientID(), conn.GetChannel())
 
-	log.Printf("SSE connection established for client: %s", conn.ClientID)
+	log.Printf("SSE connection established for client: %s", conn.GetClientID())
 
 	conn.HandleEvents()
 }
 
-func (h *SSEHandler) prepareSSEConnection(w http.ResponseWriter, r *http.Request) (*sse.SSEConnection, error) {
+func (h *SSEHandler) prepareSSEConnection(w http.ResponseWriter, r *http.Request) (sse.NotificationStreamConnectionInterface, error) {
 	ctx := r.Context()
 	clientID, err := ExtractClientID(r)
 	if err != nil {
@@ -91,7 +91,7 @@ func (h *SSEHandler) prepareSSEConnection(w http.ResponseWriter, r *http.Request
 		return nil, fmt.Errorf("failed to subscribe stream: %w", err)
 	}
 
-	conn := sse.NewSSEConnection(sse.ConnectionConfig{
+	conn := sse.NewNotificationStreamConnection(sse.NotificationStreamConnectionConfig{
 		ClientID:          clientID,
 		Writer:            w,
 		Flusher:           flusher,

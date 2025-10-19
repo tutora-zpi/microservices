@@ -7,7 +7,7 @@ import (
 )
 
 type MeetingEndedEvent struct {
-	MeetingID    string `json:"meetingID"`
+	MeetingID    string `json:"meetingId"`
 	EndTimestamp int64  `json:"endTimestamp"`
 }
 

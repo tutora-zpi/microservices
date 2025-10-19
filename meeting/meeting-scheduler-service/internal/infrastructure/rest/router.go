@@ -22,9 +22,8 @@ func NewRouter(meetingHandler handlers.ManageMeetingHandler) *mux.Router {
 	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
 	meeting := api.PathPrefix("/meeting").Subrouter()
-
-	meeting.Handle("/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost, http.MethodPut)
-	meeting.Handle("/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodPost, http.MethodDelete)
+	meeting.Handle("/start", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.StartMeeting)))).Methods(http.MethodPost)
+	meeting.Handle("/end", middleware.IsAuth(middleware.Validate(http.HandlerFunc(meetingHandler.EndMeeting)))).Methods(http.MethodDelete)
 	meeting.Handle("/{class_id}", middleware.IsAuth(http.HandlerFunc(meetingHandler.GetActiveMeeting))).Methods(http.MethodGet)
 
 	plan := meeting.PathPrefix("/plan").Subrouter()

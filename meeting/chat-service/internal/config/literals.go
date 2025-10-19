@@ -1,0 +1,26 @@
+package config
+
+const (
+	MONGO_HOST                string = "MONGO_HOST"
+	MONGO_PORT                string = "MONGO_PORT"
+	MONGO_USER                string = "MONGO_USER"
+	MONGO_PASS                string = "MONGO_PASS"
+	MONGO_URI                 string = "MONGO_URI"
+	MONGO_DATABASE            string = "MONGO_DATABASE"
+	MONGO_REACTION_COLLECTION string = "MONGO_REACTION_COLLECTION"
+	MONGO_CHAT_COLLECTION     string = "MONGO_CHAT_COLLECTION"
+	MONGO_MESSAGES_COLLECTION string = "MONGO_MESSAGES_COLLECTION"
+
+	RABBITMQ_DEFAULT_USER string = "RABBITMQ_DEFAULT_USER"
+	RABBITMQ_DEFAULT_PASS string = "RABBITMQ_DEFAULT_PASS"
+	RABBITMQ_HOST         string = "RABBITMQ_HOST"
+	RABBITMQ_PORT         string = "RABBITMQ_PORT"
+	RABBITMQ_URL          string = "RABBITMQ_URL"
+	CHAT_EXCHANGE         string = "CHAT_EXCHANGE"
+	MEETING_EXCHANGE      string = "MEETING_EXCHANGE"
+
+	APP_PORT string = "APP_PORT"
+	APP_ENV  string = "APP_ENV"
+
+	JWKS_URL string = "JWKS_URL"
+)

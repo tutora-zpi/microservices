@@ -1,6 +1,6 @@
 module meeting-scheduler-service
 
-go 1.24.2
+go 1.25.2
 
 require (
 	github.com/MicahParks/keyfunc v1.9.0
