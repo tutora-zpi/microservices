@@ -183,14 +183,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "/meeting/some_id"
                 },
-                "sender": {
-                    "description": "Sender informations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.UserDTO"
-                        }
-                    ]
-                },
                 "title": {
                     "description": "Title",
                     "type": "string"
@@ -247,12 +239,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
+	Version:          "1.0",
+	Host:             "localhost:8888",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Title:            "Notifications Serivce API",
+	Description:      "Service responsible for notification delivery",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

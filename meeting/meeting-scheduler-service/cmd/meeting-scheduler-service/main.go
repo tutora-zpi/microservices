@@ -11,7 +11,6 @@ import (
 	"meeting-scheduler-service/internal/infrastructure/redis"
 	"meeting-scheduler-service/internal/infrastructure/rest"
 	"meeting-scheduler-service/internal/infrastructure/rest/v1/handlers"
-	"meeting-scheduler-service/internal/infrastructure/security"
 	"meeting-scheduler-service/internal/infrastructure/server"
 	"os"
 	"os/signal"
@@ -72,7 +71,7 @@ func init() {
 	setupPostgresConfig()
 	setupRabbitMQConfig()
 
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {

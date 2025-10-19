@@ -1,15 +1,24 @@
-FROM node:20-slim
+FROM golang:1.24-bookworm AS builder 
 
-WORKDIR /usr/src/app
+WORKDIR /build
 
-COPY package*.json ./
-
-RUN npm install
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
-RUN npm run build
+RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/chat-service ./cmd/chat-service
 
-EXPOSE 8002
+FROM alpine:latest AS runner
 
-CMD ["node", "dist/main"]
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+COPY --from=builder /go/bin/chat-service .
+
+RUN chmod +x ./chat-service
+
+EXPOSE 8003 
+
+CMD ["./chat-service"]

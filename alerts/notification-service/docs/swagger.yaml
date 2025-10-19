@@ -33,10 +33,6 @@ definitions:
         description: A part of link used to navigate user after clicking notification
         example: /meeting/some_id
         type: string
-      sender:
-        allOf:
-        - $ref: '#/definitions/dto.UserDTO'
-        description: Sender informations
       title:
         description: Title
         type: string
@@ -70,8 +66,12 @@ definitions:
       success:
         type: boolean
     type: object
+host: localhost:8888
 info:
   contact: {}
+  description: Service responsible for notification delivery
+  title: Notifications Serivce API
+  version: "1.0"
 paths:
   /api/v1/notification:
     delete:

@@ -1,0 +1,204 @@
+definitions:
+  dto.ChatDTO:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      memberIds:
+        items:
+          type: string
+        type: array
+      messages:
+        items:
+          $ref: '#/definitions/dto.MessageDTO'
+        type: array
+    type: object
+  dto.MessageDTO:
+    properties:
+      chatId:
+        description: |-
+          ID of the chat
+          required: false
+        type: string
+      content:
+        description: |-
+          Content of the message
+          required: false
+        type: string
+      id:
+        description: |-
+          ID of the message
+          required: true
+        type: string
+      reactions:
+        description: |-
+          Reactions to the message
+          required: false
+        items:
+          $ref: '#/definitions/dto.ReactionDTO'
+        type: array
+      reply:
+        allOf:
+        - $ref: '#/definitions/dto.MessageDTO'
+        description: |-
+          Optional reply to another message
+          required: false
+      senderId:
+        description: |-
+          ID of the sender
+          required: false
+        type: string
+      sentAt:
+        description: |-
+          Timestamp when the message was sent
+          required: true
+        type: string
+    type: object
+  dto.ReactionDTO:
+    properties:
+      emoji:
+        type: string
+      id:
+        type: string
+      messageId:
+        type: string
+      userId:
+        type: string
+    type: object
+  requests.CreateGeneralChat:
+    properties:
+      classId:
+        type: string
+      memberIds:
+        items:
+          type: string
+        type: array
+    required:
+    - classId
+    - memberIds
+    type: object
+  server.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8002
+info:
+  contact: {}
+  description: Service responsible for chat feature
+  title: Chat Serivce API
+  version: "2.0"
+paths:
+  /api/v1/chats/{id}:
+    delete:
+      description: Deletes chat by ID
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: No id in url
+          schema:
+            $ref: '#/definitions/server.Response'
+        "404":
+          description: Failed to remove chat
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Delete a chat
+      tags:
+      - Chats
+    get:
+      description: Retrieves chat details by ID
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ChatDTO'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/server.Response'
+        "404":
+          description: Chat not found
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Get chat by ID
+      tags:
+      - Chats
+  /api/v1/chats/{id}/messages:
+    get:
+      description: Fetches more messages from a chat with optional pagination
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Number of messages to fetch
+        in: query
+        name: limit
+        type: integer
+      - description: Last message ID for pagination
+        in: query
+        name: lastMessageId
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.MessageDTO'
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/server.Response'
+        "404":
+          description: No more messages
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Get more messages
+      tags:
+      - Messages
+  /api/v1/chats/general:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new general chat with specified members
+      parameters:
+      - description: CreateGeneralChat DTO
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateGeneralChat'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ChatDTO'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Create a new general chat
+      tags:
+      - Chats
+swagger: "2.0"
