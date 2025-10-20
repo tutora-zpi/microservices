@@ -20,8 +20,8 @@ import (
 	"notification-serivce/internal/infrastructure/mongo"
 	notificationmanager "notification-serivce/internal/infrastructure/notification_manager"
 	"notification-serivce/internal/infrastructure/repository"
-	"notification-serivce/internal/infrastructure/security"
 	handlers "notification-serivce/internal/infrastructure/rest/v1"
+	"notification-serivce/internal/infrastructure/security"
 	"notification-serivce/internal/infrastructure/server"
 
 	mongodb "go.mongodb.org/mongo-driver/v2/mongo"
@@ -39,7 +39,7 @@ func init() {
 }
 
 func main() {
-	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig()
+	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig(time.Second*5, 10)
 	var mongoConfig mongo.MongoConfig = *mongo.NewMongoConfig()
 	var broker interfaces.Broker
 	var mongoClient *mongodb.Client
@@ -106,7 +106,7 @@ func main() {
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 
 	go func() {
-		if err := broker.Consume(rootCtx); err != nil {
+		if err := broker.Consume(rootCtx, rabbitmqConfig.NotificationExchange); err != nil {
 			log.Println(err)
 		}
 	}()

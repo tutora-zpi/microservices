@@ -2,9 +2,9 @@ package messaging
 
 import (
 	"fmt"
-	"log"
 	"notification-serivce/internal/config"
 	"os"
+	"time"
 )
 
 type RabbitConfig struct {
@@ -15,19 +15,20 @@ type RabbitConfig struct {
 
 	URL string
 
-	// How many times to retry connection
-	Retries int
-
 	NotificationExchange string
+
+	PoolSize int
+	Timeout  time.Duration
+
+	ExchangeType string
 }
 
-func NewRabbitMQConfig() *RabbitConfig {
+func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 	user := os.Getenv(config.RABBITMQ_DEFAULT_USER)
 	pass := os.Getenv(config.RABBITMQ_DEFAULT_PASS)
 	host := os.Getenv(config.RABBITMQ_HOST)
 	port := os.Getenv(config.RABBITMQ_PORT)
 	url := os.Getenv(config.RABBITMQ_URL)
-	exchange := os.Getenv(config.NOTIFICATION_EXCHANGE)
 
 	if url == "" {
 		if user == "" || pass == "" || host == "" || port == "" {
@@ -36,15 +37,15 @@ func NewRabbitMQConfig() *RabbitConfig {
 		url = fmt.Sprintf("amqp://%s:%s@%s:%s", user, pass, host, port)
 	}
 
-	log.Println(url)
-
 	return &RabbitConfig{
 		User:                 user,
 		Pass:                 pass,
 		Host:                 host,
 		Port:                 port,
 		URL:                  url,
-		Retries:              3,
-		NotificationExchange: exchange,
+		NotificationExchange: os.Getenv(config.NOTIFICATION_EXCHANGE),
+		PoolSize:             poolSize,
+		ExchangeType:         "fanout",
+		Timeout:              timeout,
 	}
 }

@@ -113,6 +113,10 @@ func (m *messageRepoImpl) FindMore(ctx context.Context, req requests.GetMoreMess
 	}
 	wg.Wait()
 
+	if len(messageDTOs) == 0 {
+		return nil, fmt.Errorf("No messages found")
+	}
+
 	sort.Slice(messageDTOs, func(i, j int) bool {
 		return messageDTOs[i].SentAt.Before(messageDTOs[j].SentAt)
 	})
