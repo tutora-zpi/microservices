@@ -27,7 +27,7 @@ func findToken(r *http.Request) (string, error) {
 	log.Println("Not found token in cookie going to find in query")
 
 	token = r.URL.Query().Get(Token)
-	if token == "" {
+	if token != "" {
 		return token, nil
 	}
 
