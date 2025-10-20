@@ -49,7 +49,7 @@ func (p *plannedMeetingsRepoImpl) GetPlannedMeetings(
 		db = db.Where("start_date < ?", req.LastPlannedDate)
 	}
 
-	if err := db.Find(&meetings).Error; err != nil {
+	if err := db.Find(&meetings, req.ClassID).Error; err != nil {
 		return nil, err
 	}
 
