@@ -13,6 +13,7 @@ import (
 	"chat-service/internal/infrastructure/repository"
 	"chat-service/internal/infrastructure/rest"
 	"chat-service/internal/infrastructure/rest/v1/handlers"
+	"chat-service/internal/infrastructure/security"
 	"chat-service/internal/infrastructure/server"
 	"context"
 	"log"
@@ -33,7 +34,7 @@ func init() {
 		_ = godotenv.Load(".env.local")
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
