@@ -1,10 +1,7 @@
 package dto
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type PlanMeetingDTO struct {
@@ -20,25 +17,25 @@ func (dto *PlanMeetingDTO) IsValid() error {
 		return err
 	}
 
-	v := validator.New()
-	if err := v.Struct(dto); err != nil {
-		return err
-	}
+	// v := validator.New()
+	// if err := v.Struct(dto); err != nil {
+	// 	return err
+	// }
 
-	dto.ConvertTimeToUTC()
+	// dto.ConvertTimeToUTC()
 
-	if time.Until(dto.StartDate) < time.Minute*5 {
-		return fmt.Errorf("difference between now and start dates must be at least 5 minutes")
-	}
+	// if time.Until(dto.StartDate) < time.Minute*5 {
+	// 	return fmt.Errorf("difference between now and start dates must be at least 5 minutes")
+	// }
 
-	sub := dto.FinishDate.Sub(dto.StartDate)
-	if sub < 0 {
-		return fmt.Errorf("finish date is before start date")
-	}
+	// sub := dto.FinishDate.Sub(dto.StartDate)
+	// if sub < 0 {
+	// 	return fmt.Errorf("finish date is before start date")
+	// }
 
-	if sub > time.Hour {
-		return fmt.Errorf("maximum length of meeting is 1 hour")
-	}
+	// if sub > time.Hour {
+	// 	return fmt.Errorf("maximum length of meeting is 1 hour")
+	// }
 
 	return nil
 }

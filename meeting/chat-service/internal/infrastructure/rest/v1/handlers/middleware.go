@@ -85,7 +85,7 @@ func (h *handlers) IsAuth(next http.Handler) http.Handler {
 	})
 }
 
-func HasValidFileSize(next http.Handler) http.Handler {
+func ValidateFileFormData(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(http.DefaultMaxHeaderBytes)

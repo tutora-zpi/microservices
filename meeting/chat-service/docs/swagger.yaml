@@ -175,6 +175,73 @@ paths:
       summary: Get more messages
       tags:
       - Messages
+  /api/v1/chats/{id}/upload-file:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file to the server, saves its metadata, and creates a
+        chat message referencing the uploaded file.
+      parameters:
+      - description: Chat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Optional message content
+        in: formData
+        name: content
+        type: string
+      - description: UUID of the sender
+        in: formData
+        name: senderId
+        required: true
+        type: string
+      - description: UUID of the chat
+        in: formData
+        name: chatId
+        required: true
+        type: string
+      - description: Unix timestamp when the message was sent
+        format: int64
+        in: formData
+        name: sentAt
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            $ref: '#/definitions/dto.MessageDTO'
+        "400":
+          description: Invalid parameters or file metadata
+          schema:
+            $ref: '#/definitions/server.Response'
+        "401":
+          description: Unauthorized access
+          schema:
+            $ref: '#/definitions/server.Response'
+        "415":
+          description: Unsupported media type
+          schema:
+            $ref: '#/definitions/server.Response'
+        "422":
+          description: File metadata has been lost
+          schema:
+            $ref: '#/definitions/server.Response'
+        "500":
+          description: Internal server error while saving the file
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Upload a file and create a file message
+      tags:
+      - Messages
   /api/v1/chats/general:
     post:
       consumes:

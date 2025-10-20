@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 type meetingStartedHandler struct {
@@ -19,9 +20,8 @@ func (s *meetingStartedHandler) Handle(ctx context.Context, body []byte) error {
 	if err := json.Unmarshal(body, &event); err != nil {
 		return fmt.Errorf("failed to decode: %w", err)
 	}
-
+	log.Println(event.MeetingID)
 	_, err := s.repo.Save(ctx, event.GetMemeberIDs(), event.MeetingID)
-
 	return err
 }
 

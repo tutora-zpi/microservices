@@ -46,9 +46,9 @@ func (p *PlannedMeeting) ToPlanMeetingDTO() (*dto.PlanMeetingDTO, error) {
 			ClassID:    p.ClassID,
 			Title:      p.Title,
 			Members:    members,
-			FinishDate: p.FinishDate,
+			FinishDate: p.FinishDate.UTC(),
 		},
-		StartDate: p.StartDate,
+		StartDate: p.StartDate.UTC(),
 	}, nil
 }
 

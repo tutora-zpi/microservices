@@ -31,7 +31,13 @@ func (s *sendMessageHandler) Handle(ctx context.Context, body []byte, client int
 		return fmt.Errorf("failed to decode %s payload", wsEvent.Name())
 	}
 
+	wsEvent.AppendID()
+
 	newEvent := event.NewSendMessageEvent(wsEvent)
+
+	log.Println(newEvent.SentAt)
+
+	body, _ = json.Marshal(&wsEvent)
 
 	wrapper := wsevent.SocketEventWrapper{
 		Name:    wsEvent.Name(),
