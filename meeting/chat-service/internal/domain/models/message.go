@@ -1,9 +1,5 @@
 package models
 
-import (
-	"github.com/google/uuid"
-)
-
 type Message struct {
 	ID     string `bson:"_id,omitempty"`
 	SentAt int64  `bson:"sentAt"`
@@ -20,11 +16,9 @@ type Message struct {
 	FileLink *string `bson:"fileLink,omitempty"`
 }
 
-func NewMessage(chatID, senderID, content string, sentAt int64, fileLink string) *Message {
-	id := uuid.New()
-
+func NewMessage(chatID, senderID, content, messageID string, sentAt int64, fileLink string) *Message {
 	msg := &Message{
-		ID:        id.String(),
+		ID:        messageID,
 		SenderID:  senderID,
 		ChatID:    chatID,
 		SentAt:    sentAt,

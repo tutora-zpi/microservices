@@ -22,7 +22,7 @@ func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
 		MeetingID:   uuid.New().String(),
 		Members:     dto.Members,
 		StartedTime: time.Now().UTC().Truncate(time.Minute),
-		FinishTime:  dto.FinishDate,
+		FinishTime:  dto.FinishDate.UTC(),
 		ClassID:     dto.ClassID,
 	}
 }

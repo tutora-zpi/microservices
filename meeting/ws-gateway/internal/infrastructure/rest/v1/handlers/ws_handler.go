@@ -23,7 +23,6 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // /// TOODO CHANGE it
 	// id := r.URL.Query().Get("id")
 
 	client := ws.NewClient(id, conn)

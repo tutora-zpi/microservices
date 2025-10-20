@@ -6,6 +6,8 @@ import (
 	"mime/multipart"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var SUPPORTED_FILE_TYPES = []string{
@@ -54,10 +56,11 @@ func (f *FileMetadata) IsValidContentType() bool {
 
 func (f *FileMetadata) NewFileMessage(urlToLink string) *event.SendMessageEvent {
 	return &event.SendMessageEvent{
-		Content:  f.Content,
-		SenderID: f.SenderID,
-		SentAt:   f.SentAt,
-		FileLink: urlToLink,
-		ChatID:   f.ChatID,
+		MessageID: uuid.NewString(),
+		Content:   f.Content,
+		SenderID:  f.SenderID,
+		SentAt:    f.SentAt,
+		FileLink:  urlToLink,
+		ChatID:    f.ChatID,
 	}
 }

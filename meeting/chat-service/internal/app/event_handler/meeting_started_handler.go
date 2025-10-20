@@ -21,7 +21,6 @@ func (s *meetingStartedHandler) Handle(ctx context.Context, body []byte) error {
 	}
 
 	_, err := s.repo.Save(ctx, event.GetMemeberIDs(), event.MeetingID)
-
 	return err
 }
 

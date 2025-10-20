@@ -31,7 +31,25 @@ type handlers struct {
 	fileService    interfaces.FileService
 }
 
-// UploadFile implements Handlable.
+// UploadFile godoc
+// @Summary      Upload a file and create a file message
+// @Description  Uploads a file to the server, saves its metadata, and creates a chat message referencing the uploaded file.
+// @Tags         Messages
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        id path string true "Chat ID"
+// @Param        file formData file true "File to upload"
+// @Param        content formData string false "Optional message content"
+// @Param        senderId formData string true "UUID of the sender"
+// @Param        chatId formData string true "UUID of the chat"
+// @Param        sentAt formData int64 true "Unix timestamp when the message was sent"
+// @Success      201 {object} dto.MessageDTO "File uploaded successfully"
+// @Failure      400 {object} server.Response "Invalid parameters or file metadata"
+// @Failure      401 {object} server.Response "Unauthorized access"
+// @Failure      415 {object} server.Response "Unsupported media type"
+// @Failure      422 {object} server.Response "File metadata has been lost"
+// @Failure      500 {object} server.Response "Internal server error while saving the file"
+// @Router       /api/v1/chats/{id}/upload-file [post]
 func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -51,7 +69,7 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.messageService.SaveFileMessage(ctx, message)
 	if err != nil {
-		server.NewResponse(w, pkg.Ptr(err.Error()), http.StatusInternalServerError, nil)
+		server.NewResponse(w, pkg.Ptr(err.Error()), http.StatusBadRequest, nil)
 		return
 	}
 

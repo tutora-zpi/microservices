@@ -146,7 +146,7 @@ func (m *messageRepoImpl) React(ctx context.Context, event event.ReactOnMessageE
 
 // Reply implements repository.MessageRepository.
 func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageEvent) error {
-	newReply := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt, event.FileLink)
+	newReply := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.MessageID, event.SentAt, event.FileLink)
 
 	newReply.ReplyToID = &event.ReplyToMessageID
 
@@ -168,7 +168,7 @@ func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageE
 // Save implements repository.MessageRepository.
 func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent) (*dto.MessageDTO, error) {
 	log.Printf("Saving message: %s", event.Content)
-	newMessage := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt, event.FileLink)
+	newMessage := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.MessageID, event.SentAt, event.FileLink)
 
 	_, err := m.collectionMessage.InsertOne(ctx, newMessage)
 	if err != nil {
