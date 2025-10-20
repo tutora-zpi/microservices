@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"chat-service/internal/app/interfaces"
 	"chat-service/internal/domain/broker"
 	"chat-service/internal/domain/event"
 	"chat-service/internal/infrastructure/bus"
@@ -18,54 +17,59 @@ import (
 
 type RabbitMQBroker struct {
 	conn       *amqp.Connection
-	ch         *amqp.Channel
+	chPool     chan *amqp.Channel
 	dispatcher bus.Dispachable
 	config     RabbitConfig
-	mu         sync.Mutex
+	connMu     sync.Mutex
 }
 
-func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
+func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*RabbitMQBroker, error) {
 	if rabbitMQConfig.Timeout == 0 {
 		rabbitMQConfig.Timeout = 5 * time.Second
 	}
-	if rabbitMQConfig.ExchangeType == "" {
-		rabbitMQConfig.ExchangeType = "fanout"
+	if rabbitMQConfig.ChatExchange == "" {
+		rabbitMQConfig.ChatExchange = "fanout"
 	}
 
-	conn, err := connect(context.Background(), rabbitMQConfig.GetURL(), rabbitMQConfig.Timeout)
+	conn, err := connect(context.Background(), rabbitMQConfig.URL, rabbitMQConfig.Timeout)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		return nil, err
 	}
 
-	ch, err := conn.Channel()
-	if err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("failed to open channel: %w", err)
-	}
-
-	if err := declareExchanges(ch, rabbitMQConfig.ExchangeType, rabbitMQConfig.ChatExchange, rabbitMQConfig.MeetingExchange); err != nil {
-		conn.Close()
-		ch.Close()
-		return nil, fmt.Errorf("failed to declare exchanges: %w", err)
-	}
-
-	log.Printf("Successfully connected to RabbitMQ")
-
-	return &RabbitMQBroker{
+	broker := &RabbitMQBroker{
 		conn:       conn,
-		ch:         ch,
 		dispatcher: dispatcher,
 		config:     rabbitMQConfig,
-	}, nil
+		chPool:     make(chan *amqp.Channel, rabbitMQConfig.PoolSize),
+	}
+
+	for i := 0; i < rabbitMQConfig.PoolSize; i++ {
+		ch, err := conn.Channel()
+		if err != nil {
+			return nil, fmt.Errorf("failed to open channel: %w", err)
+		}
+		broker.chPool <- ch
+	}
+
+	firstCh := <-broker.chPool
+	if err := declareExchanges(firstCh, rabbitMQConfig.ChatExchange); err != nil {
+		return nil, err
+	}
+	broker.chPool <- firstCh
+
+	return broker, nil
 }
 
 func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	ch := <-r.chPool
+	defer func() { r.chPool <- ch }()
 
-	if err := r.ensureConnected(ctx, dest.Exchange); err != nil {
-		return fmt.Errorf("failed to ensure connection: %w", err)
+	r.connMu.Lock()
+	if r.conn == nil || r.conn.IsClosed() {
+		r.connMu.Unlock()
+		return fmt.Errorf("connection is closed")
 	}
+	r.connMu.Unlock()
 
 	wrapper := event.EventWrapper{
 		Pattern: ev.Name(),
@@ -84,19 +88,18 @@ func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broke
 	}
 
 	var exchange, routingKey string
-	switch {
-	case dest.Exchange != "":
+	if dest.Exchange != "" {
 		exchange = dest.Exchange
 		routingKey = dest.RoutingKey
-	case dest.Queue != "":
+	} else if dest.Queue != "" {
 		exchange = ""
 		routingKey = dest.Queue
-	default:
+	} else {
 		return fmt.Errorf("no destination specified")
 	}
 
-	if err := r.ch.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
-		return fmt.Errorf("failed to publish message to %s:%s: %w", exchange, routingKey, err)
+	if err := ch.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
 	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
@@ -117,11 +120,19 @@ func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, de
 }
 
 func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
-	if err := r.ensureConnected(ctx, exchange); err != nil {
-		return fmt.Errorf("failed to ensure connection: %w", err)
+	r.connMu.Lock()
+	if r.conn == nil || r.conn.IsClosed() {
+		r.connMu.Unlock()
+		return fmt.Errorf("connection is closed")
 	}
+	ch, err := r.conn.Channel()
+	r.connMu.Unlock()
+	if err != nil {
+		return fmt.Errorf("failed to open consumer channel: %w", err)
+	}
+	defer ch.Close()
 
-	q, err := r.ch.QueueDeclare(
+	q, err := ch.QueueDeclare(
 		"",
 		false,
 		false,
@@ -134,12 +145,12 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	}
 
 	for _, p := range r.dispatcher.AvailablePatterns() {
-		if err := r.ch.QueueBind(q.Name, p, exchange, false, nil); err != nil {
+		if err := ch.QueueBind(q.Name, p, exchange, false, nil); err != nil {
 			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", exchange, p, err)
 		}
 	}
 
-	msgs, err := r.ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
+	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)
 	}
@@ -185,48 +196,6 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 			}
 		}
 	}
-
-}
-
-func (r *RabbitMQBroker) ensureConnected(ctx context.Context, exchangeNames ...string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.conn == nil || r.conn.IsClosed() {
-		if r.ch != nil {
-			if err := r.ch.Close(); err != nil {
-				log.Printf("Failed to close existing channel: %v", err)
-			}
-			r.ch = nil
-		}
-		if r.conn != nil {
-			if err := r.conn.Close(); err != nil {
-				log.Printf("Failed to close existing connection: %v", err)
-			}
-			r.conn = nil
-		}
-
-		conn, err := connect(ctx, r.config.GetURL(), r.config.Timeout)
-		if err != nil {
-			return fmt.Errorf("failed to reconnect to RabbitMQ: %w", err)
-		}
-
-		ch, err := conn.Channel()
-		if err != nil {
-			conn.Close()
-			return fmt.Errorf("failed to open channel: %w", err)
-		}
-
-		r.conn = conn
-		r.ch = ch
-
-		if len(exchangeNames) > 0 {
-			if err := declareExchanges(r.ch, r.config.ExchangeType, exchangeNames...); err != nil {
-				return fmt.Errorf("failed to declare exchanges: %w", err)
-			}
-		}
-	}
-	return nil
 }
 
 func declareExchanges(ch *amqp.Channel, exchangeType string, exchangeNames ...string) error {

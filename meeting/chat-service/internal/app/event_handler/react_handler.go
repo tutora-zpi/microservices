@@ -15,7 +15,7 @@ type reactHandler struct {
 
 // Handle implements interfaces.EventHandler.
 func (s *reactHandler) Handle(ctx context.Context, body []byte) error {
-	var event event.ReactMessageOnEvent
+	var event event.ReactOnMessageEvent
 	if err := json.Unmarshal(body, &event); err != nil {
 		return fmt.Errorf("failed to decode: %w", err)
 	}

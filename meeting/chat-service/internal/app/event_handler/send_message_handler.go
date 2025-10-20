@@ -20,7 +20,7 @@ func (s *sendMessageHandlerImpl) Handle(ctx context.Context, body []byte) error 
 		return fmt.Errorf("failed to decode: %w", err)
 	}
 
-	err := s.repo.Save(ctx, event)
+	_, err := s.repo.Save(ctx, event)
 
 	return err
 }

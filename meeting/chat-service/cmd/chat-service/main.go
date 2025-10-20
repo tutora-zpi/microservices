@@ -7,6 +7,7 @@ import (
 	"chat-service/internal/config"
 	"chat-service/internal/domain/event"
 	"chat-service/internal/infrastructure/bus"
+	"chat-service/internal/infrastructure/file"
 	"chat-service/internal/infrastructure/messaging"
 	mongoConn "chat-service/internal/infrastructure/mongo"
 	"chat-service/internal/infrastructure/repository"
@@ -38,7 +39,7 @@ func init() {
 
 func main() {
 	var mongoConfig *mongoConn.MongoConfig = mongoConn.NewMongoConfig()
-	var rabbitMQConfig *messaging.RabbitConfig = messaging.NewRabbitConfig()
+	var rabbitMQConfig *messaging.RabbitConfig = messaging.NewRabbitMQConfig(time.Second*5, 10)
 
 	var mongoClient *mongo.Client
 	var dispatcher bus.Dispachable = bus.NewDispatcher()
@@ -81,7 +82,7 @@ func main() {
 
 	dispatcher.Register(&event.SendMessageEvent{}, eventhandler.NewSendMessageHandler(messageRepo))
 	dispatcher.Register(&event.MeetingStartedEvent{}, eventhandler.NewMeetingStartedHandler(chatRepo))
-	dispatcher.Register(&event.ReactMessageOnEvent{}, eventhandler.NewReactHandler(messageRepo))
+	dispatcher.Register(&event.ReactOnMessageEvent{}, eventhandler.NewReactHandler(messageRepo))
 	dispatcher.Register(&event.ReplyOnMessageEvent{}, eventhandler.NewReplyHandler(messageRepo))
 
 	log.Println("All services initialized successfully")
@@ -101,9 +102,10 @@ func main() {
 	}(rootCtx)
 
 	chatService := service.NewChatService(chatRepo)
-	messageService := service.NewMessageService(messageRepo)
+	messageService := service.NewMessageService(messageRepo, broker)
+	fileSerivce := file.NewLocalFileService("/api/v1/media")
 
-	handlers := handlers.NewHandlers(chatService, messageService)
+	handlers := handlers.NewHandlers(chatService, messageService, fileSerivce)
 
 	router := rest.NewRouter(handlers)
 	server := server.NewServer(router)

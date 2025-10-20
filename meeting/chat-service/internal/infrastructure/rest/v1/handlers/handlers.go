@@ -7,6 +7,7 @@ package handlers
 import (
 	"chat-service/internal/app/interfaces"
 	"chat-service/internal/domain/dto/requests"
+	"chat-service/internal/domain/metadata"
 	"chat-service/internal/infrastructure/server"
 	"chat-service/pkg"
 	"fmt"
@@ -21,11 +22,40 @@ type Handlable interface {
 	DeleteChat(w http.ResponseWriter, r *http.Request)
 	FetchMoreMessages(w http.ResponseWriter, r *http.Request)
 	CreateGeneralChat(w http.ResponseWriter, r *http.Request)
+	UploadFile(w http.ResponseWriter, r *http.Request)
 }
 
 type handlers struct {
 	chatService    interfaces.ChatService
 	messageService interfaces.MessageService
+	fileService    interfaces.FileService
+}
+
+// UploadFile implements Handlable.
+func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	fileMetadata, ok := ctx.Value(FileMetadata).(metadata.FileMetadata)
+	if !ok {
+		server.NewResponse(w, pkg.Ptr("File metadata has been lost"), http.StatusUnprocessableEntity, nil)
+		return
+	}
+
+	urlToFile, err := h.fileService.Save(ctx, &fileMetadata)
+	if err != nil {
+		server.NewResponse(w, pkg.Ptr("Failed to save data"), http.StatusInternalServerError, nil)
+		return
+	}
+
+	message := *fileMetadata.NewFileMessage(urlToFile)
+
+	result, err := h.messageService.SaveFileMessage(ctx, message)
+	if err != nil {
+		server.NewResponse(w, pkg.Ptr(err.Error()), http.StatusInternalServerError, nil)
+		return
+	}
+
+	server.NewResponse(w, nil, http.StatusCreated, *result)
 }
 
 // CreateGeneralChat godoc
@@ -146,6 +176,6 @@ func (h *handlers) FindChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewHandlers(chatService interfaces.ChatService,
-	messageService interfaces.MessageService) Handlable {
-	return &handlers{chatService: chatService, messageService: messageService}
+	messageService interfaces.MessageService, fileService interfaces.FileService) Handlable {
+	return &handlers{chatService: chatService, messageService: messageService, fileService: fileService}
 }

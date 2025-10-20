@@ -8,9 +8,9 @@ import (
 )
 
 type MessageRepository interface {
-	Save(ctx context.Context, event event.SendMessageEvent) error
+	Save(ctx context.Context, event event.SendMessageEvent) (*dto.MessageDTO, error)
 	Reply(ctx context.Context, event event.ReplyOnMessageEvent) error
-	React(ctx context.Context, event event.ReactMessageOnEvent) error
+	React(ctx context.Context, event event.ReactOnMessageEvent) error
 	Delete(ctx context.Context, dto requests.DeleteMessage) error
 	FindMore(ctx context.Context, dto requests.GetMoreMessages) ([]*dto.MessageDTO, error)
 }

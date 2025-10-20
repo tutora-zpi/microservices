@@ -158,8 +158,10 @@ func (h *hub) EmitGlobal(payload []byte) {
 
 // Emit implements interfaces.HubManager.
 func (h *hub) Emit(roomID string, payload []byte, pred func(id string) bool) {
+	log.Println("Emiiting")
 	value, ok := h.rooms.Load(roomID)
 	if !ok {
+		log.Printf("No room with id: %s", roomID)
 		return
 	}
 
@@ -172,6 +174,8 @@ func (h *hub) Emit(roomID string, payload []byte, pred func(id string) bool) {
 		if pred(client.ID()) {
 			if err := client.GetConnection().WriteMessage(websocket.TextMessage, payload); err != nil {
 				log.Printf("Error sending to %s: %v", client.ID(), err)
+			} else {
+				log.Printf("Successfully emitted: %s", string(payload))
 			}
 		}
 	}

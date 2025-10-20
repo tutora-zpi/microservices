@@ -39,3 +39,11 @@ func (EventWrapper) DecodedEventWrapper(data []byte) (pattern string, decodedDat
 
 	return pattern, decodedData, nil
 }
+
+func (e *EventWrapper) ToBytes() []byte {
+	if bytes, err := json.Marshal(e); err != nil {
+		return []byte{}
+	} else {
+		return bytes
+	}
+}

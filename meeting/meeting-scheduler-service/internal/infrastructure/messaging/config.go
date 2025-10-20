@@ -18,17 +18,18 @@ type RabbitConfig struct {
 	NotificationExchange string
 	MeetingExchange      string
 
-	Timeout time.Duration
+	PoolSize int
+	Timeout  time.Duration
+
+	ExchangeType string
 }
 
-func NewRabbitMQConfig(timout time.Duration) *RabbitConfig {
+func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 	user := os.Getenv(config.RABBITMQ_DEFAULT_USER)
 	pass := os.Getenv(config.RABBITMQ_DEFAULT_PASS)
 	host := os.Getenv(config.RABBITMQ_HOST)
 	port := os.Getenv(config.RABBITMQ_PORT)
 	url := os.Getenv(config.RABBITMQ_URL)
-	notificationExchange := os.Getenv(config.NOTIFICATION_EXCHANGE)
-	meetingExchange := os.Getenv(config.MEETING_EXCHANGE)
 
 	if url == "" {
 		if user == "" || pass == "" || host == "" || port == "" {
@@ -43,8 +44,10 @@ func NewRabbitMQConfig(timout time.Duration) *RabbitConfig {
 		Host:                 host,
 		Port:                 port,
 		URL:                  url,
-		NotificationExchange: notificationExchange,
-		MeetingExchange:      meetingExchange,
-		Timeout:              timout,
+		NotificationExchange: os.Getenv(config.NOTIFICATION_EXCHANGE),
+		MeetingExchange:      os.Getenv(config.MEETING_EXCHANGE),
+		PoolSize:             poolSize,
+		ExchangeType:         "fanout",
+		Timeout:              timeout,
 	}
 }

@@ -121,7 +121,7 @@ func (m *messageRepoImpl) FindMore(ctx context.Context, req requests.GetMoreMess
 }
 
 // React implements repository.MessageRepository.
-func (m *messageRepoImpl) React(ctx context.Context, event event.ReactMessageOnEvent) error {
+func (m *messageRepoImpl) React(ctx context.Context, event event.ReactOnMessageEvent) error {
 	reaction, err := models.NewReaction(event.UserID, event.MessageID, event.Emoji, event.SentAt)
 	if err != nil {
 		return err
@@ -142,24 +142,13 @@ func (m *messageRepoImpl) React(ctx context.Context, event event.ReactMessageOnE
 
 // Reply implements repository.MessageRepository.
 func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageEvent) error {
-	newReply, err := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt)
-	if err != nil {
-		return err
-	}
+	newReply := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt, event.FileLink)
 
 	newReply.ReplyToID = &event.ReplyToMessageID
 
 	if _, err := m.collectionMessage.InsertOne(ctx, newReply); err != nil {
 		return fmt.Errorf("failed to insert reply message: %w", err)
 	}
-
-	// if _, err := m.collectionMessage.UpdateByID(
-	// 	ctx,
-	// 	event.ReplyToMessageID,
-	// 	bson.M{"$set": bson.M{"replyToId": newReply.ID}},
-	// ); err != nil {
-	// 	return fmt.Errorf("failed to update parent message: %w", err)
-	// }
 
 	if _, err := m.collectionChat.UpdateByID(
 		ctx,
@@ -173,16 +162,14 @@ func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageE
 }
 
 // Save implements repository.MessageRepository.
-func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent) error {
+func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent) (*dto.MessageDTO, error) {
 	log.Printf("Saving message: %s", event.Content)
-	newMessage, err := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt)
-	if err != nil {
-		return err
-	}
+	newMessage := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.SentAt, event.FileLink)
 
-	_, err = m.collectionMessage.InsertOne(ctx, newMessage)
+	_, err := m.collectionMessage.InsertOne(ctx, newMessage)
 	if err != nil {
-		return fmt.Errorf("failed to insert message: %v", err)
+		log.Printf("Failed to insert message: %v", err)
+		return nil, fmt.Errorf("failed to insert message")
 	}
 
 	_, err = m.collectionChat.UpdateOne(
@@ -191,10 +178,11 @@ func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent
 		bson.M{"$push": bson.M{"messagesIds": newMessage.ID}},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update chat with message ID: %v", err)
+		log.Printf("Failed to update chat with message ID: %v", err)
+		return nil, fmt.Errorf("failed to update chat with message")
 	}
 
-	return nil
+	return dto.NewMessageDTO(*newMessage, nil, []models.Reaction{}), nil
 }
 
 func NewMessageRepository(client *mongo.Client, mongoConfig mongoConn.MongoConfig) repository.MessageRepository {

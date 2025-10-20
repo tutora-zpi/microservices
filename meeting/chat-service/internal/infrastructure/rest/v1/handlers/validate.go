@@ -18,7 +18,7 @@ var dtoRegistry = map[string]func() any{
 	"/api/v1/chat/general": func() any { return &requests.CreateGeneralChat{} },
 }
 
-func Validate(next http.Handler) http.Handler {
+func ValidateJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		constructor, ok := dtoRegistry[r.URL.Path]
 		if !ok {
