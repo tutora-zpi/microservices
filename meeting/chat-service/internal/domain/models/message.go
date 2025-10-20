@@ -16,17 +16,25 @@ type Message struct {
 	ReactionIDs []string `bson:"reactionIds,omitempty"`
 
 	Content string `bson:"content"`
+
+	FileLink *string `bson:"fileLink,omitempty"`
 }
 
-func NewMessage(chatID, senderID, content string, sentAt int64) (*Message, error) {
+func NewMessage(chatID, senderID, content string, sentAt int64, fileLink string) *Message {
 	id := uuid.New()
 
-	return &Message{
+	msg := &Message{
 		ID:        id.String(),
 		SenderID:  senderID,
 		ChatID:    chatID,
 		SentAt:    sentAt,
 		Content:   content,
 		ReplyToID: nil,
-	}, nil
+	}
+
+	if fileLink != "" {
+		msg.FileLink = &fileLink
+	}
+
+	return msg
 }

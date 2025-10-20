@@ -6,7 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type ReactMessageOnEvent struct {
+type ReactOnMessageEvent struct {
 	MessageID string `json:"messageId"`
 	UserID    string `json:"userID"`
 	Emoji     string `json:"emoji"`
@@ -14,12 +14,12 @@ type ReactMessageOnEvent struct {
 	SentAt    int64  `json:"sentAt"`
 }
 
-func (e *ReactMessageOnEvent) IsValid() error {
+func (e *ReactOnMessageEvent) IsValid() error {
 	v := validator.New()
 
 	return v.Struct(e)
 }
 
-func (r *ReactMessageOnEvent) Name() string {
+func (r *ReactOnMessageEvent) Name() string {
 	return reflect.TypeOf(*r).Name()
 }

@@ -54,7 +54,7 @@ func (c *cacheEventRepoImpl) PushEvent(ctx context.Context, roomID string, compr
 
 	pipe := c.client.Pipeline()
 
-	pipe.LPush(ctx, key, compressedData)
+	pipe.RPush(ctx, key, compressedData)
 	pipe.LTrim(ctx, key, 0, int64(c.maxPerRoom)-1)
 	pipe.Expire(ctx, key, c.ttl)
 
@@ -62,6 +62,7 @@ func (c *cacheEventRepoImpl) PushEvent(ctx context.Context, roomID string, compr
 	if err != nil {
 		return fmt.Errorf("failed to push event with trim: %v", err)
 	}
+
 	return nil
 }
 
@@ -72,10 +73,6 @@ func (c *cacheEventRepoImpl) GetCachedEvents(ctx context.Context, roomID string)
 
 	if err != nil {
 		return nil, fmt.Errorf("something went wrong: %v", err)
-	}
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no cached events for key: %s", roomID)
 	}
 
 	byteMatrix := make([][]byte, len(results))

@@ -3,7 +3,6 @@ package messaging
 import (
 	"chat-service/internal/config"
 	"fmt"
-	"net/url"
 	"os"
 	"time"
 )
@@ -13,40 +12,39 @@ type RabbitConfig struct {
 	Pass string
 	Port string
 	Host string
-	URL  string
+
+	URL string
 
 	ChatExchange    string
 	MeetingExchange string
 
-	Timeout      time.Duration
-	ExchangeType string
+	PoolSize int
+	Timeout  time.Duration
 }
 
-func NewRabbitConfig() *RabbitConfig {
-	return &RabbitConfig{
-		Pass: os.Getenv(config.RABBITMQ_DEFAULT_PASS),
-		User: os.Getenv(config.RABBITMQ_DEFAULT_USER),
-		Host: os.Getenv(config.RABBITMQ_HOST),
-		Port: os.Getenv(config.RABBITMQ_PORT),
-		URL:  os.Getenv(config.RABBITMQ_URL),
+func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
+	user := os.Getenv(config.RABBITMQ_DEFAULT_USER)
+	pass := os.Getenv(config.RABBITMQ_DEFAULT_PASS)
+	host := os.Getenv(config.RABBITMQ_HOST)
+	port := os.Getenv(config.RABBITMQ_PORT)
+	url := os.Getenv(config.RABBITMQ_URL)
 
+	if url == "" {
+		if user == "" || pass == "" || host == "" || port == "" {
+			return nil
+		}
+		url = fmt.Sprintf("amqp://%s:%s@%s:%s", user, pass, host, port)
+	}
+
+	return &RabbitConfig{
+		User:            user,
+		Pass:            pass,
+		Host:            host,
+		Port:            port,
+		URL:             url,
+		PoolSize:        poolSize,
+		Timeout:         timeout,
 		ChatExchange:    os.Getenv(config.CHAT_EXCHANGE),
 		MeetingExchange: os.Getenv(config.MEETING_EXCHANGE),
-
-		Timeout:      time.Second * 5,
-		ExchangeType: "fanout",
 	}
-}
-
-func (r *RabbitConfig) GetURL() string {
-	_, err := url.Parse(r.URL)
-	if err == nil && r.URL != "" {
-		return r.URL
-	}
-
-	if r.User == "" || r.Pass == "" || r.Host == "" || r.Port == "" {
-		return ""
-	}
-
-	return fmt.Sprintf("amqp://%s:%s@%s:%s", r.User, r.Pass, r.Host, r.Port)
 }

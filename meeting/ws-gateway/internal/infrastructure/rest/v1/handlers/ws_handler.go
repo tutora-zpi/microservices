@@ -23,7 +23,7 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// /// TOODO CHANGE it
+	// // /// TOODO CHANGE it
 	// id := r.URL.Query().Get("id")
 
 	client := ws.NewClient(id, conn)
@@ -33,6 +33,7 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	backgroundCtx := createBackgroundCtx(ctx)
 
 	go client.Listen(backgroundCtx, h.WithAuth(h.dispatcher.HandleEvent))
+	// go client.Listen(backgroundCtx, h.dispatcher.HandleEvent)
 }
 
 func createBackgroundCtx(requestCtx context.Context) context.Context {

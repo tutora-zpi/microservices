@@ -42,7 +42,7 @@ func main() {
 	var postgresClient *gorm.DB
 	var postgresConfig postgres.PostgresConfig = *postgres.NewPostgresConfig(time.Second * 5)
 	var redisConfig redis.RedisConfig = *redis.NewRedisConfig(time.Second * 5)
-	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig(time.Second * 5)
+	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig(time.Second*5, 10)
 	var broker interfaces.Broker
 	var wg sync.WaitGroup
 
@@ -89,7 +89,7 @@ func main() {
 	defer func() {
 		postgres.Close(closeCtx, postgresClient, postgresConfig)
 		redis.Close(closeCtx, redisClient, redisConfig)
-		broker.Close(closeCtx, time.Second*5)
+		broker.Close()
 
 		cancel()
 	}()

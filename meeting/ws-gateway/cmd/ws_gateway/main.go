@@ -8,12 +8,14 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	eventhandler "ws-gateway/internal/app/event_handler"
 	"ws-gateway/internal/app/interfaces"
-	boardHandler "ws-gateway/internal/app/socket_event_handler/board"
-	chatHandler "ws-gateway/internal/app/socket_event_handler/chat"
-	generalHandler "ws-gateway/internal/app/socket_event_handler/general"
-	rtcHandler "ws-gateway/internal/app/socket_event_handler/rtc"
+	boardHandler "ws-gateway/internal/app/ws_event_handler/board"
+	chatHandler "ws-gateway/internal/app/ws_event_handler/chat"
+	generalHandler "ws-gateway/internal/app/ws_event_handler/general"
+	rtcHandler "ws-gateway/internal/app/ws_event_handler/rtc"
 	"ws-gateway/internal/config"
+	"ws-gateway/internal/domain/event"
 	boardDomain "ws-gateway/internal/domain/ws_event/board"
 	chatDomain "ws-gateway/internal/domain/ws_event/chat"
 	generalDomain "ws-gateway/internal/domain/ws_event/general"
@@ -22,7 +24,7 @@ import (
 	"ws-gateway/internal/infrastructure/cache/repo"
 	"ws-gateway/internal/infrastructure/cache/service"
 	"ws-gateway/internal/infrastructure/messaging"
-	myredis "ws-gateway/internal/infrastructure/redis"
+	redisdb "ws-gateway/internal/infrastructure/redis"
 	"ws-gateway/internal/infrastructure/rest"
 	"ws-gateway/internal/infrastructure/rest/v1/handlers"
 	security "ws-gateway/internal/infrastructure/security/jwt"
@@ -49,8 +51,8 @@ func main() {
 	var wg sync.WaitGroup
 	var broker interfaces.Broker
 	var redisClient *redis.Client
-	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig()
-	var redisConfig myredis.RedisConfig = *myredis.NewRedisConfig(time.Second * 5)
+	var rabbitmqConfig messaging.RabbitConfig = *messaging.NewRabbitMQConfig(time.Second*5, 10)
+	var redisConfig redisdb.RedisConfig = *redisdb.NewRedisConfig(time.Second * 5)
 	var errors chan error = make(chan error, 2)
 	dispacher := bus.NewDispatcher()
 
@@ -65,7 +67,7 @@ func main() {
 
 	wg.Go(func() {
 		var err error
-		redisClient, err = myredis.NewRedis(initCtx, redisConfig)
+		redisClient, err = redisdb.NewRedis(initCtx, redisConfig)
 		if err != nil {
 			errors <- err
 		}
@@ -96,22 +98,29 @@ func main() {
 		}
 	}()
 
-	cacheRepo := repo.NewCacheEventRepository(redisClient, 10, time.Minute)
+	cacheRepo := repo.NewCacheEventRepository(redisClient, 10, time.Second*30)
 	cacheService := service.NewCacheEventSerivce(cacheRepo)
 
 	eventBuffer := bus.NewEventBuffer(broker)
 	defer eventBuffer.Close()
 
-	go eventBuffer.Work(rootCtx)
+	dispacher.Register(&generalDomain.UserJoinedWSEvent{}, generalHandler.NewUserJoinedHandler(hub, cacheService))
+	dispacher.Register(&generalDomain.UserLeftWSEvent{}, generalHandler.NewUserLeftHandler(hub))
+	dispacher.Register(&chatDomain.UserTypingWSEvent{}, chatHandler.NewUserTypingHandler(hub))
+	dispacher.Register(&chatDomain.SendMessageWSEvent{}, chatHandler.NewSendMessageHandler(hub, eventBuffer, cacheService))
+	dispacher.Register(&boardDomain.BoardUpdateWSEvent{}, boardHandler.NewBoardUpdateHandler(hub, eventBuffer, cacheService))
+	dispacher.Register(&rtcDomain.AnswerWSEvent{}, rtcHandler.NewAnswerHandler(hub))
+	dispacher.Register(&rtcDomain.IceCandidateWSEvent{}, rtcHandler.NewIceCandidateHandler(hub))
+	dispacher.Register(&rtcDomain.OfferWSEvent{}, rtcHandler.NewOfferHandler(hub))
+	dispacher.Register(&event.SendFileMessageEvent{}, eventhandler.NewSendFileMessageHandler(hub, cacheService))
 
-	dispacher.Register(&generalDomain.UserJoinedEvent{}, generalHandler.NewUserJoinedHandler(hub, cacheService))
-	dispacher.Register(&generalDomain.UserLeftEvent{}, generalHandler.NewUserLeftHandler(hub))
-	dispacher.Register(&chatDomain.UserTypingEvent{}, chatHandler.NewUserTypingHandler(hub))
-	dispacher.Register(&chatDomain.SendMessageEvent{}, chatHandler.NewSendMessageHandler(hub, eventBuffer, cacheService))
-	dispacher.Register(&boardDomain.BoardUpdateEvent{}, boardHandler.NewBoardUpdateHandler(hub, eventBuffer, cacheService))
-	dispacher.Register(&rtcDomain.AnswerEvent{}, rtcHandler.NewAnswerHandler(hub))
-	dispacher.Register(&rtcDomain.IceCandidateEvent{}, rtcHandler.NewIceCandidateHandler(hub))
-	dispacher.Register(&rtcDomain.OfferEvent{}, rtcHandler.NewOfferHandler(hub))
+	go eventBuffer.Work(rootCtx)
+	go func() {
+		err := broker.Consume(rootCtx, rabbitmqConfig.ChatExchange)
+		if err != nil {
+			log.Printf("Consuming error: %v", err)
+		}
+	}()
 
 	tokenService := securityRepo.NewTokenService(redisClient)
 
