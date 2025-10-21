@@ -5,44 +5,41 @@ import (
 	"log"
 )
 
-type EventWrapper struct {
-	Pattern string `json:"pattern"`
-	Data    any    `json:"data"`
+type Event interface {
+	Name() string
 }
 
-type Event any
-
-func NewEventWrapper(pattern string, event Event) EventWrapper {
-	return EventWrapper{
-		Pattern: pattern,
-		Data:    event,
-	}
+type EventWrapper struct {
+	Pattern string `json:"pattern"`
+	Data    Event  `json:"data"`
 }
 
 func (e *EventWrapper) ToJson() ([]byte, error) {
 	return json.Marshal(e)
 }
 
-func (e *EventWrapper) FromJson(body []byte) *EventWrapper {
-	var decoded EventWrapper
-	err := json.Unmarshal(body, &decoded)
-	if err != nil {
-		log.Printf("Failed to decode message: %v", err)
-		return nil
+func NewEventWrapper(event Event) EventWrapper {
+	return EventWrapper{
+		Pattern: event.Name(),
+		Data:    event,
 	}
-
-	return &decoded
 }
 
-func (e *EventWrapper) DecodeBody(dest any) error {
-	payload, err := json.Marshal(e.Data)
-	if err != nil {
-		return err
+func (EventWrapper) DecodedEventWrapper(data []byte) (pattern string, decodedData []byte, err error) {
+	type body struct {
+		Pattern string          `json:"pattern"`
+		Data    json.RawMessage `json:"data"`
 	}
 
-	if err := json.Unmarshal(payload, &dest); err != nil {
-		return err
+	var decodedBody body
+
+	if err = json.Unmarshal(data, &decodedBody); err != nil {
+		log.Println("Failed to decode data:", err)
+		return "", nil, err
 	}
 
-	return nil
+	pattern = decodedBody.Pattern
+	decodedData = decodedBody.Data
+
+	return pattern, decodedData, nil
 }

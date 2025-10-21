@@ -38,6 +38,7 @@ require (
 )
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.8.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gorilla/mux v1.8.1

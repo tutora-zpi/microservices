@@ -2,13 +2,12 @@ package interfaces
 
 import (
 	"context"
+	"recorder-service/internal/domain/broker"
 	"recorder-service/internal/domain/event"
-	"recorder-service/internal/infrastructure/config"
 )
 
 type Broker interface {
-	Close()
-
-	Publish(event event.EventWrapper, opts config.PublishOptions) error
-	Consume(ctx context.Context, options config.ConsumeOptions, dispacher Dispatcher) error
+	Publish(ctx context.Context, e event.Event, dest broker.Destination) error
+	PublishMultiple(ctx context.Context, ev event.Event, destinations ...broker.Destination) error
+	Consume(ctx context.Context, exchange string) error
 }

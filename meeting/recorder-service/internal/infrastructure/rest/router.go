@@ -2,19 +2,19 @@ package rest
 
 import (
 	"net/http"
-	"recorder-service/internal/infrastructure/handlers"
-	"recorder-service/internal/infrastructure/ws"
+
+	"recorder-service/internal/infrastructure/rest/v1/handlers"
 
 	"github.com/gorilla/mux"
 )
 
-func NewRouter(gateway ws.Gateway) *mux.Router {
+func NewRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
 
 	// swagger
 
-	router.HandleFunc("/ws", gateway.Handle)
+	// router.HandleFunc("/ws", gateway.Handle)
 
 	api := router.PathPrefix("/api/v1/").Subrouter()
 

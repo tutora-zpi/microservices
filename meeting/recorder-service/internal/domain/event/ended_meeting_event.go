@@ -6,7 +6,7 @@ import (
 )
 
 type MeetingEndedEvent struct {
-	MeetingID string        `json:"meetingID"`
+	MeetingID string        `json:"meetingId"`
 	Members   []dto.UserDTO `json:"members"`
 	EndedTime time.Time     `json:"endedTime"`
 }
