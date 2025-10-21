@@ -259,7 +259,7 @@ services:
 
   ws_gateway:
     build:
-      context: ./meeting/ws-gateway/
+      context: ./gateway/ws-gateway/
       dockerfile: Dockerfile
     container_name: ws_gateway
     env_file:
