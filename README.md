@@ -13,7 +13,7 @@
 - `gateway`
     - **ws-gateway** gateway for all real time events
 
-- `ml` related to ai functionalities 
+- `ml` related to ai functionalities
     - **note-service** generating notes from saved .mp3 file.
 
 - `alerts`
