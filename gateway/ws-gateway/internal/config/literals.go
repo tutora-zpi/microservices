@@ -17,4 +17,5 @@ const (
 
 	CHAT_EXCHANGE  string = "CHAT_EXCHANGE"
 	BOARD_EXCHANGE string = "BOARD_EXCHANGE"
+	FILE_QUEUE     string = "FILE_QUEUE"
 )

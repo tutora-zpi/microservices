@@ -1,22 +1,22 @@
 package model
 
 import (
+	"path"
+	"recorder-service/internal/domain/dto"
 	"recorder-service/internal/domain/event"
 	"time"
-
-	"github.com/lib/pq"
 )
 
 type VoiceSessionMetadata struct {
 	// ID is meeting ID to easily identify the voice meeting.
-	MeetingID string `gorm:"primaryKey;not null" json:"meetingId"`
-	ClassID   string `gorm:"not null;unique" json:"classId"`
+	MeetingID string `bson:"meetingId"`
+	ClassID   string `bson:"classId"`
 
-	StartedAt time.Time      `gorm:"type:date;not null" json:"startedAt"`
-	EndedAt   *time.Time     `gorm:"type:date;not null" json:"endedAt"`
-	MemberIDs pq.StringArray `gorm:"text[];not null" json:"memberIds"`
+	StartedAt time.Time  `bson:"startedAt"`
+	EndedAt   *time.Time `bson:"endedAt,omitempty"`
+	MemberIDs []string   `bson:"memberIds"`
 
-	MergedAudioName *string `gorm:"not null" json:"audioName"`
+	MergedAudioName *string `bson:"audioName,omitempty"`
 }
 
 func NewVoiceSession(event event.MeetingStartedEvent) *VoiceSessionMetadata {
@@ -33,5 +33,24 @@ func NewVoiceSession(event event.MeetingStartedEvent) *VoiceSessionMetadata {
 		StartedAt: event.StartedTime,
 		EndedAt:   &event.FinishTime,
 		MemberIDs: ids,
+	}
+}
+
+func (v *VoiceSessionMetadata) GetAudioURL() string {
+	path := path.Join("api", "v1", "recordings", v.MeetingID)
+	return path
+}
+
+func (v *VoiceSessionMetadata) DTO() *dto.VoiceSessionMetadataDTO {
+	audioURL := v.GetAudioURL()
+
+	return &dto.VoiceSessionMetadataDTO{
+		ClassID:   v.ClassID,
+		MeetingID: v.MeetingID,
+		EndedAt:   v.EndedAt,
+		StartedAt: &v.StartedAt,
+		Duration:  int64(v.EndedAt.Sub(v.StartedAt)),
+		MemberIDs: v.MemberIDs,
+		AudioURL:  &audioURL,
 	}
 }

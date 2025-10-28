@@ -30,3 +30,11 @@ func NewExchangeDestination(event event.Event, exchange string) Destination {
 		RoutingKey: event.Name(),
 	}
 }
+
+func NewQueueDestination(event event.Event, queueName string) Destination {
+	return Destination{
+		Queue:      queueName,
+		Exchange:   "",
+		RoutingKey: "",
+	}
+}

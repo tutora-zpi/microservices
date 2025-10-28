@@ -22,6 +22,7 @@ type RabbitConfig struct {
 	Timeout  time.Duration
 
 	ExchangeType string
+	FileQueue    string
 }
 
 func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
@@ -49,5 +50,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		PoolSize:      poolSize,
 		ExchangeType:  "fanout",
 		Timeout:       timeout,
+		FileQueue:     os.Getenv(config.FILE_QUEUE),
 	}
 }

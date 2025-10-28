@@ -105,11 +105,13 @@ func main() {
 
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 
-	go func() {
-		if err := broker.Consume(rootCtx, rabbitmqConfig.NotificationExchange); err != nil {
-			log.Println(err)
-		}
-	}()
+	for _, exchange := range rabbitmqConfig.Exchanges {
+		go func() {
+			if err := broker.Consume(rootCtx, exchange); err != nil {
+				log.Println(err)
+			}
+		}()
+	}
 
 	go func() {
 		if err := httpServer.StartAndListen(); err != nil {

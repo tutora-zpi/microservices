@@ -33,7 +33,7 @@ func NewServer(router *mux.Router) *Server {
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"DELETE", "GET", "HEAD", "OPTIONS", "POST"},
+		AllowedMethods:   []string{"GET", "HEAD", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})

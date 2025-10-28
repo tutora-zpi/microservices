@@ -15,8 +15,9 @@ type RabbitConfig struct {
 
 	URL string
 
-	ChatExchange    string
 	MeetingExchange string
+	ExchangeType    string
+	RecorderQueue   string
 
 	PoolSize int
 	Timeout  time.Duration
@@ -44,7 +45,7 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		URL:             url,
 		PoolSize:        poolSize,
 		Timeout:         timeout,
-		ChatExchange:    os.Getenv(config.CHAT_EXCHANGE),
+		ExchangeType:    "fanout",
 		MeetingExchange: os.Getenv(config.MEETING_EXCHANGE),
 	}
 }

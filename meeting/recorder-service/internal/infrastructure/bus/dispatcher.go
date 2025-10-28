@@ -3,27 +3,27 @@ package bus
 import (
 	"context"
 	"log"
-	"recorder-service/internal/app/interfaces"
+	"recorder-service/internal/app/interfaces/handler"
 	"recorder-service/internal/domain/event"
 )
 
 type Dispachable interface {
-	Register(evt event.Event, handler interfaces.EventHandler)
+	Register(evt event.Event, handler handler.EventHandler)
 	HandleEvent(ctx context.Context, queueName string, msg []byte) error
 	AvailablePatterns() []string
 }
 
 type Dispatcher struct {
-	registry *HandlerRegistry[interfaces.EventHandler]
+	registry *HandlerRegistry[handler.EventHandler]
 }
 
 func NewDispatcher() Dispachable {
 	return &Dispatcher{
-		registry: NewHandlerRegistry[interfaces.EventHandler](),
+		registry: NewHandlerRegistry[handler.EventHandler](),
 	}
 }
 
-func (d *Dispatcher) Register(evt event.Event, handler interfaces.EventHandler) {
+func (d *Dispatcher) Register(evt event.Event, handler handler.EventHandler) {
 	log.Printf("Registering [%s]", evt.Name())
 	d.registry.Register(evt.Name(), handler)
 }

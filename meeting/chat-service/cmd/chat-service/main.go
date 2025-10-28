@@ -87,22 +87,16 @@ func main() {
 
 	log.Println("All services initialized successfully")
 
-	go func(ctx context.Context) {
-		if err := broker.Consume(ctx, rabbitMQConfig.ChatExchange); err != nil {
-			log.Printf("Consumer error: %v", err)
-
-		}
-	}(rootCtx)
-
-	go func(ctx context.Context) {
-		if err := broker.Consume(ctx, rabbitMQConfig.MeetingExchange); err != nil {
-			log.Printf("Consumer error: %v", err)
-
-		}
-	}(rootCtx)
+	for _, exchange := range rabbitMQConfig.Exchanges {
+		go func() {
+			if err := broker.Consume(rootCtx, exchange); err != nil {
+				log.Printf("Consumer error: %v", err)
+			}
+		}()
+	}
 
 	chatService := service.NewChatService(chatRepo)
-	messageService := service.NewMessageService(messageRepo, broker)
+	messageService := service.NewMessageService(messageRepo, broker, rabbitMQConfig.FileQueue)
 	fileSerivce := file.NewLocalFileService("/api/v1/media")
 
 	handlers := handlers.NewHandlers(chatService, messageService, fileSerivce)

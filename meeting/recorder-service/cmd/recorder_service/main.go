@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"recorder-service/internal/config"
 	"recorder-service/internal/infrastructure/rest"
+	"recorder-service/internal/infrastructure/rest/v1/handlers"
+	"recorder-service/internal/infrastructure/security"
 	"recorder-service/internal/infrastructure/server"
 	"syscall"
 
@@ -20,14 +22,16 @@ func init() {
 		_ = godotenv.Load(".env.local")
 	}
 
-	// security.FetchSignKey()
+	security.FetchSignKey()
 }
 
 func main() {
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	router := rest.NewRouter()
+	handlers := handlers.NewHandler(nil)
+
+	router := rest.NewRouter(handlers)
 	server := server.NewServer(router)
 	go func() {
 		if err := server.StartAndListen(); err != nil {

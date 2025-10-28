@@ -27,9 +27,6 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*
 	if rabbitMQConfig.Timeout == 0 {
 		rabbitMQConfig.Timeout = 5 * time.Second
 	}
-	if rabbitMQConfig.ChatExchange == "" {
-		rabbitMQConfig.ChatExchange = "fanout"
-	}
 
 	conn, err := connect(context.Background(), rabbitMQConfig.URL, rabbitMQConfig.Timeout)
 	if err != nil {
@@ -52,7 +49,7 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*
 	}
 
 	firstCh := <-broker.chPool
-	if err := declareExchanges(firstCh, rabbitMQConfig.ChatExchange); err != nil {
+	if err := declareExchanges(firstCh, rabbitMQConfig.ExchangeType, rabbitMQConfig.Exchanges...); err != nil {
 		return nil, err
 	}
 	broker.chPool <- firstCh
@@ -133,10 +130,10 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"",
+		r.config.ChatQueue,
 		false,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
@@ -149,13 +146,14 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", exchange, p, err)
 		}
 	}
+	log.Printf("Successfully bound %s exchange to %s queue", exchange, q.Name)
 
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)
 	}
 
-	log.Printf("Started consumer on queue %s for exchange %s", q.Name, exchange)
+	log.Printf("Started consumer on queue %s", q.Name)
 
 	for {
 		select {

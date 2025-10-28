@@ -116,7 +116,7 @@ func main() {
 
 	go eventBuffer.Work(rootCtx)
 	go func() {
-		err := broker.Consume(rootCtx, rabbitmqConfig.ChatExchange)
+		err := broker.Consume(rootCtx, rabbitmqConfig.FileQueue)
 		if err != nil {
 			log.Printf("Consuming error: %v", err)
 		}
