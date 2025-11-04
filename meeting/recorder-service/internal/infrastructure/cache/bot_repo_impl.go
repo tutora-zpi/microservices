@@ -24,7 +24,7 @@ func (b *botRepoImpl) TryAdd(ctx context.Context, roomID string, botID string, t
 	}
 
 	if !hasAdded {
-		return fmt.Errorf("room is already added")
+		log.Printf("Room is already added")
 	}
 
 	return nil

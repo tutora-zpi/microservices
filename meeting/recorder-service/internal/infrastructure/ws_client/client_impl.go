@@ -128,5 +128,9 @@ func NewSocketClient(url string, webrtcConfig *webrtc.Configuration) client.Clie
 		cfg = &webrtc.Configuration{}
 	}
 
+	if url == "" {
+		log.Fatal("No url provided")
+	}
+
 	return &socketClientImpl{url: url, cfg: *cfg}
 }

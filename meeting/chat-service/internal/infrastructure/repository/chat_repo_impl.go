@@ -22,6 +22,22 @@ type chatRepositoryImpl struct {
 	collectionReactions *mongo.Collection
 }
 
+// Update implements repository.ChatRepository.
+func (c *chatRepositoryImpl) Update(ctx context.Context, req requests.UpdateChatMembers) error {
+	err := c.collectionChat.FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": req.ChatID},
+		bson.M{"$push": bson.M{"membersIds": req.MembersIDs}},
+	).Err()
+
+	if err != nil {
+		log.Printf("Failed to update chat members ids: %v", err)
+		return fmt.Errorf("failed to update members ids in chat")
+	}
+
+	return nil
+}
+
 // Save implements repository.ChatRepository.
 func (c *chatRepositoryImpl) Save(ctx context.Context, memberIDs []string, chatID string) (*dto.ChatDTO, error) {
 	var found models.Chat

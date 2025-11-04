@@ -2,6 +2,7 @@ package recorder
 
 import (
 	"context"
+
 	"recorder-service/internal/domain/client"
 	"recorder-service/internal/infrastructure/webrtc/writer"
 )

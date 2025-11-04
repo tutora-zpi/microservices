@@ -11,11 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
-func NewMongoClient(rootCtx context.Context, url string, timeout time.Duration) (*mongo.Client, error) {
-	ctx, cancel := context.WithTimeout(rootCtx, timeout)
+func NewMongoClient(rootCtx context.Context, mongoConfig MongoConfig) (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(rootCtx, mongoConfig.Timeout)
 	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(url))
+	client, err := mongo.Connect(options.Client().ApplyURI(mongoConfig.URL()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}

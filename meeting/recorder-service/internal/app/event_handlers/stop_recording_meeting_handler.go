@@ -7,8 +7,8 @@ import (
 	"log"
 	"path"
 	"recorder-service/internal/app/interfaces/handler"
+	"recorder-service/internal/app/interfaces/service"
 	"recorder-service/internal/domain/event"
-	"recorder-service/internal/domain/recorder"
 	"recorder-service/internal/domain/repository"
 	"sync"
 	"time"
@@ -17,8 +17,8 @@ import (
 )
 
 type stopRecordingMeetingHandler struct {
-	recorder recorder.Recorder
-	repo     repository.VoiceSessionMetadataRepository
+	botService service.BotService
+	repo       repository.VoiceSessionMetadataRepository
 }
 
 // Handle implements interfaces.EventHandler.
@@ -29,7 +29,12 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 		return fmt.Errorf("failed to decode: %s", evt.Name())
 	}
 
-	paths, err := s.recorder.StopRecording(ctx, evt.RoomID)
+	bot, ok := s.botService.GetBot(evt.RoomID)
+	if !ok {
+		return fmt.Errorf("no bot in room %s", evt.RoomID)
+	}
+
+	paths, err := bot.Recorder().StopRecording(ctx, evt.RoomID)
 	if err != nil || len(paths) < 2 {
 		log.Printf("Failed to stop recording: %v", err)
 		return fmt.Errorf("failed to stop recording")
@@ -83,6 +88,6 @@ func (s *stopRecordingMeetingHandler) MergeRecordings(paths []string, fileDest s
 	return nil
 }
 
-func NewStopRecordingMeetingHandler(recorder recorder.Recorder, repo repository.VoiceSessionMetadataRepository) handler.EventHandler {
-	return &stopRecordingMeetingHandler{recorder: recorder, repo: repo}
+func NewStopRecordingMeetingHandler(botService service.BotService, repo repository.VoiceSessionMetadataRepository) handler.EventHandler {
+	return &stopRecordingMeetingHandler{botService: botService, repo: repo}
 }

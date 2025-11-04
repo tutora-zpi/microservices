@@ -20,6 +20,6 @@ func (v *voiceSessionServiceImpl) GetSessions(ctx context.Context, req request.F
 	return result, err
 }
 
-func NewVoiceSessionService() service.VoiceSessionService {
-	return &voiceSessionServiceImpl{}
+func NewVoiceSessionService(repo repository.VoiceSessionMetadataRepository) service.VoiceSessionService {
+	return &voiceSessionServiceImpl{repo: repo}
 }

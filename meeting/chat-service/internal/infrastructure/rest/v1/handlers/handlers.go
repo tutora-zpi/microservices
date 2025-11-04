@@ -22,6 +22,7 @@ type Handlable interface {
 	DeleteChat(w http.ResponseWriter, r *http.Request)
 	FetchMoreMessages(w http.ResponseWriter, r *http.Request)
 	CreateGeneralChat(w http.ResponseWriter, r *http.Request)
+	UpdateMembersInChat(w http.ResponseWriter, r *http.Request)
 
 	UploadFile(w http.ResponseWriter, r *http.Request)
 }
@@ -30,6 +31,34 @@ type handlers struct {
 	chatService    interfaces.ChatService
 	messageService interfaces.MessageService
 	fileService    interfaces.FileService
+}
+
+// UpdateMembersInChat godoc
+// @Summary      Update chat members
+// @Description  Updates the list of members in a specific chat. Requires chat ID and at least one member ID.
+// @Tags         Chats
+// @Accept       json
+// @Produce      json
+// @Param        request body requests.UpdateChatMembers true "Chat members update payload"
+// @Success      200 {object} server.Response
+// @Failure      400 {object} server.Response
+// @Failure      401 {object} server.Response
+// @Router       /api/v1/chats/update-members [put]
+func (h *handlers) UpdateMembersInChat(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	dto, ok := ctx.Value(dtoKey).(*requests.UpdateChatMembers)
+	if !ok {
+		server.NewResponse(w, pkg.Ptr("Invalid bodies structure"), http.StatusBadRequest, nil)
+		return
+	}
+
+	if err := h.chatService.UpdateChatMember(ctx, *dto); err != nil {
+		server.NewResponse(w, pkg.Ptr(fmt.Sprintf("Something went wrong: %s", err.Error())), http.StatusBadRequest, nil)
+		return
+	}
+
+	server.NewResponse(w, nil, http.StatusOK, nil)
 }
 
 // UploadFile godoc

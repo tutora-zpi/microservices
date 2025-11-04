@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"recorder-service/internal/config"
+	"time"
 )
 
 type MongoConfig struct {
@@ -17,9 +18,11 @@ type MongoConfig struct {
 	Database string
 
 	SessionMetadataCollection string
+
+	Timeout time.Duration
 }
 
-func NewMongoConfig() *MongoConfig {
+func NewMongoConfig(timeout time.Duration) *MongoConfig {
 	return &MongoConfig{
 		Host: os.Getenv(config.MONGO_HOST),
 		Port: os.Getenv(config.MONGO_PORT),
@@ -30,6 +33,7 @@ func NewMongoConfig() *MongoConfig {
 
 		Database:                  os.Getenv(config.MONGO_DATABASE),
 		SessionMetadataCollection: os.Getenv(config.MONGO_METADATA_COLLECTION),
+		Timeout:                   timeout,
 	}
 }
 

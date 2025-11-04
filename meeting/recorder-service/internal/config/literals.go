@@ -26,4 +26,6 @@ const (
 	APP_ENV  string = "APP_ENV"
 
 	JWKS_URL string = "JWKS_URL"
+
+	WS_GATEWAY_URL string = "WS_GATEWAY_URL"
 )
