@@ -15,7 +15,7 @@ type offerHandler struct {
 
 // Handle implements interfaces.EventHandler.
 func (o *offerHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
-	var event rtc.IceCandidateWSEvent
+	var event rtc.OfferWSEvent
 	if err := json.Unmarshal(body, &event); err != nil {
 		return fmt.Errorf("failed to decode %s payload", event.Name())
 	}
