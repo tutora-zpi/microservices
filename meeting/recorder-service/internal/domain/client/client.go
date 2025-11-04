@@ -13,4 +13,7 @@ type Client interface {
 	Send(msg []byte) error
 	Connect(ctx context.Context) error
 	Close() error
+
+	SetRemoteDescription(desc webrtc.SessionDescription) error
+	AddIceCandidate(candidate webrtc.ICECandidateInit) error
 }

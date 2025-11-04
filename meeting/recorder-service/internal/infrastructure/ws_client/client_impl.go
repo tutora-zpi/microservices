@@ -22,6 +22,16 @@ type socketClientImpl struct {
 	cfg webrtc.Configuration
 }
 
+// AddIceCandidate implements client.Client.
+func (s *socketClientImpl) AddIceCandidate(candidate webrtc.ICECandidateInit) error {
+	return s.peer.AddICECandidate(candidate)
+}
+
+// SetRemoteDescription implements client.Client.
+func (s *socketClientImpl) SetRemoteDescription(desc webrtc.SessionDescription) error {
+	return s.peer.SetRemoteDescription(desc)
+}
+
 // Close implements client.Client.
 func (s *socketClientImpl) Close() error {
 	err := s.peer.Close()
