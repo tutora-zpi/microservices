@@ -9,6 +9,7 @@ import (
 
 type IceCandidateWSEvent struct {
 	Candidate json.RawMessage `json:"candidate" validate:"required"`
+	RoomID    string          `json:"roomId"`
 	From      string          `json:"from" validate:"required,uuid4"`
 	To        string          `json:"to" validate:"required,uuid4"`
 }

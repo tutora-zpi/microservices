@@ -25,7 +25,7 @@ func FetchSignKey() {
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to get JWKS from %s: %v\n", jwksURL, err)
+		log.Fatalf("Failed to get JWKS from %s: %v", jwksURL, err)
 	}
 	log.Println("Successfully initialized JWKS")
 }

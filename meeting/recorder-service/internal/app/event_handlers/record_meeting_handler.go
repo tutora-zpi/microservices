@@ -27,7 +27,7 @@ func (r *recordMeetingHandler) Handle(ctx context.Context, body []byte) error {
 
 	bot, err := r.botService.AddNewBot(ctx, evt)
 	if err != nil {
-		return nil // skipping cause its already recorded
+		return nil
 	}
 
 	backCtx := context.Background()
