@@ -22,6 +22,7 @@ type Handlable interface {
 	DeleteChat(w http.ResponseWriter, r *http.Request)
 	FetchMoreMessages(w http.ResponseWriter, r *http.Request)
 	CreateGeneralChat(w http.ResponseWriter, r *http.Request)
+
 	UploadFile(w http.ResponseWriter, r *http.Request)
 }
 
