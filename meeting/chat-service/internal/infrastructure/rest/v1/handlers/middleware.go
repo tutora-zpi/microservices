@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -103,9 +105,9 @@ func ValidateFileFormData(next http.Handler) http.Handler {
 
 		defer file.Close()
 
+		chatID := mux.Vars(r)["id"]
 		content := r.FormValue("content")
 		senderID := r.FormValue("senderId")
-		chatID := r.FormValue("chatId")
 		sentAt := r.FormValue("sentAt")
 
 		req, err := requests.NewSaveFileMessage(content, senderID, chatID, sentAt)

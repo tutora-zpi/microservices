@@ -15,8 +15,8 @@ type key string
 const dtoKey key = "dto"
 
 var dtoRegistry = map[string]func() any{
-	"/api/v1/chat/general":        func() any { return &requests.CreateGeneralChat{} },
-	"/api/v1/chat/update-members": func() any { return &requests.UpdateChatMembers{} },
+	"/api/v1/chats/general":        func() any { return &requests.CreateGeneralChat{} },
+	"/api/v1/chats/update-members": func() any { return &requests.UpdateChatMembers{} },
 }
 
 func ValidateJSON(next http.Handler) http.Handler {

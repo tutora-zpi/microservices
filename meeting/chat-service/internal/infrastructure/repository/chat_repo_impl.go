@@ -27,7 +27,13 @@ func (c *chatRepositoryImpl) Update(ctx context.Context, req requests.UpdateChat
 	err := c.collectionChat.FindOneAndUpdate(
 		ctx,
 		bson.M{"_id": req.ChatID},
-		bson.M{"$push": bson.M{"membersIds": req.MembersIDs}},
+		bson.M{
+			"$addToSet": bson.M{
+				"memberIds": bson.M{
+					"$each": req.MembersIDs,
+				},
+			},
+		},
 	).Err()
 
 	if err != nil {

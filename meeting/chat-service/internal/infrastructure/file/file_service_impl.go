@@ -53,7 +53,8 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 
 		log.Printf("Successfully saved new file: %s, written bytes %d", name, writtenBytes)
 
-		url := fmt.Sprintf("%s/%s", l.serverPrefixPath, path)
+		url := fmt.Sprintf("%s/%s", l.serverPrefixPath, name)
+		log.Printf("Saved under: %s", url)
 
 		return url, nil
 	}

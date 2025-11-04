@@ -11,6 +11,7 @@ import (
 	"chat-service/internal/infrastructure/server"
 	"chat-service/pkg"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -71,7 +72,6 @@ func (h *handlers) UpdateMembersInChat(w http.ResponseWriter, r *http.Request) {
 // @Param        file formData file true "File to upload"
 // @Param        content formData string false "Optional message content"
 // @Param        senderId formData string true "UUID of the sender"
-// @Param        chatId formData string true "UUID of the chat"
 // @Param        sentAt formData int64 true "Unix timestamp when the message was sent"
 // @Success      201 {object} dto.MessageDTO "File uploaded successfully"
 // @Failure      400 {object} server.Response "Invalid parameters or file metadata"
@@ -90,18 +90,22 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urlToFile, err := h.fileService.Save(ctx, &fileMetadata)
+	log.Print(urlToFile)
 	if err != nil {
 		server.NewResponse(w, pkg.Ptr("Failed to save data"), http.StatusInternalServerError, nil)
 		return
 	}
 
 	message := *fileMetadata.NewFileMessage(urlToFile)
+	log.Print(message.FileLink)
 
 	result, err := h.messageService.SaveFileMessage(ctx, message)
 	if err != nil {
 		server.NewResponse(w, pkg.Ptr(err.Error()), http.StatusBadRequest, nil)
 		return
 	}
+
+	log.Print(*result)
 
 	server.NewResponse(w, nil, http.StatusCreated, *result)
 }
