@@ -169,6 +169,7 @@ func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageE
 func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent) (*dto.MessageDTO, error) {
 	log.Printf("Saving message: %s", event.Content)
 	newMessage := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.MessageID, event.SentAt, event.FileLink)
+	log.Println(*newMessage.FileLink)
 
 	_, err := m.collectionMessage.InsertOne(ctx, newMessage)
 	if err != nil {

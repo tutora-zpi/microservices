@@ -49,7 +49,7 @@ func (c *cacheEventServiceImpl) MakeSnapshot(ctx context.Context, event wsevent.
 
 // GetLastEventsData implements interfaces.CacheEventService.
 func (c *cacheEventServiceImpl) GetLastEventsData(ctx context.Context, roomID string) ([][]byte, error) {
-	log.Printf("Getting last events for %s", roomID)
+	log.Printf("Getting last events for room %s", roomID)
 
 	compressedStack, err := c.repo.GetCachedEvents(ctx, roomID)
 	if err != nil {

@@ -8,9 +8,10 @@ import (
 )
 
 type OfferWSEvent struct {
-	Offer json.RawMessage `json:"offer" validate:"required"`
-	From  string          `json:"from" validate:"required,uuid4"`
-	To    string          `json:"to" validate:"required,uuid4"`
+	Offer  json.RawMessage `json:"offer" validate:"required"`
+	From   string          `json:"from" validate:"required,uuid4"`
+	To     string          `json:"to" validate:"required,uuid4"`
+	RoomID string          `json:"roomId"`
 }
 
 func (o *OfferWSEvent) IsValid() error {

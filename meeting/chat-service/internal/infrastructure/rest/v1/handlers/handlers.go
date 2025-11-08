@@ -11,6 +11,7 @@ import (
 	"chat-service/internal/infrastructure/server"
 	"chat-service/pkg"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -22,6 +23,8 @@ type Handlable interface {
 	DeleteChat(w http.ResponseWriter, r *http.Request)
 	FetchMoreMessages(w http.ResponseWriter, r *http.Request)
 	CreateGeneralChat(w http.ResponseWriter, r *http.Request)
+	UpdateMembersInChat(w http.ResponseWriter, r *http.Request)
+
 	UploadFile(w http.ResponseWriter, r *http.Request)
 }
 
@@ -29,6 +32,34 @@ type handlers struct {
 	chatService    interfaces.ChatService
 	messageService interfaces.MessageService
 	fileService    interfaces.FileService
+}
+
+// UpdateMembersInChat godoc
+// @Summary      Update chat members
+// @Description  Updates the list of members in a specific chat. Requires chat ID and at least one member ID.
+// @Tags         Chats
+// @Accept       json
+// @Produce      json
+// @Param        request body requests.UpdateChatMembers true "Chat members update payload"
+// @Success      200 {object} server.Response
+// @Failure      400 {object} server.Response
+// @Failure      401 {object} server.Response
+// @Router       /api/v1/chats/update-members [put]
+func (h *handlers) UpdateMembersInChat(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	dto, ok := ctx.Value(dtoKey).(*requests.UpdateChatMembers)
+	if !ok {
+		server.NewResponse(w, pkg.Ptr("Invalid bodies structure"), http.StatusBadRequest, nil)
+		return
+	}
+
+	if err := h.chatService.UpdateChatMember(ctx, *dto); err != nil {
+		server.NewResponse(w, pkg.Ptr(fmt.Sprintf("Something went wrong: %s", err.Error())), http.StatusBadRequest, nil)
+		return
+	}
+
+	server.NewResponse(w, nil, http.StatusOK, nil)
 }
 
 // UploadFile godoc
@@ -41,7 +72,6 @@ type handlers struct {
 // @Param        file formData file true "File to upload"
 // @Param        content formData string false "Optional message content"
 // @Param        senderId formData string true "UUID of the sender"
-// @Param        chatId formData string true "UUID of the chat"
 // @Param        sentAt formData int64 true "Unix timestamp when the message was sent"
 // @Success      201 {object} dto.MessageDTO "File uploaded successfully"
 // @Failure      400 {object} server.Response "Invalid parameters or file metadata"
@@ -60,12 +90,14 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	urlToFile, err := h.fileService.Save(ctx, &fileMetadata)
+	log.Print(urlToFile)
 	if err != nil {
 		server.NewResponse(w, pkg.Ptr("Failed to save data"), http.StatusInternalServerError, nil)
 		return
 	}
 
 	message := *fileMetadata.NewFileMessage(urlToFile)
+	log.Print(message.FileLink)
 
 	result, err := h.messageService.SaveFileMessage(ctx, message)
 	if err != nil {

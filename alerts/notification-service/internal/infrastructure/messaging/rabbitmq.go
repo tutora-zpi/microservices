@@ -2,11 +2,9 @@ package messaging
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"notification-serivce/internal/app/interfaces"
-	"notification-serivce/internal/domain/broker"
 	"notification-serivce/internal/domain/event"
 	"notification-serivce/internal/infrastructure/bus"
 	"sync"
@@ -73,7 +71,7 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (i
 	}
 
 	firstCh := <-broker.chPool
-	if err := declareExchanges(firstCh, rabbitMQConfig.ExchangeType, rabbitMQConfig.NotificationExchange); err != nil {
+	if err := declareExchanges(firstCh, rabbitMQConfig.ExchangeType, rabbitMQConfig.Exchanges...); err != nil {
 		return nil, err
 	}
 	broker.chPool <- firstCh
@@ -81,65 +79,6 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (i
 	log.Println("Successfully connected to RabittMQ")
 
 	return broker, nil
-}
-
-func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broker.Destination) error {
-	ch := <-r.chPool
-	defer func() { r.chPool <- ch }()
-
-	r.connMu.Lock()
-	if r.conn == nil || r.conn.IsClosed() {
-		r.connMu.Unlock()
-		return fmt.Errorf("connection is closed")
-	}
-	r.connMu.Unlock()
-
-	wrapper := event.EventWrapper{
-		Pattern: ev.Name(),
-		Data:    ev,
-	}
-
-	body, err := json.Marshal(wrapper)
-	if err != nil {
-		return fmt.Errorf("failed to marshal event: %w", err)
-	}
-
-	pub := amqp.Publishing{
-		ContentType: "application/json",
-		Body:        body,
-		Timestamp:   time.Now().UTC(),
-	}
-
-	var exchange, routingKey string
-	if dest.Exchange != "" {
-		exchange = dest.Exchange
-		routingKey = dest.RoutingKey
-	} else if dest.Queue != "" {
-		exchange = ""
-		routingKey = dest.Queue
-	} else {
-		return fmt.Errorf("no destination specified")
-	}
-
-	if err := ch.PublishWithContext(ctx, exchange, routingKey, false, false, pub); err != nil {
-		return fmt.Errorf("failed to publish message: %w", err)
-	}
-
-	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
-	return nil
-}
-
-func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, destinations ...broker.Destination) error {
-	var firstErr error
-	for _, dest := range destinations {
-		if err := r.Publish(ctx, ev, dest); err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-			log.Printf("Failed to publish to %v: %v", dest, err)
-		}
-	}
-	return firstErr
 }
 
 func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
@@ -156,10 +95,10 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"",
+		r.config.NotificationQueue,
 		false,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
@@ -172,13 +111,14 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", exchange, p, err)
 		}
 	}
+	log.Printf("Successfully bound %s exchange to %s queue", exchange, q.Name)
 
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)
 	}
 
-	log.Printf("Started consumer on queue %s for exchange %s", q.Name, exchange)
+	log.Printf("Started consumer on queue %s", q.Name)
 
 	for {
 		select {

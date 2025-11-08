@@ -3,9 +3,9 @@ package ws
 import (
 	"log"
 	"sync"
-	"ws-gateway/internal/app/interfaces"
+	"time"
 
-	"github.com/gorilla/websocket"
+	"ws-gateway/internal/app/interfaces"
 )
 
 type Room struct {
@@ -14,173 +14,204 @@ type Room struct {
 }
 
 type hub struct {
-	globalMembers sync.Map // map[userid]client -> set
-	rooms         sync.Map // map[roomID]map[userid]client -> room id -> set
-	close         sync.Once
+	globalMembers sync.Map
+	rooms         sync.Map
+	register      chan interfaces.Client
+	unregister    chan interfaces.Client
+	closing       chan struct{}
+	once          sync.Once
 }
 
-// Close implements interfaces.HubManager.
-func (h *hub) Close() {
-	h.close.Do(func() {
-		h.globalMembers.Range(func(userID, client any) bool {
-			if c, ok := client.(interfaces.Client); ok {
-				c.GetConnection().Close()
-			}
-			return true
-		})
-
-		h.rooms.Range(func(roomID, members any) bool {
-			if r, ok := members.(*Room); ok {
-				r.mu.RLock()
-				for _, client := range r.members {
-					client.GetConnection().Close()
-				}
-				r.mu.RUnlock()
-			}
-
-			return true
-		})
-
-		h.globalMembers.Clear()
-		h.rooms.Clear()
-
-		log.Println("WSocket closed successfully.")
-	})
-}
-
-// EmitToClient implements interfaces.HubManager.
-func (h *hub) EmitToClient(clientID string, payloads [][]byte) {
-	clientInterface, ok := h.globalMembers.Load(clientID)
+func (h *hub) GetUsersFromRoomID(roomID string) []string {
+	v, ok := h.rooms.Load(roomID)
 	if !ok {
-		log.Printf("cliendID %s not found", clientID)
-		return
+		return nil
 	}
 
-	client := clientInterface.(interfaces.Client)
+	room := v.(*Room)
+	room.mu.RLock()
+	defer room.mu.RUnlock()
+	ids := make([]string, 0, len(room.members))
+	for k := range room.members {
+		ids = append(ids, k)
+	}
 
-	for _, payload := range payloads {
-		err := client.GetConnection().WriteMessage(websocket.TextMessage, payload)
-		if err != nil {
-			log.Printf("An error occurred during writing an message: %v", err)
+	return ids
+}
+
+func NewHub() interfaces.HubManager {
+	h := &hub{
+		register:   make(chan interfaces.Client, 32),
+		unregister: make(chan interfaces.Client, 32),
+		closing:    make(chan struct{}),
+	}
+	go h.run()
+	return h
+}
+
+func (h *hub) run() {
+	for {
+		select {
+		case c := <-h.register:
+			h.globalMembers.Store(c.ID(), c)
+		case c := <-h.unregister:
+			h.globalMembers.Delete(c.ID())
+
+			h.rooms.Range(func(_ any, v any) bool {
+				r := v.(*Room)
+
+				r.mu.Lock()
+				delete(r.members, c.ID())
+				r.mu.Unlock()
+				return true
+			})
+			if cc, ok := c.(*clientImpl); ok {
+				select {
+				case <-cc.done:
+				default:
+					close(cc.done)
+				}
+				close(cc.send)
+			}
+		case <-h.closing:
+			return
 		}
 	}
 }
 
-// EmitToClientInRoom implements interfaces.HubManager.
-func (h *hub) EmitToClientInRoom(roomID string, clientID string, payloads [][]byte) {
-	roomInterface, ok := h.rooms.Load(roomID)
+func (h *hub) AddGlobalMember(c interfaces.Client) {
+	h.register <- c
+}
+
+func (h *hub) RemoveGlobalMember(c interfaces.Client) {
+	h.unregister <- c
+}
+
+func (h *hub) AddRoomMember(roomID string, c interfaces.Client) []string {
+	r, _ := h.rooms.LoadOrStore(roomID, &Room{members: make(map[string]interfaces.Client)})
+	room := r.(*Room)
+
+	room.mu.Lock()
+	room.members[c.ID()] = c
+	room.mu.Unlock()
+
+	return h.roomIDs(roomID)
+}
+
+func (h *hub) RemoveRoomMember(roomID string, c interfaces.Client) []string {
+	v, ok := h.rooms.Load(roomID)
 	if !ok {
-		log.Printf("roomID %s not found", roomID)
-		return
+		return nil
 	}
 
-	room := roomInterface.(*Room)
+	room := v.(*Room)
+	room.mu.Lock()
+	delete(room.members, c.ID())
+	empty := len(room.members) == 0
+	room.mu.Unlock()
 
+	if empty {
+		h.rooms.Delete(roomID)
+	}
+	return h.roomIDs(roomID)
+}
+
+func (h *hub) roomIDs(roomID string) []string {
+	v, ok := h.rooms.Load(roomID)
+	if !ok {
+		return nil
+	}
+
+	room := v.(*Room)
 	room.mu.RLock()
 	defer room.mu.RUnlock()
 
-	client := room.members[clientID]
-	for _, payload := range payloads {
-		err := client.GetConnection().WriteMessage(websocket.TextMessage, payload)
-		if err != nil {
-			log.Printf("An error occurred during writing an message: %v", err)
-		}
+	ids := make([]string, 0, len(room.members))
+	for id := range room.members {
+		ids = append(ids, id)
 	}
+	return ids
 }
 
-// RemoveRoomMember implements interfaces.HubManager.
-func (h *hub) RemoveRoomMember(roomID string, client interfaces.Client) (roomUsers []string) {
-	roomInterface, ok := h.rooms.Load(roomID)
+func (h *hub) Emit(roomID string, payload []byte, pred func(id string) bool) {
+	v, ok := h.rooms.Load(roomID)
 	if !ok {
-		log.Printf("roomID %s not found", roomID)
 		return
 	}
 
-	room := roomInterface.(*Room)
+	room := v.(*Room)
+	room.mu.RLock()
+	defer room.mu.RUnlock()
 
-	room.mu.Lock()
-	defer room.mu.Unlock()
-
-	delete(room.members, client.ID())
-
-	if len(room.members) == 0 {
-		log.Printf("Removing room %s - no members", roomID)
-		h.rooms.Delete(roomID)
-		return []string{}
-	}
-
-	keys := make([]string, 0, len(room.members))
-	for k := range room.members {
-		keys = append(keys, k)
-	}
-
-	return keys
-}
-
-// RemoveGlobalMember implements interfaces.HubManager.
-func (h *hub) RemoveGlobalMember(client interfaces.Client) {
-	log.Printf("Removing new user: %s", client.ID())
-	h.globalMembers.Delete(client.ID())
-}
-
-// AddGlobalMember implements interfaces.HubManager.
-func (h *hub) AddGlobalMember(client interfaces.Client) {
-	log.Printf("Adding new user: %s", client.ID())
-	h.globalMembers.Store(client.ID(), client)
-}
-
-// AddRoomMember implements interfaces.HubManager.
-func (h *hub) AddRoomMember(roomID string, c interfaces.Client) (roomUsers []string) {
-	roomInterface, _ := h.rooms.LoadOrStore(roomID, &Room{members: make(map[string]interfaces.Client)})
-	room := roomInterface.(*Room)
-
-	room.mu.Lock()
-	defer room.mu.Unlock()
-	room.members[c.ID()] = c
-
-	keys := make([]string, 0, len(room.members))
-	for k := range room.members {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-// EmitGlobal implements interfaces.HubManager.
-func (h *hub) EmitGlobal(payload []byte) {
-	h.globalMembers.Range(func(_, value any) bool {
-		client := value.(interfaces.Client)
-		if err := client.GetConnection().WriteMessage(websocket.TextMessage, payload); err != nil {
-			log.Printf("Error sending to global %s: %v", client.ID(), err)
+	for _, c := range room.members {
+		if pred == nil || pred(c.ID()) {
+			h.sendSafe(c, payload)
 		}
+	}
+}
+
+func (h *hub) EmitGlobal(payload []byte) {
+	h.globalMembers.Range(func(_ any, v any) bool {
+		h.sendSafe(v.(interfaces.Client), payload)
 		return true
 	})
 }
 
-// Emit implements interfaces.HubManager.
-func (h *hub) Emit(roomID string, payload []byte, pred func(id string) bool) {
-	log.Println("Emiiting")
-	value, ok := h.rooms.Load(roomID)
-	if !ok {
-		log.Printf("No room with id: %s", roomID)
-		return
-	}
+func (h *hub) EmitToClient(clientID string, payloads [][]byte) {
+	v, _ := h.globalMembers.Load(clientID)
+	c := v.(interfaces.Client)
 
-	room := value.(*Room)
-
-	room.mu.RLock()
-	defer room.mu.RUnlock()
-
-	for _, client := range room.members {
-		if pred(client.ID()) {
-			if err := client.GetConnection().WriteMessage(websocket.TextMessage, payload); err != nil {
-				log.Printf("Error sending to %s: %v", client.ID(), err)
-			} else {
-				log.Printf("Successfully emitted: %s", string(payload))
-			}
-		}
+	for _, p := range payloads {
+		h.sendSafe(c, p)
 	}
 }
 
-func NewHub() interfaces.HubManager {
-	return &hub{}
+func (h *hub) EmitToClientInRoom(roomID, clientID string, payloads [][]byte) {
+	v, ok := h.rooms.Load(roomID)
+	if !ok {
+		return
+	}
+
+	room := v.(*Room)
+
+	room.mu.RLock()
+	c, ok := room.members[clientID]
+	room.mu.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	for _, p := range payloads {
+		h.sendSafe(c, p)
+	}
+}
+
+func (h *hub) sendSafe(c interfaces.Client, payload []byte) {
+	cli := c.(*clientImpl)
+
+	timer := time.NewTimer(100 * time.Millisecond)
+	defer timer.Stop()
+
+	select {
+	case cli.send <- payload:
+	case <-timer.C:
+		log.Printf("[TIMEOUT] → %s", c.ID())
+	case <-cli.done:
+		return
+	}
+}
+
+func (h *hub) Close() {
+	h.once.Do(func() {
+		close(h.closing)
+		h.globalMembers.Range(func(_ any, v any) bool {
+			client, ok := v.(interfaces.Client)
+			if ok {
+				client.Close()
+			}
+
+			return ok
+		})
+	})
 }

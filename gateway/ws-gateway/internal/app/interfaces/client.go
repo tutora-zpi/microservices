@@ -11,6 +11,7 @@ type Client interface {
 		ctx context.Context,
 		handler func(ctx context.Context, eventType string, msg []byte, client Client) error,
 	)
+	Close()
 }
 
 type Connection interface {

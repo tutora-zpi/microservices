@@ -17,15 +17,21 @@ type userJoinedHandler struct {
 
 // Handle implements interfaces.EventHandler.
 func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client interfaces.Client) error {
+	log.Print(string(body))
 	var event general.UserJoinedWSEvent
 	if err := json.Unmarshal(body, &event); err != nil {
 		return fmt.Errorf("failed to decode %s payload", event.Name())
 	}
 
+	log.Printf("User with id: %s tries to join to room: %s", event.UserID, event.RoomID)
+	log.Printf("Client: %s", client.ID())
+
 	ids := u.hubManager.AddRoomMember(event.RoomID, client)
 
-	roomUsers := general.RoomUsersWSEvent{Users: ids}
-	bytes, _ := wsevent.EncodeSocketEventWrapper(&roomUsers, roomUsers.Name())
+	log.Println(ids)
+
+	roomUsers := &general.RoomUsersWSEvent{Users: ids, RoomID: event.RoomID}
+	bytes, _ := wsevent.EncodeSocketEventWrapper(roomUsers)
 
 	go u.hubManager.Emit(event.RoomID, bytes, func(id string) bool { return true })
 

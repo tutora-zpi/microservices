@@ -30,7 +30,7 @@ func (u *userLeftHandler) Handle(ctx context.Context, body []byte, client interf
 		Users: ids,
 	}
 
-	bytes, _ := wsevent.EncodeSocketEventWrapper(&roomUsers, roomUsers.Name())
+	bytes, _ := wsevent.EncodeSocketEventWrapper(&roomUsers)
 
 	u.hubManager.Emit(event.RoomID, bytes, func(id string) bool { return true })
 

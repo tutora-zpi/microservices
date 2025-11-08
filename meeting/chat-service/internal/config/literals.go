@@ -18,6 +18,8 @@ const (
 	RABBITMQ_URL          string = "RABBITMQ_URL"
 	CHAT_EXCHANGE         string = "CHAT_EXCHANGE"
 	MEETING_EXCHANGE      string = "MEETING_EXCHANGE"
+	CHAT_QUEUE            string = "CHAT_QUEUE"
+	FILE_QUEUE            string = "FILE_QUEUE"
 
 	APP_PORT string = "APP_PORT"
 	APP_ENV  string = "APP_ENV"

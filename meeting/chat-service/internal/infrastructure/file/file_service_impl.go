@@ -29,9 +29,9 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 
 		name := file.GenerateUniqueFileName()
 
-		path := path.Join("./media", name)
+		p := path.Join("./media", name)
 
-		osFile, err := os.Create(path)
+		osFile, err := os.Create(p)
 		if err != nil {
 			log.Printf("Failed to create file with name %s", name)
 			return "", generalError
@@ -53,7 +53,8 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 
 		log.Printf("Successfully saved new file: %s, written bytes %d", name, writtenBytes)
 
-		url := fmt.Sprintf("%s/%s", l.serverPrefixPath, path)
+		url := path.Join(l.serverPrefixPath, name)
+		log.Printf("Saved under: %s", url)
 
 		return url, nil
 	}

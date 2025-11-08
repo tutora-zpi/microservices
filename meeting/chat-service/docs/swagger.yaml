@@ -78,6 +78,19 @@ definitions:
     - classId
     - memberIds
     type: object
+  requests.UpdateChatMembers:
+    properties:
+      chatId:
+        type: string
+      membersIds:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - chatId
+    - membersIds
+    type: object
   server.Response:
     properties:
       data: {}
@@ -201,11 +214,6 @@ paths:
         name: senderId
         required: true
         type: string
-      - description: UUID of the chat
-        in: formData
-        name: chatId
-        required: true
-        type: string
       - description: Unix timestamp when the message was sent
         format: int64
         in: formData
@@ -266,6 +274,37 @@ paths:
           schema:
             $ref: '#/definitions/server.Response'
       summary: Create a new general chat
+      tags:
+      - Chats
+  /api/v1/chats/update-members:
+    put:
+      consumes:
+      - application/json
+      description: Updates the list of members in a specific chat. Requires chat ID
+        and at least one member ID.
+      parameters:
+      - description: Chat members update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateChatMembers'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Update chat members
       tags:
       - Chats
 swagger: "2.0"

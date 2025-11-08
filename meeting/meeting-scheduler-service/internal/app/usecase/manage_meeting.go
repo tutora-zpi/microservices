@@ -17,8 +17,7 @@ type ManageMeetingImlp struct {
 	meetingRepository         repository.MeetingRepository
 	plannedMeetingsRepository repository.PlannedMeetingsRepository
 
-	notificationExchange string
-	neetingExchange      string
+	meetingExchange string
 }
 
 // CancelPlannedMeeting implements interfaces.ManageMeeting.
@@ -77,7 +76,7 @@ func (m *ManageMeetingImlp) Plan(ctx context.Context, dto dto.PlanMeetingDTO) (*
 	log.Printf("Meeting with id: %s successfully planned\n", dto.ClassID)
 
 	plannedMeetingEvent := event.NewPlannedMeetingEvent(dto)
-	dest := broker.NewExchangeDestination(plannedMeetingEvent, m.notificationExchange)
+	dest := broker.NewExchangeDestination(plannedMeetingEvent, m.meetingExchange)
 	if err := m.broker.Publish(ctx, plannedMeetingEvent, dest); err != nil {
 		log.Printf("Failed to publish notification: %v\n", err)
 	}
@@ -110,12 +109,12 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	log.Printf("Appended to cache new meeting in class: %s\n", meeting.ClassID)
 
-	destinations := broker.NewMultipleDestination(meetingStartedEvent, m.neetingExchange, m.notificationExchange)
+	destination := broker.NewExchangeDestination(meetingStartedEvent, m.meetingExchange)
 
-	err = m.broker.PublishMultiple(
+	err = m.broker.Publish(
 		ctx,
 		meetingStartedEvent,
-		destinations...,
+		destination,
 	)
 
 	if err != nil {
@@ -146,7 +145,7 @@ func (m *ManageMeetingImlp) Stop(ctx context.Context, endMeetingDto dto.EndMeeti
 		return err
 	}
 
-	err = m.broker.Publish(ctx, meetingEndedEvent, broker.NewExchangeDestination(meetingEndedEvent, m.neetingExchange))
+	err = m.broker.Publish(ctx, meetingEndedEvent, broker.NewExchangeDestination(meetingEndedEvent, m.meetingExchange))
 
 	if err != nil {
 		return fmt.Errorf("failed to stop meeting, try again")
@@ -161,14 +160,12 @@ func NewManageMeeting(
 	broker interfaces.Broker,
 	meetingRepo repository.MeetingRepository,
 	plannedMeetingsRepo repository.PlannedMeetingsRepository,
-	notificationExchange string,
 	meetingExchange string,
 ) interfaces.ManageMeeting {
 	return &ManageMeetingImlp{
 		broker:                    broker,
 		meetingRepository:         meetingRepo,
 		plannedMeetingsRepository: plannedMeetingsRepo,
-		notificationExchange:      notificationExchange,
-		neetingExchange:           meetingExchange,
+		meetingExchange:           meetingExchange,
 	}
 }

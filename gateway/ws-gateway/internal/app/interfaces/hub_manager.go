@@ -12,5 +12,7 @@ type HubManager interface {
 	EmitToClient(clientID string, payloads [][]byte)
 	EmitToClientInRoom(roomID, clientID string, payloads [][]byte)
 
+	GetUsersFromRoomID(roomID string) []string
+
 	Close()
 }

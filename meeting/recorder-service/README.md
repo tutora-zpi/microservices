@@ -1,76 +1,33 @@
-flow
+![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Amazon S3](https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white)
+![FFmpeg](https://shields.io/badge/FFmpeg-%23171717.svg?logo=ffmpeg&style=for-the-badge&labelColor=171717&logoColor=5cb85c)
 
+# .tutora - Recording Service
 
-1. request o doloczenie do rozmowy jako nagrywarka
-```go
+Records meetings, preprocesses recordings and uploads them on AWS.
 
-type RecordMeetingRequest struct {
-	RoomID string `json:"roomId"`
-	FinishTime time.Time `json:"finishTime"`
-}
+---
 
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [About Recordings ](#about-recordings)
+
+## Getting Started
+
+Copy and fill `.env.local` or `.env` file (depends from running app, local file used to run locally).
+
+```sh
+cp .env.sample .env
 ```
+Ensure that you have AWS credintials in your `~/.aws/credintials` and configured bucket as well.
 
-2. zapis do bazy ze bot o jakims id jest w pokoju roomid -> redis ttl to jest dlugosc rozmowy
-ttl jest liczony na podstwie now i finish time + d - opoznienie
+## About Recordings
 
-- zapis w bazie pozwoli sledzic czy mozna dodac ponownie bota do rozmo
-
-3. tym samym czasie jest generowane zdarzenie to do gateway'a z requestem dodania bota
-
-```go
-type RecordRequestedEvent struct {
-	RoomID string `json:"roomId"`
-	Bot
-}
-```
-oglnie mozna zrobic typ bota w domenie gdzie tego bota sobie przygotujemy
-
-```go
-type Bot struct {
-	ID string `json:"botId"`
-	Name string `json:"botName"` // moze byc generowane z fakera
-	Tag string `json:"botTag"`
-}
-```
-exchange name = meeting
-
-
-4. gateway obsluguje dodanie i generuje powiadomienie -> nie potrzeba dto mozna dac imie bota
-title:
-Rozpoczeto nagrywanie spotkania
-body:
-Bot Alan dolaczyl do spotaknia i zajmie sie nagrywaniem rozmowy
-
-
-CZYLI
-gateway wtedy dodaje bota do pokoju i wysyla event z powidomieneim
-emituje informacje o room userach
-
-5. userzy ogarniaja offery itp
-
-6. po ogarnienciu tych eventow bot moze nasluchiwac rozmo
-- z racji ze webtrc dziala tak ze user wysyla swoje audio do kazdego to mamy nagrania per user - nie problem nawet lepiej
-
-approach:
-zapis rozmowy kazdego usera osobno
-a potem sklejenie w jedna rozmowe ffmpegiem
-
-7 po meetingu i zmergowaniu nagrania mozna generowac event dla
-- powiadomienia ze user ma dostep do nagrania mozna se je odsluchac (w pewnym sensie notatka)
-- evnet dla note-service ze moze przetwarzac
-
-Zapis w bazie tylko path'y
-loklanie rozmowy **.ogg**
-
-do impl bedzie jakis get do rozmow czy czegos takiego
-no mozna miec jakies metadane dot. rozmowy czyli date startu i zakonczenia, tytul itp reszta juz bedzie nalezala do ai kto bral udzial itp.
-metadane w sumie moga byc w jakims postgresie
-
-nagrania
-
-/recordings
-  /{meetingid}
-    merged.ogg
-    {user1uid}.ogg
-    ...
+When the bot receives a request to start recording a room, it connects to the participants, who then start sending audio packets. The bot receives the audio streams and saves them as **.ogg** files.
+When the recording stops, all recorded voice tracks (padded with silence where necessary) are merged into a single file.
+All resulting artifacts are uploaded to an S3 bucket, and the name of the merged audio file is stored in the session metadata.
+After the upload is complete, a [recordings_uploaded_event](/internal/domain/event/recordings_uploaded_event.go) is generated.

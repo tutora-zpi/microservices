@@ -13,6 +13,11 @@ type chatServiceImpl struct {
 	repo repository.ChatRepository
 }
 
+// UpdateChatMember implements interfaces.ChatService.
+func (c *chatServiceImpl) UpdateChatMember(ctx context.Context, req requests.UpdateChatMembers) error {
+	return c.repo.Update(ctx, req)
+}
+
 // CreateChat implements interfaces.ChatService.
 func (c *chatServiceImpl) CreateChat(ctx context.Context, req requests.CreateGeneralChat) (*dto.ChatDTO, error) {
 	log.Println("Creating chat...")

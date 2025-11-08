@@ -48,6 +48,52 @@
                 }
             }
         },
+        "/api/v1/chats/update-members": {
+            "put": {
+                "description": "Updates the list of members in a specific chat. Requires chat ID and at least one member ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Update chat members",
+                "parameters": [
+                    {
+                        "description": "Chat members update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.UpdateChatMembers"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/chats/{id}": {
             "get": {
                 "description": "Retrieves chat details by ID",
@@ -214,13 +260,6 @@
                         "required": true
                     },
                     {
-                        "type": "string",
-                        "description": "UUID of the chat",
-                        "name": "chatId",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
                         "type": "integer",
                         "format": "int64",
                         "description": "Unix timestamp when the message was sent",
@@ -363,6 +402,25 @@
                 },
                 "memberIds": {
                     "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "requests.UpdateChatMembers": {
+            "type": "object",
+            "required": [
+                "chatId",
+                "membersIds"
+            ],
+            "properties": {
+                "chatId": {
+                    "type": "string"
+                },
+                "membersIds": {
+                    "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "string"
                     }

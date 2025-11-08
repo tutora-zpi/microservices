@@ -1,153 +1,90 @@
 package recorder
 
 import (
+	"context"
 	"log"
-	"recorder-service/internal/app/interfaces"
-	"recorder-service/internal/infrastructure/writer"
+	"recorder-service/internal/domain/recorder"
+	"recorder-service/internal/infrastructure/webrtc/writer"
 	"sync"
 
-	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 )
 
-type session struct {
-	conn     *webrtc.PeerConnection
-	writer   writer.Writer
-	stopChan chan struct{}
-	wg       sync.WaitGroup
-}
+type UserID = string
 
 type recorderImpl struct {
-	cfg           *webrtc.Configuration
-	writerFactory writer.WriterFactory
-
-	sessions map[string]*session
-	mutex    sync.Mutex
+	mu               sync.Mutex
+	recordingDetails map[UserID]*recorder.Detail
 }
 
-func NewRecorder(cfg *webrtc.Configuration, wf writer.WriterFactory) (interfaces.Recorder, error) {
-	if cfg == nil {
-		cfg = &webrtc.Configuration{}
+// StartRecording implements recorder.Recorder.
+func (r *recorderImpl) StartRecording(ctx context.Context, roomID, userID string, track *webrtc.TrackRemote, newWriter writer.WriterFactory) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.recordingDetails == nil {
+		r.recordingDetails = make(map[UserID]*recorder.Detail)
 	}
 
-	return &recorderImpl{
-		cfg:           cfg,
-		writerFactory: wf,
-		sessions:      make(map[string]*session),
-	}, nil
-}
-
-func (r *recorderImpl) StartRecording(meetingID string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if _, exists := r.sessions[meetingID]; exists {
-		return nil
+	if _, ok := r.recordingDetails[userID]; ok {
+		log.Printf("Recorder: writer for user %s already exists", userID)
+		return
 	}
 
-	peerConnection, err := webrtc.NewPeerConnection(*r.cfg)
+	w, err := newWriter(roomID)
 	if err != nil {
-		return err
+		log.Printf("Recorder: failed to create writer for user %s: %v", userID, err)
+		return
 	}
 
-	stopChan := make(chan struct{})
-	sess := &session{
-		conn:     peerConnection,
-		stopChan: stopChan,
+	userCtx, cancel := context.WithCancel(ctx)
+	detail := recorder.NewDetail(w, cancel)
+	detail.SetJoinTime()
+
+	r.recordingDetails[userID] = detail
+	if err := w.Write(userCtx, userID, track); err != nil {
+		log.Printf("An error occurred during writing: %v", err)
+	}
+}
+
+// StopRecording implements recorder.Recorder.
+func (r *recorderImpl) StopRecording(userID string) *recorder.RecordingInfo {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if detail, ok := r.recordingDetails[userID]; ok {
+		detail.Cancel()
+		detail.Writer.Close()
+		detail.SetLeftTime()
+
+		basePath := detail.Writer.GetPath()
+
+		info := recorder.NewRecordingInfo(detail, basePath, userID, detail.Writer.GetExt())
+
+		delete(r.recordingDetails, userID)
+
+		log.Printf("Stopped recording user %s, returning info", userID)
+		return &info
 	}
 
-	peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		r.handleBuffer(track, meetingID)
-	})
-
-	r.sessions[meetingID] = sess
 	return nil
 }
 
-func (r *recorderImpl) StopRecording(meetingID string) (string, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+// StopAll implements recorder.Recorder.
+func (r *recorderImpl) StopAll() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	sess, exists := r.sessions[meetingID]
-	if !exists {
-		log.Println("No recording session found for meeting:", meetingID)
-		return "", nil
+	for _, detail := range r.recordingDetails {
+		detail.Cancel()
+		detail.Writer.Close()
 	}
 
-	close(sess.stopChan)
-	sess.wg.Wait()
-
-	err := sess.writer.Close()
-	if err != nil {
-		log.Println("Failed to close writer for meeting:", meetingID, err)
-	}
-
-	err = sess.conn.Close()
-	if err != nil {
-		log.Println("Failed to close peer connection for meeting:", meetingID, err)
-	}
-
-	path := r.sessions[meetingID].writer.GetPath()
-
-	delete(r.sessions, meetingID)
-	log.Println("Recording finished for meeting:", meetingID)
-	return path, nil
+	r.recordingDetails = make(map[UserID]*recorder.Detail)
 }
 
-func (r *recorderImpl) handleBuffer(track *webrtc.TrackRemote, meetingID string) {
-	if track.Kind() != webrtc.RTPCodecTypeAudio {
-		log.Println("Wrong track type:", track.Kind())
-		return
-	}
-
-	r.mutex.Lock()
-	sess, exists := r.sessions[meetingID]
-	r.mutex.Unlock()
-
-	if !exists {
-		log.Println("No session found for meeting:", meetingID)
-		return
-	}
-
-	if sess.writer == nil {
-		writer, err := r.writerFactory(track, meetingID)
-		if err != nil {
-			log.Println("Failed to create writer:", err)
-			return
-		}
-		sess.writer = writer
-	}
-
-	sess.wg.Add(1)
-	go r.receiveAudio(track, sess)
-}
-
-func (r *recorderImpl) receiveAudio(track *webrtc.TrackRemote, sess *session) {
-	defer sess.wg.Done()
-
-	buf := make([]byte, 1400)
-	for {
-		select {
-		case <-sess.stopChan:
-			log.Println("Receiving audio stopped")
-			return
-		default:
-			n, _, err := track.Read(buf)
-			if err != nil {
-				log.Println("Cannot read track:", err)
-				return
-			}
-
-			packet := &rtp.Packet{}
-			if err := packet.Unmarshal(buf[:n]); err != nil {
-				log.Println("Failed to parse RTP packet:", err)
-				return
-			}
-
-			if err := sess.writer.Write(packet); err != nil {
-				log.Println("Failed to write packet:", err)
-				return
-			}
-		}
+func NewRecorderClient() recorder.Recorder {
+	return &recorderImpl{
+		recordingDetails: make(map[UserID]*recorder.Detail),
 	}
 }

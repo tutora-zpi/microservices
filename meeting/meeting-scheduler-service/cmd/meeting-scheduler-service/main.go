@@ -97,7 +97,7 @@ func main() {
 	meetingRepo := repository.NewMeetingRepository(redisClient)
 	plannedMeetingsRepo := repository.NewPlannedMeetingsRepository(postgresClient)
 
-	meetingManager := usecase.NewManageMeeting(broker, meetingRepo, plannedMeetingsRepo, rabbitmqConfig.NotificationExchange, rabbitmqConfig.MeetingExchange)
+	meetingManager := usecase.NewManageMeeting(broker, meetingRepo, plannedMeetingsRepo, rabbitmqConfig.MeetingExchange)
 
 	planner := usecase.NewPlanner(rootCtx, meetingManager, usecase.PlannerConfig{
 		FetchIntervalMinutes: 1,

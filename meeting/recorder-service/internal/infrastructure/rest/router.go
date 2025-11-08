@@ -8,17 +8,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func NewRouter() *mux.Router {
+func NewRouter(h handlers.Handler) *mux.Router {
 	router := mux.NewRouter()
-	router.NotFoundHandler = http.HandlerFunc(handlers.NotFoundHandler)
+	router.NotFoundHandler = http.HandlerFunc(h.NotFound)
 
 	// swagger
 
-	// router.HandleFunc("/ws", gateway.Handle)
-
 	api := router.PathPrefix("/api/v1/").Subrouter()
 
-	api.HandleFunc("/health", handlers.HandleHealth)
+	sessions := api.PathPrefix("/sessions").Subrouter()
+	sessions.Handle("/{meeting_id}", h.IsAuth(http.HandlerFunc(h.FetchSessions))).Methods(http.MethodGet)
 
 	return router
 }

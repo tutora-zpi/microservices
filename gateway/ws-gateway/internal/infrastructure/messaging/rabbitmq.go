@@ -125,7 +125,7 @@ func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broke
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
-	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
+	log.Printf("Published event [%s] to %s: %s", wrapper.Pattern, exchange, routingKey)
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, de
 	return firstErr
 }
 
-func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
+func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 	r.connMu.Lock()
 	if r.conn == nil || r.conn.IsClosed() {
 		r.connMu.Unlock()
@@ -156,10 +156,10 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"",
+		queueName,
 		false,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
@@ -167,18 +167,12 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
-	for _, p := range r.dispatcher.AvailablePatterns() {
-		if err := ch.QueueBind(q.Name, p, exchange, false, nil); err != nil {
-			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", exchange, p, err)
-		}
-	}
-
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)
 	}
 
-	log.Printf("Started consumer on queue %s for exchange %s", q.Name, exchange)
+	log.Printf("Started consumer on queue %s", q.Name)
 
 	for {
 		select {

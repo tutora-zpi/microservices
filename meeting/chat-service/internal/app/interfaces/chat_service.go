@@ -10,4 +10,5 @@ type ChatService interface {
 	CreateChat(ctx context.Context, req requests.CreateGeneralChat) (*dto.ChatDTO, error)
 	DeleteChat(ctx context.Context, req requests.DeleteChat) error
 	FindChat(ctx context.Context, req requests.GetChat) (*dto.ChatDTO, error)
+	UpdateChatMember(ctx context.Context, req requests.UpdateChatMembers) error
 }

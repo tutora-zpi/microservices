@@ -24,16 +24,16 @@ func NewRouter(h handlers.Handlable) *mux.Router {
 	api.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 	api.Handle("/docs", http.RedirectHandler("/api/v1/docs/", http.StatusSeeOther))
 
-	chat := api.PathPrefix("/chat").Subrouter()
+	chat := api.PathPrefix("/chats").Subrouter()
 
 	chat.Handle("/{id}", h.IsAuth(http.HandlerFunc(h.FindChat))).Methods(http.MethodGet)
 	chat.Handle("/{id}", h.IsAuth(http.HandlerFunc(h.DeleteChat))).Methods(http.MethodDelete)
 	chat.Handle("/general", h.IsAuth(handlers.ValidateJSON((http.HandlerFunc(h.CreateGeneralChat))))).Methods(http.MethodPost)
+	chat.Handle("/update-members", h.IsAuth(handlers.ValidateJSON(http.HandlerFunc(h.UpdateMembersInChat)))).Methods(http.MethodPut)
+
 	chat.Handle("/{id}/messages", h.IsAuth(http.HandlerFunc(h.FetchMoreMessages))).Methods(http.MethodGet)
 
 	chat.Handle("/{id}/upload-file", h.IsAuth(handlers.ValidateFileFormData(http.HandlerFunc(h.UploadFile)))).Methods(http.MethodPost)
-
-	// chat.Handle("/{id}/upload-file", handlers.HasValidFileSize(http.HandlerFunc(h.UploadFile))).Methods(http.MethodPost)
 
 	return router
 }

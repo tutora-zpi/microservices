@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"recorder-service/internal/app/interfaces"
 	"recorder-service/internal/domain/broker"
 	"recorder-service/internal/domain/event"
 	"recorder-service/internal/infrastructure/bus"
@@ -23,12 +24,9 @@ type RabbitMQBroker struct {
 	connMu     sync.Mutex
 }
 
-func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*RabbitMQBroker, error) {
+func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
 	if rabbitMQConfig.Timeout == 0 {
 		rabbitMQConfig.Timeout = 5 * time.Second
-	}
-	if rabbitMQConfig.ChatExchange == "" {
-		rabbitMQConfig.ChatExchange = "fanout"
 	}
 
 	conn, err := connect(context.Background(), rabbitMQConfig.URL, rabbitMQConfig.Timeout)
@@ -52,7 +50,7 @@ func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*
 	}
 
 	firstCh := <-broker.chPool
-	if err := declareExchanges(firstCh, rabbitMQConfig.ChatExchange); err != nil {
+	if err := declareExchanges(firstCh, rabbitMQConfig.ExchangeType, rabbitMQConfig.MeetingExchange); err != nil {
 		return nil, err
 	}
 	broker.chPool <- firstCh
@@ -102,7 +100,7 @@ func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broke
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
-	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
+	log.Printf("Published event [%s] to %s: %s", wrapper.Pattern, exchange, routingKey)
 	return nil
 }
 
@@ -133,10 +131,10 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"",
+		r.config.RecorderQueue,
 		false,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)

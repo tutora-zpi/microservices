@@ -2,7 +2,6 @@ package service
 
 import (
 	"chat-service/internal/app/interfaces"
-	"chat-service/internal/config"
 	"chat-service/internal/domain/broker"
 	"chat-service/internal/domain/dto"
 	"chat-service/internal/domain/dto/requests"
@@ -11,13 +10,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 )
 
 type messageServiceImpl struct {
-	repo   repository.MessageRepository
-	broker interfaces.Broker
+	repo      repository.MessageRepository
+	broker    interfaces.Broker
+	fileQueue string
 }
 
 // SaveFileMessage implements interfaces.MessageService.
@@ -38,7 +37,8 @@ func (m *messageServiceImpl) SaveFileMessage(ctx context.Context, evt event.Send
 	})
 
 	wg.Go(func() {
-		err := m.broker.Publish(ctx, fileEvent, broker.NewExchangeDestination(fileEvent, os.Getenv(config.CHAT_EXCHANGE)))
+		dest := broker.NewQueueDestination(fileEvent, m.fileQueue)
+		err := m.broker.Publish(ctx, fileEvent, dest)
 		if err != nil {
 			log.Printf("Error during publishing message: %v", err)
 			errCh <- fmt.Errorf("failed to publish message")
@@ -70,6 +70,6 @@ func (m *messageServiceImpl) GetMoreMessages(ctx context.Context, req requests.G
 	return m.repo.FindMore(ctx, req)
 }
 
-func NewMessageService(repo repository.MessageRepository, broker interfaces.Broker) interfaces.MessageService {
-	return &messageServiceImpl{repo: repo, broker: broker}
+func NewMessageService(repo repository.MessageRepository, broker interfaces.Broker, fileQueue string) interfaces.MessageService {
+	return &messageServiceImpl{repo: repo, broker: broker, fileQueue: fileQueue}
 }

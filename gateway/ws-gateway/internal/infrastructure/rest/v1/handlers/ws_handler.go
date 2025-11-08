@@ -25,7 +25,7 @@ func (h *handlers) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	// id := r.URL.Query().Get("id")
 
-	client := ws.NewClient(id, conn)
+	client := ws.NewClient(id, conn, h.hub)
 
 	h.hub.AddGlobalMember(client)
 
