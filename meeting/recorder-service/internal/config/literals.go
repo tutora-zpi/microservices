@@ -28,4 +28,9 @@ const (
 	JWKS_URL string = "JWKS_URL"
 
 	WS_GATEWAY_URL string = "WS_GATEWAY_URL"
+
+	AWS_ACCESS_KEY_ID     string = "AWS_ACCESS_KEY_ID"
+	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
+	AWS_BUCKET_NAME       string = "AWS_BUCKET_NAME"
+	AWS_REGION            string = "AWS_REGION"
 )

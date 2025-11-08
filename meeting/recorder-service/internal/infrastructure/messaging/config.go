@@ -47,5 +47,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		Timeout:         timeout,
 		ExchangeType:    "fanout",
 		MeetingExchange: os.Getenv(config.MEETING_EXCHANGE),
+		RecorderQueue:   os.Getenv(config.RECORDER_QUEUE),
 	}
 }

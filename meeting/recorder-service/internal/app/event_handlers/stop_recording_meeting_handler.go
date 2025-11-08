@@ -5,20 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"path"
+	"recorder-service/internal/app/interfaces"
 	"recorder-service/internal/app/interfaces/handler"
 	"recorder-service/internal/app/interfaces/service"
+	"recorder-service/internal/domain/broker"
 	"recorder-service/internal/domain/event"
+	"recorder-service/internal/domain/recorder"
 	"recorder-service/internal/domain/repository"
+	"recorder-service/internal/infrastructure/ffmpeg"
+	"recorder-service/internal/infrastructure/s3"
 	"sync"
-	"time"
-
-	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 type stopRecordingMeetingHandler struct {
 	botService service.BotService
 	repo       repository.VoiceSessionMetadataRepository
+	s3service  s3.S3Service
+	broker     interfaces.Broker
+
+	exchange string
 }
 
 // Handle implements interfaces.EventHandler.
@@ -29,65 +34,70 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 		return fmt.Errorf("failed to decode: %s", evt.Name())
 	}
 
-	bot, ok := s.botService.GetBot(evt.RoomID)
-	if !ok {
-		return fmt.Errorf("no bot in room %s", evt.RoomID)
+	infos, err := s.botService.RemoveBot(ctx, evt.RoomID)
+	if err != nil || len(infos) < 1 {
+		log.Printf("%v", err)
 	}
 
-	paths, err := bot.Recorder().StopRecording(ctx, evt.RoomID)
-	if err != nil || len(paths) < 2 {
-		log.Printf("Failed to stop recording: %v", err)
-		return fmt.Errorf("failed to stop recording")
+	outputPath, err := s.MergeRecordings(infos)
+	if err != nil {
+		log.Printf("%v", err)
 	}
 
-	fileName := s.GetFileName(paths[0])
-	fileDest := path.Join("recordings", evt.RoomID, fileName)
+	log.Printf("Recordings merged and saved: %s", outputPath)
+
 	var wg sync.WaitGroup
+	var errors chan error = make(chan error, 2)
 
 	wg.Go(func() {
-		if err := s.MergeRecordings(paths, fileDest); err != nil {
-			log.Printf("Failed to update merge recordings: %v", err)
+		basePath := infos[0].BasePath
+		keys, err := s.s3service.PutObject(ctx, basePath)
+		if err != nil {
+			errors <- err
+		}
+
+		evt := &event.RecordingsUploaded{RecordingKeys: keys, RoomID: evt.RoomID}
+
+		dest := broker.NewExchangeDestination(evt, s.exchange)
+		err = s.broker.Publish(ctx, evt, dest)
+		if err != nil {
+			errors <- err
 		}
 	})
 
 	wg.Go(func() {
-		if err := s.repo.AppendAudioName(ctx, evt.RoomID, fileName); err != nil {
-			log.Printf("Failed to update metadata: %v", err)
+		var err = s.repo.AppendAudioName(ctx, evt.RoomID, outputPath)
+		if err != nil {
+			errors <- err
 		}
 	})
 
 	wg.Wait()
+	close(errors)
 
-	return nil
-}
-
-func (s *stopRecordingMeetingHandler) GetFileName(examplePath string) string {
-	ext := path.Ext(examplePath)
-
-	now := time.Now().UTC().UnixNano()
-	fileName := fmt.Sprintf("merged_%d%s", now, ext)
-
-	return fileName
-}
-
-func (s *stopRecordingMeetingHandler) MergeRecordings(paths []string, fileDest string) error {
-	var stream *ffmpeg.Stream
-	for _, path := range paths {
-		stream = ffmpeg.Input(path)
-	}
-
-	err := stream.Filter("amix", nil, ffmpeg.KwArgs{"inputs": len(paths), "duration": "longest"}).
-		Output(fileDest).
-		Run()
-
-	if err != nil {
-		log.Printf("Failed to merge audio: %v", err)
-		return fmt.Errorf("failed to run mix")
+	for err := range errors {
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func NewStopRecordingMeetingHandler(botService service.BotService, repo repository.VoiceSessionMetadataRepository) handler.EventHandler {
-	return &stopRecordingMeetingHandler{botService: botService, repo: repo}
+func (s *stopRecordingMeetingHandler) MergeRecordings(infos []recorder.RecordingInfo) (string, error) {
+	if err := ffmpeg.AddSilence(infos); err != nil {
+		return "", err
+	}
+
+	return ffmpeg.MixAudio(infos)
+}
+
+func NewStopRecordingMeetingHandler(
+	botService service.BotService,
+	repo repository.VoiceSessionMetadataRepository,
+	s3service s3.S3Service,
+	broker interfaces.Broker,
+	exchange string,
+) handler.EventHandler {
+	return &stopRecordingMeetingHandler{botService: botService, repo: repo, s3service: s3service, broker: broker, exchange: exchange}
 }

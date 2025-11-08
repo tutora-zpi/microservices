@@ -6,104 +6,98 @@ import (
 	"log"
 	"os"
 	"path"
-	"sync"
 	"time"
 
-	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media/oggwriter"
 )
 
 type OggWriter struct {
-	ow *oggwriter.OggWriter
+	basePath string
+	done     chan struct{}
+	ext      string
+}
 
-	path string
-
-	packets []*rtp.Packet
-
-	mutex sync.Mutex
+// Close implements Writer.
+func (w *OggWriter) Close() {
+	select {
+	case <-w.done:
+		return
+	default:
+		close(w.done)
+	}
 }
 
 // GetPath implements Writer.
 func (w *OggWriter) GetPath() string {
-	return w.path
+	return w.basePath
 }
 
-func (w *OggWriter) flush() {
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
-	for _, packet := range w.packets {
-		err := w.ow.WriteRTP(packet)
-		if err != nil {
-			log.Printf("Failed to write RTP packet: %v", err)
-		}
-	}
-
-	w.packets = nil
+// GetExt implements Writer.
+func (w *OggWriter) GetExt() string {
+	return w.ext
 }
 
 // Write implements Writer.
-func (w *OggWriter) Write(ctx context.Context, track *webrtc.TrackRemote) {
-	packetChan := make(chan *rtp.Packet)
-	errChan := make(chan error)
+func (w *OggWriter) Write(ctx context.Context, userID string, track *webrtc.TrackRemote) error {
+	filename := path.Join(w.basePath, fmt.Sprintf("%s.%s", userID, w.ext))
+
+	ow, err := oggwriter.New(filename, 48000, track.Codec().Channels)
+	if err != nil {
+		log.Printf("Failed to create writer: %v", err)
+		return fmt.Errorf("failed to create writer")
+	}
+
+	ticker := time.NewTicker(time.Second)
 
 	go func() {
+		defer ow.Close()
+
 		for {
 			packet, _, err := track.ReadRTP()
 			if err != nil {
-				errChan <- err
+				log.Printf("Track from %s ended: %v", userID, err)
 				return
 			}
-			packetChan <- packet
+
+			if err := ow.WriteRTP(packet); err != nil {
+				log.Printf("Failed to write RTP for %s: %v", userID, err)
+				return
+			}
+
+			select {
+			case <-ticker.C:
+				log.Printf("Receiving packets from: %s", userID)
+			case <-ctx.Done():
+			case <-w.done:
+				return
+			default:
+			}
 		}
 	}()
 
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			w.flush()
-			w.ow.Close()
-			return
-		case <-ticker.C:
-			w.flush()
-		case packet := <-packetChan:
-			w.mutex.Lock()
-			w.packets = append(w.packets, packet)
-			w.mutex.Unlock()
-		case err := <-errChan:
-			log.Println("Lost packet:", err)
-			return
-		}
-	}
+	return nil
 }
 
-func NewLocalWriter(roomID, userID string, track *webrtc.TrackRemote) (Writer, error) {
-	codec := track.Codec()
+func NewLocalWriter(roomID string) (Writer, error) {
 
-	basePath, err := dir(roomID)
+	path, err := setupBasePath(roomID)
 	if err != nil {
 		return nil, err
 	}
 
-	savePath := path.Join(basePath, fmt.Sprintf("%s.ogg", userID))
-
-	ow, err := oggwriter.New(savePath, codec.ClockRate, codec.Channels)
-	if err != nil {
-		return nil, err
-	}
-
-	return &OggWriter{ow: ow, path: savePath, mutex: sync.Mutex{}}, nil
+	return &OggWriter{
+		basePath: path,
+		done:     make(chan struct{}),
+		ext:      "ogg",
+	}, nil
 }
 
-func dir(roomID string) (string, error) {
-	path := path.Join("recordings", roomID)
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return "", fmt.Errorf("failed to create directory: %s", path)
+func setupBasePath(roomID string) (string, error) {
+	p := path.Join("recordings", roomID)
+	if err := os.MkdirAll(p, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create directory: %s", p)
 	}
 
-	return path, nil
+	return p, nil
 }

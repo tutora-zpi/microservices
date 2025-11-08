@@ -1,5 +1,7 @@
 package bus
 
+import "strings"
+
 type HandlerRegistry[T any] struct {
 	handlers map[string][]T
 }
@@ -17,9 +19,12 @@ func (r *HandlerRegistry[T]) GetHandlers(pattern string) []T {
 }
 
 func (r *HandlerRegistry[T]) Patterns() []string {
+	const wsSuffix = "WSEvent"
 	patterns := make([]string, 0, len(r.handlers))
 	for p := range r.handlers {
-		patterns = append(patterns, p)
+		if !strings.HasSuffix(p, wsSuffix) {
+			patterns = append(patterns, p)
+		}
 	}
 	return patterns
 }

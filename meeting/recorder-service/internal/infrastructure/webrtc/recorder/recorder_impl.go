@@ -2,8 +2,7 @@ package recorder
 
 import (
 	"context"
-	"fmt"
-	"recorder-service/internal/domain/client"
+	"log"
 	"recorder-service/internal/domain/recorder"
 	"recorder-service/internal/infrastructure/webrtc/writer"
 	"sync"
@@ -11,146 +10,81 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-type TrackInfo struct {
-	track  *webrtc.TrackRemote
-	cancel context.CancelFunc
-	writer writer.Writer
-}
+type UserID = string
 
-type RoomConnections struct {
-	clients   map[string]client.Client
-	tracks    map[string]*TrackInfo
-	newTracks chan *TrackInfo
-}
-
-type RecorderClient struct {
-	rooms map[string]*RoomConnections // roomID -> RoomConnections
-	mutex sync.Mutex
-	wg    sync.WaitGroup
-}
-
-// RegisterNewRoom implements recorder.Recorder.
-func (r *RecorderClient) RegisterNewRoom(ctx context.Context, roomID string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if _, ok := r.rooms[roomID]; !ok {
-		r.rooms[roomID] = &RoomConnections{
-			clients:   make(map[string]client.Client),
-			tracks:    make(map[string]*TrackInfo),
-			newTracks: make(chan *TrackInfo, 100),
-		}
-	}
-
-	return nil
+type recorderImpl struct {
+	mu               sync.Mutex
+	recordingDetails map[UserID]*recorder.Detail
 }
 
 // StartRecording implements recorder.Recorder.
-func (r *RecorderClient) StartRecording(ctx context.Context, roomID string) error {
-	r.mutex.Lock()
-	roomConn, ok := r.rooms[roomID]
-	if !ok {
-		r.mutex.Unlock()
-		return fmt.Errorf("room: %s does not exist", roomID)
-	}
-	r.mutex.Unlock()
+func (r *recorderImpl) StartRecording(ctx context.Context, roomID, userID string, track *webrtc.TrackRemote, newWriter writer.WriterFactory) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	r.wg.Go(func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case trackInfo := <-roomConn.newTracks:
-				if trackInfo == nil || trackInfo.track == nil {
-					continue
-				}
-				ctxRec, cancel := context.WithCancel(ctx)
-				trackInfo.cancel = cancel
-				go trackInfo.writer.Write(ctxRec, trackInfo.track)
-			}
-		}
-	})
-
-	r.mutex.Lock()
-	existingTracks := make([]*TrackInfo, 0, len(roomConn.tracks))
-	for _, t := range roomConn.tracks {
-		existingTracks = append(existingTracks, t)
-	}
-	r.mutex.Unlock()
-
-	for _, trackInfo := range existingTracks {
-		if trackInfo == nil || trackInfo.track == nil {
-			continue
-		}
-		ctxRec, cancel := context.WithCancel(ctx)
-		trackInfo.cancel = cancel
-		go trackInfo.writer.Write(ctxRec, trackInfo.track)
+	if r.recordingDetails == nil {
+		r.recordingDetails = make(map[UserID]*recorder.Detail)
 	}
 
-	return nil
-}
-
-// AddRecordedClient implements recorder.Recorder.
-func (r *RecorderClient) AddRecordedClient(ctx context.Context, writerFactory writer.WriterFactory, roomID, userID string, client client.Client) error {
-	r.mutex.Lock()
-	roomConn, ok := r.rooms[roomID]
-	if !ok {
-		r.mutex.Unlock()
-		return fmt.Errorf("room %s does not exist", roomID)
+	if _, ok := r.recordingDetails[userID]; ok {
+		log.Printf("Recorder: writer for user %s already exists", userID)
+		return
 	}
 
-	if _, ok := roomConn.clients[userID]; ok {
-		r.mutex.Unlock()
-		return nil
+	w, err := newWriter(roomID)
+	if err != nil {
+		log.Printf("Recorder: failed to create writer for user %s: %v", userID, err)
+		return
 	}
 
-	roomConn.clients[userID] = client
-	r.mutex.Unlock()
+	userCtx, cancel := context.WithCancel(ctx)
+	detail := recorder.NewDetail(w, cancel)
+	detail.SetJoinTime()
 
-	client.OnTrack(func(track *webrtc.TrackRemote) {
-		writer, _ := writerFactory(roomID, userID, track)
-		trackInfo := &TrackInfo{
-			track:  track,
-			writer: writer,
-		}
-
-		r.mutex.Lock()
-		roomConn.tracks[userID] = trackInfo
-		r.mutex.Unlock()
-
-		roomConn.newTracks <- trackInfo
-	})
-
-	return nil
+	r.recordingDetails[userID] = detail
+	if err := w.Write(userCtx, userID, track); err != nil {
+		log.Printf("An error occurred during writing: %v", err)
+	}
 }
 
 // StopRecording implements recorder.Recorder.
-func (r *RecorderClient) StopRecording(ctx context.Context, roomID string) ([]string, error) {
-	r.mutex.Lock()
-	roomConn, ok := r.rooms[roomID]
-	if !ok {
-		r.mutex.Unlock()
-		return nil, fmt.Errorf("room: %s does not exist", roomID)
+func (r *recorderImpl) StopRecording(userID string) *recorder.RecordingInfo {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if detail, ok := r.recordingDetails[userID]; ok {
+		detail.Cancel()
+		detail.Writer.Close()
+		detail.SetLeftTime()
+
+		basePath := detail.Writer.GetPath()
+
+		info := recorder.NewRecordingInfo(detail, basePath, userID, detail.Writer.GetExt())
+
+		delete(r.recordingDetails, userID)
+
+		log.Printf("Stopped recording user %s, returning info", userID)
+		return &info
 	}
-	r.mutex.Unlock()
 
-	paths := []string{}
-	for _, trackInfo := range roomConn.tracks {
-		if trackInfo != nil && trackInfo.cancel != nil {
-			trackInfo.cancel()
-		}
-		paths = append(paths, trackInfo.writer.GetPath())
+	return nil
+}
+
+// StopAll implements recorder.Recorder.
+func (r *recorderImpl) StopAll() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, detail := range r.recordingDetails {
+		detail.Cancel()
+		detail.Writer.Close()
 	}
 
-	r.mutex.Lock()
-	delete(r.rooms, roomID)
-	r.mutex.Unlock()
-
-	return paths, nil
+	r.recordingDetails = make(map[UserID]*recorder.Detail)
 }
 
 func NewRecorderClient() recorder.Recorder {
-	return &RecorderClient{
-		rooms: make(map[string]*RoomConnections),
+	return &recorderImpl{
+		recordingDetails: make(map[UserID]*recorder.Detail),
 	}
 }

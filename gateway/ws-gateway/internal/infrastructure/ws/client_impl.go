@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"log"
+	"sync"
 	"ws-gateway/internal/app/interfaces"
 	wsevent "ws-gateway/internal/domain/ws_event"
 
@@ -12,93 +13,86 @@ import (
 type clientImpl struct {
 	id     string
 	conn   interfaces.Connection
+	send   chan []byte
+	done   chan struct{}
 	cancel context.CancelFunc
+	closed sync.Once
+	hub    interfaces.HubManager
 }
 
-// GetConnection implements interfaces.Client.
-func (c *clientImpl) GetConnection() interfaces.Connection {
-	return c.conn
-}
-
-type connImpl struct {
-	conn *websocket.Conn
-}
-
-// WriteMessage implements models.Connection.
-func (c *connImpl) WriteMessage(messageType int, payload []byte) error {
-	return c.conn.WriteMessage(messageType, payload)
-}
-
-// Close implements models.Connection.
-func (c *connImpl) Close() {
-	c.conn.Close()
-}
-
-// ReadMessage implements models.Connection.
-func (c *connImpl) ReadMessage() (messageType int, p []byte, err error) {
-	return c.conn.ReadMessage()
-}
-
-func NewConnection(conn *websocket.Conn) interfaces.Connection {
-	return &connImpl{
-		conn: conn,
-	}
-}
-
-func NewClient(id string, conn *websocket.Conn) interfaces.Client {
-	return &clientImpl{
+func NewClient(id string, conn *websocket.Conn, h interfaces.HubManager) interfaces.Client {
+	c := &clientImpl{
 		id:   id,
 		conn: NewConnection(conn),
+		send: make(chan []byte, 256),
+		done: make(chan struct{}),
+		hub:  h,
+	}
+
+	go c.runSendLoop()
+
+	return c
+}
+
+func (c *clientImpl) ID() string { return c.id }
+
+func (c *clientImpl) GetConnection() interfaces.Connection { return c.conn }
+
+func (c *clientImpl) Close() {
+	c.closed.Do(func() {
+		close(c.done)
+		if c.cancel != nil {
+			c.cancel()
+		}
+		c.hub.RemoveGlobalMember(c)
+		c.conn.Close()
+	})
+}
+
+func (c *clientImpl) runSendLoop() {
+	defer func() { recover() }()
+	for {
+		select {
+		case msg, ok := <-c.send:
+			if !ok {
+				return
+			}
+			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				c.Close()
+				return
+			}
+		case <-c.done:
+			return
+		}
 	}
 }
 
-// ID implements Client.
-func (c *clientImpl) ID() string {
-	return c.id
-}
-
-// Listen implements Client.
-func (c *clientImpl) Listen(ctx context.Context, handler func(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error) {
+func (c *clientImpl) Listen(ctx context.Context, handler func(context.Context, string, []byte, interfaces.Client) error) {
 	ctx, cancel := context.WithCancel(ctx)
 	c.cancel = cancel
-	defer cancel()
-	defer c.GetConnection().Close()
+	defer c.Close()
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Context finished")
+		case <-c.done:
 			return
 		default:
-			messageType, msg, err := c.conn.ReadMessage()
+			mt, msg, err := c.conn.ReadMessage()
 			if err != nil {
-				log.Printf("Read error from %s: %v", c.ID(), err)
 				return
 			}
-
-			switch messageType {
-			case websocket.TextMessage:
-
-				wrapper, err := wsevent.DecodeSocketEventWrapper(msg)
-
-				if err != nil {
-					log.Printf("Something went wrong: %v", err)
-					continue
-				}
-
-				err = handler(ctx, wrapper.Name, wrapper.Payload, c)
-				if err != nil {
-					log.Println(err)
-				}
-
-			case websocket.CloseMessage:
-				log.Printf("Client %s closed connection", c.ID())
-				return
-			case websocket.PingMessage:
-				return
-			default:
-				log.Println("Unsupported messageType")
+			if mt != websocket.TextMessage {
 				continue
+			}
+
+			wrapper, err := wsevent.DecodeSocketEventWrapper(msg)
+			if err != nil {
+				continue
+			}
+
+			if err := handler(ctx, wrapper.Name, wrapper.Payload, c); err != nil {
+				log.Printf("handler err %s: %v", c.id, err)
 			}
 		}
 	}

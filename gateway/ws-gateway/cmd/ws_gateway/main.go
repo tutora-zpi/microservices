@@ -13,12 +13,14 @@ import (
 	boardHandler "ws-gateway/internal/app/ws_event_handler/board"
 	chatHandler "ws-gateway/internal/app/ws_event_handler/chat"
 	generalHandler "ws-gateway/internal/app/ws_event_handler/general"
+	recorderHandler "ws-gateway/internal/app/ws_event_handler/recorder"
 	rtcHandler "ws-gateway/internal/app/ws_event_handler/rtc"
 	"ws-gateway/internal/config"
 	"ws-gateway/internal/domain/event"
 	boardDomain "ws-gateway/internal/domain/ws_event/board"
 	chatDomain "ws-gateway/internal/domain/ws_event/chat"
 	generalDomain "ws-gateway/internal/domain/ws_event/general"
+	recorderDomain "ws-gateway/internal/domain/ws_event/recorder"
 	rtcDomain "ws-gateway/internal/domain/ws_event/rtc"
 	"ws-gateway/internal/infrastructure/bus"
 	"ws-gateway/internal/infrastructure/cache/repo"
@@ -96,6 +98,8 @@ func main() {
 		if broker != nil {
 			broker.Close()
 		}
+
+		hub.Close()
 	}()
 
 	cacheRepo := repo.NewCacheEventRepository(redisClient, 10, time.Second*30)
@@ -113,6 +117,8 @@ func main() {
 	dispacher.Register(&rtcDomain.IceCandidateWSEvent{}, rtcHandler.NewIceCandidateHandler(hub))
 	dispacher.Register(&rtcDomain.OfferWSEvent{}, rtcHandler.NewOfferHandler(hub))
 	dispacher.Register(&event.SendFileMessageEvent{}, eventhandler.NewSendFileMessageHandler(hub, cacheService))
+	dispacher.Register(&recorderDomain.RecordRequestedWSEvent{}, recorderHandler.NewRecordRequestHandler(broker, rabbitmqConfig.MeetingExchange, hub))
+	dispacher.Register(&recorderDomain.StopRecordingRequestedWSEvent{}, recorderHandler.NewStopRecordMeetingHandler(broker, rabbitmqConfig.MeetingExchange, hub))
 
 	go eventBuffer.Work(rootCtx)
 	go func() {

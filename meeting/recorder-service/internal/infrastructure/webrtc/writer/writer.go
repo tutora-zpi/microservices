@@ -7,9 +7,12 @@ import (
 )
 
 type Writer interface {
-	Write(ctx context.Context, track *webrtc.TrackRemote)
+	Write(ctx context.Context, userID string, track *webrtc.TrackRemote) error
 
 	GetPath() string
+	GetExt() string
+
+	Close()
 }
 
-type WriterFactory func(roomID, userID string, track *webrtc.TrackRemote) (Writer, error)
+type WriterFactory func(roomID string) (Writer, error)

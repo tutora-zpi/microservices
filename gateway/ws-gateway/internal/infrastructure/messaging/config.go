@@ -15,8 +15,9 @@ type RabbitConfig struct {
 
 	URL string
 
-	ChatExchange  string
-	BoardExchange string
+	ChatExchange    string
+	BoardExchange   string
+	MeetingExchange string
 
 	PoolSize int
 	Timeout  time.Duration
@@ -40,16 +41,17 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 	}
 
 	return &RabbitConfig{
-		User:          user,
-		Pass:          pass,
-		Host:          host,
-		Port:          port,
-		URL:           url,
-		ChatExchange:  os.Getenv(config.CHAT_EXCHANGE),
-		BoardExchange: os.Getenv(config.BOARD_EXCHANGE),
-		PoolSize:      poolSize,
-		ExchangeType:  "fanout",
-		Timeout:       timeout,
-		FileQueue:     os.Getenv(config.FILE_QUEUE),
+		User:            user,
+		Pass:            pass,
+		Host:            host,
+		Port:            port,
+		URL:             url,
+		ChatExchange:    os.Getenv(config.CHAT_EXCHANGE),
+		BoardExchange:   os.Getenv(config.BOARD_EXCHANGE),
+		MeetingExchange: os.Getenv(config.MEETING_EXCHANGE),
+		PoolSize:        poolSize,
+		ExchangeType:    "fanout",
+		Timeout:         timeout,
+		FileQueue:       os.Getenv(config.FILE_QUEUE),
 	}
 }

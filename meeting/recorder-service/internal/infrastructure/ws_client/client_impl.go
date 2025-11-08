@@ -1,4 +1,4 @@
-package ws
+package wsclient
 
 import (
 	"context"
@@ -8,129 +8,127 @@ import (
 	wsevent "recorder-service/internal/domain/ws_event"
 	"recorder-service/internal/infrastructure/bus"
 
+	"sync"
+
 	"github.com/gorilla/websocket"
-	"github.com/pion/webrtc/v3"
 )
 
-type socketClientImpl struct {
-	conn      *websocket.Conn
-	dispacher bus.Dispachable
+type clientImpl struct {
+	dispatcher bus.Dispachable
+	conn       *websocket.Conn
+	botID      string
+	msg        chan []byte
+	url        string
 
-	peer *webrtc.PeerConnection
-
-	url string
-	cfg webrtc.Configuration
+	mu       sync.Mutex
+	isClosed bool
 }
 
-// AddIceCandidate implements client.Client.
-func (s *socketClientImpl) AddIceCandidate(candidate webrtc.ICECandidateInit) error {
-	return s.peer.AddICECandidate(candidate)
+func NewWSClient(url string, dispatcher bus.Dispachable) client.Client {
+	return &clientImpl{
+		url:        url,
+		dispatcher: dispatcher,
+		msg:        make(chan []byte, 256),
+	}
 }
 
-// SetRemoteDescription implements client.Client.
-func (s *socketClientImpl) SetRemoteDescription(desc webrtc.SessionDescription) error {
-	return s.peer.SetRemoteDescription(desc)
+func (c *clientImpl) SetBotID(botID string) {
+	c.botID = botID
 }
 
-// Close implements client.Client.
-func (s *socketClientImpl) Close() error {
-	err := s.peer.Close()
+func (c *clientImpl) Connect(ctx context.Context) error {
+	var err error
+	c.conn, _, err = websocket.DefaultDialer.Dial(fmt.Sprintf("%s?id=%s", c.url, c.botID), nil)
 	if err != nil {
-		log.Printf("Failed to close peer: %v", err)
+		return err
 	}
 
-	err = s.conn.Close()
-	if err != nil {
-		log.Printf("Failed to close websocket connection: %v", err)
+	go c.listen(ctx)
+	go c.sending(ctx)
+
+	return nil
+}
+
+func (c *clientImpl) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.isClosed {
+		return nil
+	}
+
+	c.isClosed = true
+
+	if c.conn != nil {
+		return c.conn.Close()
 	}
 
 	return nil
 }
 
-// Connect implements client.Client.
-func (s *socketClientImpl) Connect(ctx context.Context) error {
-	peer, err := webrtc.NewPeerConnection(s.cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create new peer connection: %w", err)
-	}
-
-	s.peer = peer
-
-	var dialer websocket.Dialer
-	conn, _, err := dialer.Dial(s.url, nil)
-
-	if err != nil {
-		return fmt.Errorf("failed to connect websocket: %w", err)
-	}
-
-	s.conn = conn
-
-	go s.Listen(ctx)
-
-	return nil
+func (c *clientImpl) IsConnected() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn != nil && c.conn.RemoteAddr() != nil && !c.isClosed
 }
 
-// OnTrack implements client.Client.
-func (s *socketClientImpl) OnTrack(callback func(*webrtc.TrackRemote)) {
-	s.peer.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		callback(track)
-	})
-}
-
-// Send implements client.Client.
-func (s *socketClientImpl) Send(msg []byte) error {
-	err := s.conn.WriteMessage(websocket.TextMessage, msg)
-	if err != nil {
-		log.Printf("Failed to write message: %v", err)
+func (c *clientImpl) Send(msg []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.isClosed {
+		return fmt.Errorf("client is closed")
 	}
-	return nil
-}
 
-// ValidateMessageType implements Client.
-func (s *socketClientImpl) ValidateMessageType(msgType int) error {
-	if msgType != websocket.TextMessage {
-		return fmt.Errorf("unsupported message type: %d", msgType)
+	select {
+	case c.msg <- msg:
+		return nil
+	default:
+		return fmt.Errorf("send buffer full")
 	}
-	return nil
 }
 
-// Listen implements SocketClient.
-func (s *socketClientImpl) Listen(ctx context.Context) {
+func (c *clientImpl) listen(ctx context.Context) {
 	for {
-		msgType, body, err := s.conn.ReadMessage()
-		if err != nil {
-			log.Printf("Failed to read message, skipping")
-			continue
-		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			_, msg, err := c.conn.ReadMessage()
+			if err != nil {
+				log.Println("Read error:", err)
+				return
+			}
 
-		err = s.ValidateMessageType(msgType)
-		if err != nil {
-			log.Printf("Invalid message type: %v", err)
-			continue
-		}
+			decoded, err := wsevent.DecodeSocketEventWrapper(msg)
+			if err != nil {
+				log.Println("Failed to decode event:", err)
+				continue
+			}
 
-		wrapper, err := wsevent.DecodeSocketEventWrapper(body)
-		if err != nil {
-			log.Printf("Failed to decode body into valid wrapper: %v", err)
-			continue
-		}
-
-		if err := s.dispacher.HandleEvent(ctx, wrapper.Name, wrapper.ToBytes()); err != nil {
-			log.Printf("An error occurred during event handling: %v", err)
-			continue
+			if err := c.dispatcher.HandleEvent(ctx, decoded.Name, decoded.Payload); err != nil {
+				log.Printf("Failed to handle event: %v", err)
+			}
 		}
 	}
 }
 
-func NewSocketClient(url string, webrtcConfig *webrtc.Configuration) client.Client {
-	cfg := webrtcConfig
-	if cfg == nil {
-		cfg = &webrtc.Configuration{}
+func (c *clientImpl) sending(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-c.msg:
+			c.mu.Lock()
+			if c.isClosed {
+				c.mu.Unlock()
+				return
+			}
+			err := c.conn.WriteMessage(websocket.TextMessage, msg)
+			c.mu.Unlock()
+			if err != nil {
+				log.Println("Write error:", err)
+				return
+			}
+		}
 	}
-
-	if url == "" {
-		log.Fatal("No url provided")
-	}
-
-	return &socketClientImpl{url: url, cfg: *cfg}
 }

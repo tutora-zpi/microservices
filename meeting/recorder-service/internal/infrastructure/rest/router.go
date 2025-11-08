@@ -14,8 +14,6 @@ func NewRouter(h handlers.Handler) *mux.Router {
 
 	// swagger
 
-	// router.HandleFunc("/ws", gateway.Handle)
-
 	api := router.PathPrefix("/api/v1/").Subrouter()
 
 	sessions := api.PathPrefix("/sessions").Subrouter()

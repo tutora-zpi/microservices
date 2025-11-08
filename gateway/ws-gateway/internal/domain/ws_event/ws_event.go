@@ -29,7 +29,7 @@ func DecodeSocketEventWrapper(payload []byte) (*SocketEventWrapper, error) {
 	return &dest, nil
 }
 
-func EncodeSocketEventWrapper(event event.Event, name string) ([]byte, error) {
+func EncodeSocketEventWrapper(event event.Event) ([]byte, error) {
 	bytes, err := json.Marshal(event)
 
 	if err != nil {
@@ -37,7 +37,7 @@ func EncodeSocketEventWrapper(event event.Event, name string) ([]byte, error) {
 	}
 
 	toEncode := SocketEventWrapper{
-		Name:    name,
+		Name:    event.Name(),
 		Payload: bytes,
 	}
 

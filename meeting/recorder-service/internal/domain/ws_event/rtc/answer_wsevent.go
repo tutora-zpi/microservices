@@ -2,6 +2,7 @@ package rtc
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
@@ -9,10 +10,10 @@ import (
 )
 
 type AnswerWSEvent struct {
-	Answer json.RawMessage `json:"answer" validate:"required"`
-	RoomID string          `json:"roomId"`
-	From   string          `json:"from" validate:"required,uuid4"`
-	To     string          `json:"to" validate:"required,uuid4"`
+	Answer webrtc.SessionDescription `json:"answer" validate:"required"`
+	RoomID string                    `json:"roomId"`
+	From   string                    `json:"from" validate:"required,uuid4"`
+	To     string                    `json:"to" validate:"required,uuid4"`
 }
 
 func (a *AnswerWSEvent) IsValid() error {
@@ -31,9 +32,16 @@ type SetRemoteDescriptionCommand struct {
 
 func (e AnswerWSEvent) ToCommand() (*SetRemoteDescriptionCommand, error) {
 	var sdp webrtc.SessionDescription
-	if err := json.Unmarshal(e.Answer, &sdp); err != nil {
-		return nil, err
+
+	bytes, err := json.Marshal(e.Answer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal answer: %w", err)
 	}
+
+	if err := json.Unmarshal(bytes, &sdp); err != nil {
+		return nil, fmt.Errorf("invalid SDP payload: %w", err)
+	}
+
 	return &SetRemoteDescriptionCommand{
 		RoomID: e.RoomID,
 		SDP:    sdp,

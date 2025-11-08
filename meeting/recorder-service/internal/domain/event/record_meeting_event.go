@@ -6,8 +6,9 @@ import (
 )
 
 type RecordMeetingEvent struct {
-	RoomID     string    `json:"roomId"`
-	FinishTime time.Time `json:"finishTime"`
+	ExpectedUserIDs []string  `json:"userIds"`
+	RoomID          string    `json:"roomId"`
+	FinishTime      time.Time `json:"finishTime"`
 }
 
 func (r *RecordMeetingEvent) Name() string {

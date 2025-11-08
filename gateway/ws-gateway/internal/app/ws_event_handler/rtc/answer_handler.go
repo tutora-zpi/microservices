@@ -25,8 +25,8 @@ func (a *answerHandler) Handle(ctx context.Context, body []byte, client interfac
 		Name:    event.Name(),
 	}
 
-	// a.hubManager.EmitToClient(event.To, [][]byte{wrapper.ToBytes()})
-	a.hubManager.EmitToClientInRoom(event.RoomID, event.To, [][]byte{wrapper.ToBytes()})
+	a.hubManager.EmitToClient(event.To, [][]byte{wrapper.ToBytes()})
+	// a.hubManager.EmitToClientInRoom(event.RoomID, event.To, [][]byte{wrapper.ToBytes()})
 
 	return nil
 }

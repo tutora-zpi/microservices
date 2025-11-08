@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"recorder-service/internal/app/interfaces"
 	"recorder-service/internal/domain/broker"
 	"recorder-service/internal/domain/event"
 	"recorder-service/internal/infrastructure/bus"
@@ -23,7 +24,7 @@ type RabbitMQBroker struct {
 	connMu     sync.Mutex
 }
 
-func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (*RabbitMQBroker, error) {
+func NewRabbitBroker(rabbitMQConfig RabbitConfig, dispatcher bus.Dispachable) (interfaces.Broker, error) {
 	if rabbitMQConfig.Timeout == 0 {
 		rabbitMQConfig.Timeout = 5 * time.Second
 	}
@@ -99,7 +100,7 @@ func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broke
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
-	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
+	log.Printf("Published event [%s] to %s: %s", wrapper.Pattern, exchange, routingKey)
 	return nil
 }
 

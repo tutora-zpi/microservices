@@ -21,7 +21,10 @@ type voiceMeetingRepoImpl struct {
 
 // AppendAudioName implements repository.VoiceSessionMetadataRepository.
 func (v *voiceMeetingRepoImpl) AppendAudioName(ctx context.Context, id string, audioName string) error {
-	res, err := v.collection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"audioName": audioName}})
+	filter := bson.M{"meetingId": id}
+	update := bson.M{"$set": bson.M{"audioName": audioName}}
+
+	res, err := v.collection.UpdateOne(ctx, filter, update)
 	if err != nil || res.ModifiedCount != 1 {
 		log.Printf("Error occurred during appending audio name")
 		return fmt.Errorf("failed to update metadata with id: %s", id)

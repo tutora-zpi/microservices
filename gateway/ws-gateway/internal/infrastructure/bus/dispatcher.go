@@ -29,8 +29,7 @@ func (d *Dispatcher) Register(evt event.Event, handler interfaces.EventHandler) 
 }
 
 func (d *Dispatcher) HandleEvent(ctx context.Context, eventType string, msg []byte, client interfaces.Client) error {
-	log.Printf("Handling event from '%s'", eventType)
-
+	log.Printf("Handling event: %s", eventType)
 	handlers := d.registry.GetHandlers(eventType)
 	if len(handlers) == 0 {
 		log.Printf("No handler found for event type: %s", eventType)
