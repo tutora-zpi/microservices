@@ -62,6 +62,8 @@ services:
       - user_service_app
     networks:
       - tutora_net
+    volumes:
+      - ./meeting/chat-service/media:/app/media
 
   chat_service_db:
     image: mongo:latest

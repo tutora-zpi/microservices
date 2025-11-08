@@ -103,7 +103,7 @@ func main() {
 
 	chatService := service.NewChatService(chatRepo)
 	messageService := service.NewMessageService(messageRepo, broker)
-	fileSerivce := file.NewLocalFileService("/api/v1/media")
+	fileSerivce := file.NewLocalFileService("/api/v1")
 
 	handlers := handlers.NewHandlers(chatService, messageService, fileSerivce)
 
