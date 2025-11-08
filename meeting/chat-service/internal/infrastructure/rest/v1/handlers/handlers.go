@@ -105,8 +105,6 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Print(*result)
-
 	server.NewResponse(w, nil, http.StatusCreated, *result)
 }
 
