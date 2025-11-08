@@ -112,6 +112,8 @@ func main() {
 	dispacher.Register(&generalDomain.UserLeftWSEvent{}, generalHandler.NewUserLeftHandler(hub))
 	dispacher.Register(&chatDomain.UserTypingWSEvent{}, chatHandler.NewUserTypingHandler(hub))
 	dispacher.Register(&chatDomain.SendMessageWSEvent{}, chatHandler.NewSendMessageHandler(hub, eventBuffer, cacheService))
+	dispacher.Register(&chatDomain.ReactOnMessageWSEvent{}, chatHandler.NewReactHandler(hub, eventBuffer))
+	dispacher.Register(&chatDomain.ReplyOnMessageWSEvent{}, chatHandler.NewReplyHandler(hub, eventBuffer))
 	dispacher.Register(&boardDomain.BoardUpdateWSEvent{}, boardHandler.NewBoardUpdateHandler(hub, eventBuffer, cacheService))
 	dispacher.Register(&rtcDomain.AnswerWSEvent{}, rtcHandler.NewAnswerHandler(hub))
 	dispacher.Register(&rtcDomain.IceCandidateWSEvent{}, rtcHandler.NewIceCandidateHandler(hub))

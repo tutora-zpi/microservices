@@ -65,7 +65,6 @@ services:
     volumes:
       - ./meeting/chat-service/media:/app/media
 
-
   chat_service_db:
     image: mongo:latest
     container_name: chat_db
