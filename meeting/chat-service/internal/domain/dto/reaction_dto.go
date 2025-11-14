@@ -11,9 +11,9 @@ type ReactionDTO struct {
 
 func NewReactionDTO(reaction models.Reaction) *ReactionDTO {
 	return &ReactionDTO{
-		ID:        reaction.ID,
+		ID:        reaction.ID.Hex(),
 		UserID:    reaction.UserID,
-		MessageID: reaction.MessageID,
+		MessageID: reaction.MessageID.Hex(),
 		Emoji:     reaction.Emoji,
 	}
 }

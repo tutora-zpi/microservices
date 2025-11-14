@@ -70,7 +70,7 @@ func (c *chatRepositoryImpl) Save(ctx context.Context, memberIDs []string, chatI
 func (c *chatRepositoryImpl) Delete(ctx context.Context, request requests.DeleteChat) error {
 	var wg sync.WaitGroup
 	mutex := sync.Mutex{}
-	var messageIDs []string
+	var messageIDs []bson.ObjectID
 	var deletionError error
 
 	wg.Go(func() {
@@ -96,7 +96,7 @@ func (c *chatRepositoryImpl) Delete(ctx context.Context, request requests.Delete
 		var messages []models.Message
 		_ = cursor.All(ctx, &messages)
 
-		ids := make([]string, len(messages))
+		ids := make([]bson.ObjectID, len(messages))
 		for i, m := range messages {
 			ids[i] = m.ID
 		}

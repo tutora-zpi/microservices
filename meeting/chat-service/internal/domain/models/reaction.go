@@ -1,25 +1,27 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Reaction struct {
-	ID        string `bson:"_id,omitempty"`
-	UserID    string `bson:"userId"`
-	MessageID string `bson:"messageId"`
-	SentAt    int64  `bson:"sentAt"`
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	UserID    string        `bson:"userId"`
+	MessageID bson.ObjectID `bson:"messageId"`
+	SentAt    int64         `bson:"sentAt"`
 
 	Emoji string `bson:"emoji"`
 }
 
 func NewReaction(userID, messageID, emoji string, sentAt int64) (*Reaction, error) {
-	id := uuid.New().String()
+	msgID, err := bson.ObjectIDFromHex(messageID)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Reaction{
-		ID:        id,
 		UserID:    userID,
-		MessageID: messageID,
+		MessageID: msgID,
 		Emoji:     emoji,
 		SentAt:    sentAt,
 	}, nil

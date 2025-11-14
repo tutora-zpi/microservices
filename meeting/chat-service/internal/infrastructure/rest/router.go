@@ -31,9 +31,11 @@ func NewRouter(h handlers.Handlable) *mux.Router {
 	chat.Handle("/general", h.IsAuth(handlers.ValidateJSON((http.HandlerFunc(h.CreateGeneralChat))))).Methods(http.MethodPost)
 	chat.Handle("/update-members", h.IsAuth(handlers.ValidateJSON(http.HandlerFunc(h.UpdateMembersInChat)))).Methods(http.MethodPut)
 
-	chat.Handle("/{id}/messages", h.IsAuth(http.HandlerFunc(h.FetchMoreMessages))).Methods(http.MethodGet)
+	// chat.Handle("/{id}/messages", h.IsAuth(http.HandlerFunc(h.FetchMoreMessages))).Methods(http.MethodGet)
+	chat.Handle("/{id}/messages", (http.HandlerFunc(h.FetchMoreMessages))).Methods(http.MethodGet)
 
-	chat.Handle("/{id}/upload-file", h.IsAuth(handlers.ValidateFileFormData(http.HandlerFunc(h.UploadFile)))).Methods(http.MethodPost)
+	// chat.Handle("/{id}/upload-file", h.IsAuth(handlers.ValidateFileFormData(http.HandlerFunc(h.UploadFile)))).Methods(http.MethodPost)
+	chat.Handle("/{id}/upload-file", (handlers.ValidateFileFormData(http.HandlerFunc(h.UploadFile)))).Methods(http.MethodPost)
 
 	return router
 }
