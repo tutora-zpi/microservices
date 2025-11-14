@@ -29,7 +29,6 @@ import (
 	redisdb "ws-gateway/internal/infrastructure/redis"
 	"ws-gateway/internal/infrastructure/rest"
 	"ws-gateway/internal/infrastructure/rest/v1/handlers"
-	security "ws-gateway/internal/infrastructure/security/jwt"
 	securityRepo "ws-gateway/internal/infrastructure/security/repository"
 	"ws-gateway/internal/infrastructure/server"
 	"ws-gateway/internal/infrastructure/ws"
@@ -46,7 +45,7 @@ func init() {
 		_ = godotenv.Load(".env.local")
 	}
 
-	security.FetchSignKey()
+	// security.FetchSignKey()
 }
 
 func main() {
