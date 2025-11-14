@@ -2,7 +2,6 @@ package dto
 
 import (
 	"chat-service/internal/domain/models"
-	"time"
 )
 
 // MessageDTO represents a message in a chat.
@@ -13,7 +12,7 @@ type MessageDTO struct {
 
 	// Timestamp when the message was sent
 	// required: true
-	SentAt time.Time `json:"sentAt"`
+	SentAt int64 `json:"sentAt"`
 
 	// Content of the message
 	// required: false
@@ -41,8 +40,6 @@ type MessageDTO struct {
 }
 
 func NewMessageDTO(message models.Message, replyTo *models.Message, reactions []models.Reaction) *MessageDTO {
-	sentAtTime := time.Unix(message.SentAt, 0).UTC()
-
 	reactionDTOs := make([]ReactionDTO, len(reactions))
 	for i, r := range reactions {
 		reactionDTOs[i] = *NewReactionDTO(r)
@@ -51,14 +48,14 @@ func NewMessageDTO(message models.Message, replyTo *models.Message, reactions []
 	var replyDTO *MessageDTO
 	if replyTo != nil {
 		replyDTO = &MessageDTO{
-			ID:      replyTo.ID,
+			ID:      replyTo.ID.Hex(),
 			Content: replyTo.Content,
 		}
 	}
 
 	return &MessageDTO{
-		ID:        message.ID,
-		SentAt:    sentAtTime,
+		ID:        message.ID.Hex(),
+		SentAt:    message.SentAt,
 		SenderID:  message.SenderID,
 		ChatID:    message.ChatID,
 		Content:   message.Content,

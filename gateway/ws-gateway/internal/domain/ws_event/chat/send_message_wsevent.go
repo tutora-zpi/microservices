@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type SendMessageWSEvent struct {
@@ -16,7 +16,7 @@ type SendMessageWSEvent struct {
 }
 
 func (s *SendMessageWSEvent) AppendID() {
-	s.MessageID = uuid.NewString()
+	s.MessageID = bson.NewObjectID().Hex()
 }
 
 func (s *SendMessageWSEvent) IsValid() error {

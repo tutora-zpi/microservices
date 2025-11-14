@@ -26,9 +26,8 @@ type messageRepoImpl struct {
 
 // Delete implements repository.MessageRepository.
 func (m *messageRepoImpl) Delete(ctx context.Context, dto requests.DeleteMessage) error {
+	errCh := make(chan error, 3)
 	var wg sync.WaitGroup
-	var err error
-	var mutex sync.Mutex
 
 	wg.Go(func() {
 		_, err := m.collectionChat.UpdateOne(
@@ -38,6 +37,7 @@ func (m *messageRepoImpl) Delete(ctx context.Context, dto requests.DeleteMessage
 		)
 		if err != nil {
 			log.Printf("Not found chat with id: %s", dto.ChatID)
+			errCh <- fmt.Errorf("failed to update chat")
 		}
 	})
 
@@ -46,35 +46,44 @@ func (m *messageRepoImpl) Delete(ctx context.Context, dto requests.DeleteMessage
 		result, err := m.collectionMessage.DeleteOne(ctx, filter)
 		if err != nil || result.DeletedCount < 1 {
 			log.Printf("Failed to remove message %v, deleted count is %d", err, result.DeletedCount)
-			mutex.Lock()
-			err = fmt.Errorf("Not found message with %s", dto.MessageID)
-			mutex.Unlock()
+			errCh <- fmt.Errorf("not found message with id %s", dto.MessageID)
 		}
 	})
 
 	wg.Go(func() {
 		filter := bson.M{"messageId": dto.MessageID}
-		result, err := m.collectionReactions.DeleteMany(ctx, filter)
-		if err != nil || result.DeletedCount < 1 {
-			log.Println("Failed to remove reactions maybe not found")
+		_, err := m.collectionReactions.DeleteMany(ctx, filter)
+		if err != nil {
+			log.Println("Failed to remove reactions")
+			errCh <- fmt.Errorf("failed to delete reactions")
 		}
 	})
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
 
-	return err
+	for e := range errCh {
+		if e != nil {
+			return e
+		}
+	}
+
+	return nil
 }
 
 // FindMore implements repository.MessageRepository.
 func (m *messageRepoImpl) FindMore(ctx context.Context, req requests.GetMoreMessages) ([]*dto.MessageDTO, error) {
 	var messages []models.Message
-	var messageDTOs []*dto.MessageDTO
-	var mu sync.Mutex
-	var wg sync.WaitGroup
 
 	filter := bson.M{"chatId": req.ID}
 	if req.LastMessageId != nil {
-		filter["_id"] = bson.M{"$lt": req.LastMessageId}
+		msgID, err := bson.ObjectIDFromHex(*req.LastMessageId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid object id")
+		}
+		filter["_id"] = bson.M{"$lt": msgID}
 	}
 
 	opts := options.Find().SetSort(bson.M{"sentAt": -1}).SetLimit(int64(req.Limit))
@@ -87,38 +96,43 @@ func (m *messageRepoImpl) FindMore(ctx context.Context, req requests.GetMoreMess
 		return nil, fmt.Errorf("failed to decode messages")
 	}
 
-	for _, message := range messages {
+	messageCh := make(chan *dto.MessageDTO, len(messages))
+	var wg sync.WaitGroup
+
+	for _, msg := range messages {
 		wg.Go(func() {
-			var reply *models.Message = nil
-			if message.ReplyToID != nil {
+			var reply *models.Message
+			if msg.ReplyToID != nil {
 				var r models.Message
-				//find parent message
-				if err := m.collectionMessage.FindOne(ctx, bson.M{"_id": message.ReplyToID}).Decode(&r); err == nil {
+				if err := m.collectionMessage.FindOne(ctx, bson.M{"_id": msg.ReplyToID}).Decode(&r); err == nil {
 					reply = &r
 				}
 			}
 
 			var reactions []models.Reaction
-			cursor, err := m.collectionReactions.Find(ctx, bson.M{"messageId": message.ID})
+			cursor, err := m.collectionReactions.Find(ctx, bson.M{"messageId": msg.ID})
 			if err == nil {
 				_ = cursor.All(ctx, &reactions)
 			}
 
-			messageDTO := dto.NewMessageDTO(message, reply, reactions)
-
-			mu.Lock()
-			messageDTOs = append(messageDTOs, messageDTO)
-			mu.Unlock()
+			messageCh <- dto.NewMessageDTO(msg, reply, reactions)
 		})
 	}
+
 	wg.Wait()
+	close(messageCh)
+
+	var messageDTOs []*dto.MessageDTO
+	for m := range messageCh {
+		messageDTOs = append(messageDTOs, m)
+	}
 
 	if len(messageDTOs) == 0 {
 		return nil, fmt.Errorf("No messages found")
 	}
 
 	sort.Slice(messageDTOs, func(i, j int) bool {
-		return messageDTOs[i].SentAt.Before(messageDTOs[j].SentAt)
+		return messageDTOs[i].SentAt < messageDTOs[j].SentAt
 	})
 
 	return messageDTOs, nil
@@ -131,14 +145,37 @@ func (m *messageRepoImpl) React(ctx context.Context, event event.ReactOnMessageE
 		return err
 	}
 
-	if _, err := m.collectionReactions.InsertOne(ctx, reaction); err != nil {
+	var existing models.Reaction
+	err = m.collectionReactions.FindOne(
+		ctx,
+		bson.M{"messageId": reaction.MessageID, "userId": reaction.UserID},
+	).Decode(&existing)
+
+	if err == nil {
+		_, err := m.collectionReactions.UpdateByID(
+			ctx,
+			existing.ID,
+			bson.M{"$set": bson.M{
+				"emoji":  reaction.Emoji,
+				"sentAt": reaction.SentAt,
+			}},
+		)
+		return err
+	}
+
+	if err != mongo.ErrNoDocuments {
+		return err
+	}
+
+	res, err := m.collectionReactions.InsertOne(ctx, reaction)
+	if err != nil {
 		return fmt.Errorf("failed to insert reaction: %v", err)
 	}
 
 	_, _ = m.collectionMessage.UpdateByID(
 		ctx,
-		event.MessageID,
-		bson.M{"$push": bson.M{"reactionsIds": reaction.ID}},
+		reaction.MessageID,
+		bson.M{"$push": bson.M{"reactionsIds": res.InsertedID}},
 	)
 
 	return nil
@@ -147,8 +184,16 @@ func (m *messageRepoImpl) React(ctx context.Context, event event.ReactOnMessageE
 // Reply implements repository.MessageRepository.
 func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageEvent) error {
 	newReply := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.MessageID, event.SentAt, event.FileLink)
+	if newReply == nil {
+		return fmt.Errorf("invalid reply message format")
+	}
 
-	newReply.ReplyToID = &event.ReplyToMessageID
+	replyObjectID, err := bson.ObjectIDFromHex(event.ReplyToMessageID)
+	if err != nil {
+
+	}
+
+	newReply.ReplyToID = &replyObjectID
 
 	if _, err := m.collectionMessage.InsertOne(ctx, newReply); err != nil {
 		return fmt.Errorf("failed to insert reply message: %w", err)
@@ -169,7 +214,6 @@ func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageE
 func (m *messageRepoImpl) Save(ctx context.Context, event event.SendMessageEvent) (*dto.MessageDTO, error) {
 	log.Printf("Saving message: %s", event.Content)
 	newMessage := models.NewMessage(event.ChatID, event.SenderID, event.Content, event.MessageID, event.SentAt, event.FileLink)
-	log.Println(*newMessage.FileLink)
 
 	_, err := m.collectionMessage.InsertOne(ctx, newMessage)
 	if err != nil {

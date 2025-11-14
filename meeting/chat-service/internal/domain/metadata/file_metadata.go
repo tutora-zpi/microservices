@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var SUPPORTED_FILE_TYPES = []string{
@@ -56,7 +56,7 @@ func (f *FileMetadata) IsValidContentType() bool {
 
 func (f *FileMetadata) NewFileMessage(urlToLink string) *event.SendMessageEvent {
 	return &event.SendMessageEvent{
-		MessageID: uuid.NewString(),
+		MessageID: bson.NewObjectID().Hex(),
 		Content:   f.Content,
 		SenderID:  f.SenderID,
 		SentAt:    f.SentAt,

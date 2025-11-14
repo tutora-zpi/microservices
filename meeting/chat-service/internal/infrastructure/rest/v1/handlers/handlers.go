@@ -97,7 +97,6 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	message := *fileMetadata.NewFileMessage(urlToFile)
-	log.Print(message.FileLink)
 
 	result, err := h.messageService.SaveFileMessage(ctx, message)
 	if err != nil {
