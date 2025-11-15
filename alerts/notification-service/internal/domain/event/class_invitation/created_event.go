@@ -19,7 +19,7 @@ func (c *ClassInvitationCreatedEvent) Name() string {
 
 func (c *ClassInvitationCreatedEvent) NotificationForReceiver() *models.Notification {
 	title := "Got new invitation!"
-	body := fmt.Sprintf("You've been invited to %s. Click down below to check new invitations.", c.Receiver.FirstName, c.ClassName)
+	body := fmt.Sprintf("You've been invited to %s. Click down below to check new invitations.", c.ClassName)
 	link := c.buildLink()
 
 	notification := models.InitInvitationNotification()
@@ -30,7 +30,7 @@ func (c *ClassInvitationCreatedEvent) NotificationForReceiver() *models.Notifica
 
 func (c *ClassInvitationCreatedEvent) NotificationForSender() *models.Notification {
 	title := "Got it!"
-	body := fmt.Sprintf("Your invitation to %s has been sent.", c.Sender.FirstName, c.ClassName)
+	body := fmt.Sprintf("Your invitation to %s has been sent.", c.ClassName)
 	link := c.buildLink()
 
 	notification := models.InitInvitationNotification()
