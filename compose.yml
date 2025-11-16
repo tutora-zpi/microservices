@@ -236,10 +236,48 @@ services:
     networks:
       - tutora_net
 
+  meeting_notes_api:
+    container_name: meeting_notes_service_api
+    build:
+      context: ./ml/note-service
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8005:8000"
+    env_file:
+      - ./ml/note-service/.env
+    volumes:
+      - ./ml/note-service/app:/app/app
+      - models_cache:/root/.cache/huggingface
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tutora_net
+
+  meeting_notes_worker:
+    container_name: meeting_notes_service_worker
+    build:
+      context: ./ml/note-service
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=INFO
+    volumes:
+      - ./ml/note-service/app:/app/app
+      - models_cache:/root/.cache/huggingface
+    env_file:
+      - ./ml/note-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tutora_net
+
 volumes:
   pgdata:
   pgdata_class:
   cache:
+    driver: local
+  models_cache:
     driver: local
 
 networks:
