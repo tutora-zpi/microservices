@@ -1,4 +1,4 @@
-package org.tutora.userservice.config;
+package org.tutora.userservice.security.config;
 
 import org.tutora.userservice.security.key.RsaKeyProperties;
 import org.tutora.userservice.security.key.RsaKeyPaths;
