@@ -1,9 +1,10 @@
-package org.tutora.userservice.config;
+package org.tutora.userservice.security.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.tutora.userservice.security.handler.OAuth2AuthenticationFailureHandler;
 import org.tutora.userservice.security.handler.OAuth2AuthenticationSuccessHandler;
-import org.tutora.userservice.security.jwt.JwtAuthenticationFilter;
 import org.tutora.userservice.security.service.CustomOAuth2UserService;
 import org.tutora.userservice.security.service.CustomOidcUserService;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +16,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -23,12 +23,17 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Konfiguracja bezpieczeństwa aplikacji (@Order(2)), działająca jako:
+ * 1. Resource Server: Chroni endpointy API (np. /users/**) przez walidację tokenów JWT.
+ * 2. OAuth2 Client: Obsługuje proces logowania użytkowników przez zewnętrznych dostawców (np. Google).
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Order(2)
 public class SecurityConfig {
 
-        private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final CustomOAuth2UserService customOAuth2UserService;
         private final CustomOidcUserService customOidcUserService;
         private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
@@ -53,10 +58,6 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers("/").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/.well-known/jwks.json").permitAll()
-                                                .requestMatchers("/oauth2/**", "/login/oauth2/code/*").permitAll() // Consolidated
-                                                                                                                   // OAuth2
-                                                                                                                   // paths
                                                 .anyRequest().authenticated())
 
                                 // Configure OAuth2 Login
@@ -70,7 +71,7 @@ public class SecurityConfig {
                                                 .successHandler(oAuth2AuthenticationSuccessHandler)
                                                 .failureHandler(oAuth2AuthenticationFailureHandler))
 
-                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
                 return http.build();
         }
