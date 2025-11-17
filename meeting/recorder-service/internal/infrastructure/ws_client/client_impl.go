@@ -35,17 +35,19 @@ func NewWSClient(url string, dispatcher bus.Dispachable) client.Client {
 	}
 }
 
-func (c *clientImpl) SetBotID(botID string) {
-	c.botID = botID
+func (c *clientImpl) GetBotID() string {
+	return c.botID
 }
 
 func (c *clientImpl) Connect(ctx context.Context) error {
 	var err error
 
-	token, err := security.FetchToken(ctx, c.botID)
+	token, err := security.FetchToken(ctx)
 	if err != nil {
 		return err
 	}
+
+	c.botID = token.BotID
 
 	header := http.Header{}
 	bearer := strings.Join([]string{"Bearer", token.AccessToken}, " ")

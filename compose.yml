@@ -278,6 +278,44 @@ services:
     networks:
       - tutora_net
 
+  recording_service:
+    build:
+        context: ./meeting/recorder-service
+        dockerfile: Dockerfile
+    container_name: recording_service
+    env_file:
+      - ./meeting/recorder-service/.env
+    ports:
+      - "8050:8050"
+    depends_on:
+      recording_service_db:
+        condition: service_healthy
+      meeting_scheduler_service_cache:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ~/.aws:/root/.aws:ro
+    networks:
+      - tutora_net
+  
+  recording_service_db:
+    image: mongo:latest
+    container_name: recording_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27020:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tutora_net
+
+
 volumes:
   pgdata:
   pgdata_class:

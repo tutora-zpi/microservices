@@ -25,7 +25,8 @@ const (
 	APP_PORT string = "APP_PORT"
 	APP_ENV  string = "APP_ENV"
 
-	JWKS_URL string = "JWKS_URL"
+	JWKS_URL  string = "JWKS_URL"
+	TOKEN_URL string = "TOKEN_URL"
 
 	WS_GATEWAY_URL string = "WS_GATEWAY_URL"
 
@@ -35,4 +36,5 @@ const (
 	AWS_REGION            string = "AWS_REGION"
 
 	CLIENT_SECRET string = "CLIENT_SECRET"
+	CLIENT_ID     string = "CLIENT_ID"
 )

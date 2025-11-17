@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"recorder-service/internal/config"
 	"strings"
 	"time"
@@ -22,6 +21,7 @@ type TokenResponse struct {
 	Type        string `json:"token_type"`
 	ExipresIn   int    `json:"expires_in"`
 	Scope       string `json:"scope"`
+	BotID       string
 }
 
 func FetchSignKey() {
@@ -45,20 +45,19 @@ func FetchSignKey() {
 	log.Println("Successfully initialized JWKS")
 }
 
-func FetchToken(ctx context.Context, botID string) (*TokenResponse, error) {
-	jwksURL := os.Getenv(config.JWKS_URL)
-	if jwksURL == "" {
-		return nil, fmt.Errorf("JWKS_URL is empty (is it even possible?)")
+func FetchToken(ctx context.Context) (*TokenResponse, error) {
+	urlPath := os.Getenv(config.TOKEN_URL)
+	if urlPath == "" {
+		return nil, fmt.Errorf("TOKEN_URL is empty")
 	}
 
-	urlPath := path.Join(jwksURL, "oauth2", "token")
-
-	client_secret := os.Getenv(config.CLIENT_SECRET)
+	clientSecret := os.Getenv(config.CLIENT_SECRET)
+	clientID := os.Getenv(config.CLIENT_ID)
 
 	clientCredentials := url.Values{}
 	clientCredentials.Set("grant_type", "client_credentials")
-	clientCredentials.Set("client_id", botID)
-	clientCredentials.Set("client_secret", client_secret)
+	clientCredentials.Set("client_id", clientID)
+	clientCredentials.Set("client_secret", clientSecret)
 
 	body := strings.NewReader(clientCredentials.Encode())
 
@@ -92,6 +91,13 @@ func FetchToken(ctx context.Context, botID string) (*TokenResponse, error) {
 	if err := json.Unmarshal(respBody, &tokenResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response")
 	}
+	id, err := DecodeJWT(tokenResponse.AccessToken)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode access token")
+	}
+
+	tokenResponse.BotID = id
 
 	return &tokenResponse, nil
 }

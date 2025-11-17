@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/google/uuid"
 )
 
 type Bot interface {
@@ -108,9 +107,7 @@ func (b *bot) Name() string {
 }
 
 func NewBot(client client.Client) Bot {
-	botID := uuid.NewString()
-
-	client.SetBotID(botID)
+	botID := client.GetBotID()
 
 	return &bot{
 		id:     botID,
