@@ -21,7 +21,6 @@ type recordMeetingHandler struct {
 
 // Handle implements interfaces.EventHandler.
 func (r *recordMeetingHandler) Handle(ctx context.Context, body []byte) error {
-	log.Print("RECORDING MEETING HANDLER")
 	var evt event.RecordMeetingEvent
 	if err := json.Unmarshal(body, &evt); err != nil {
 		log.Printf("Failed to decode event: %v", err)

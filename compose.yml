@@ -89,14 +89,17 @@ services:
       - "8001:8001"
     env_file:
       - ./meeting/board-service/.env
-    depends_on:
-      - board-db
+    # depends_on:
+    #   - board-db
     networks:
       - tutora_net
 
   board-db:
     image: mongo
     container_name: board_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "27018:27017"
     healthcheck:

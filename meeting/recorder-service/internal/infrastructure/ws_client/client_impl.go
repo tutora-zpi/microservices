@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"recorder-service/internal/domain/client"
 	wsevent "recorder-service/internal/domain/ws_event"
 	"recorder-service/internal/infrastructure/bus"
+	"recorder-service/internal/infrastructure/security"
+	"strings"
 
 	"sync"
 
@@ -38,7 +41,17 @@ func (c *clientImpl) SetBotID(botID string) {
 
 func (c *clientImpl) Connect(ctx context.Context) error {
 	var err error
-	c.conn, _, err = websocket.DefaultDialer.Dial(fmt.Sprintf("%s?id=%s", c.url, c.botID), nil)
+
+	token, err := security.FetchToken(ctx, c.botID)
+	if err != nil {
+		return err
+	}
+
+	header := http.Header{}
+	bearer := strings.Join([]string{"Bearer", token.AccessToken}, " ")
+	header.Set("Authorization", bearer)
+
+	c.conn, _, err = websocket.DefaultDialer.Dial(fmt.Sprintf("%s", c.url), header)
 	if err != nil {
 		return err
 	}

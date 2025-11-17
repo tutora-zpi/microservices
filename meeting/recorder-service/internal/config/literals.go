@@ -33,4 +33,6 @@ const (
 	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
 	AWS_BUCKET_NAME       string = "AWS_BUCKET_NAME"
 	AWS_REGION            string = "AWS_REGION"
+
+	CLIENT_SECRET string = "CLIENT_SECRET"
 )
