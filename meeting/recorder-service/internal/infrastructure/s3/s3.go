@@ -6,10 +6,12 @@ import (
 	"log"
 	"os"
 	"path"
+	literals "recorder-service/internal/config"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
@@ -93,9 +95,21 @@ func NewS3Service(ctx context.Context, bucketName string) (S3Service, error) {
 		return nil, fmt.Errorf("no bucket name")
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx)
+	var cfg aws.Config
+	var err error
+
+	cfg, err = config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			os.Getenv(literals.AWS_ACCESS_KEY_ID),
+			os.Getenv(literals.AWS_SECRET_ACCESS_KEY),
+			os.Getenv(literals.AWS_SESSION_TOKEN),
+		)),
+		config.WithRegion(os.Getenv(literals.AWS_REGION)),
+	)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to laod default conifg: %v", err)
+		log.Printf("Failed to set config: %v", err)
+		return nil, fmt.Errorf("failed to set config: %w", err)
 	}
 
 	client := s3.NewFromConfig(cfg)

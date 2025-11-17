@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,50 +52,44 @@ func FetchToken(ctx context.Context) (*TokenResponse, error) {
 		return nil, fmt.Errorf("TOKEN_URL is empty")
 	}
 
-	clientSecret := os.Getenv(config.CLIENT_SECRET)
-	clientID := os.Getenv(config.CLIENT_ID)
+	clientSecret := os.Getenv(config.OAUTH_BOT_CLIENT_SECRET)
+	clientID := os.Getenv(config.OAUTH_BOT_CLIENT_ID)
 
-	clientCredentials := url.Values{}
-	clientCredentials.Set("grant_type", "client_credentials")
-	clientCredentials.Set("client_id", clientID)
-	clientCredentials.Set("client_secret", clientSecret)
+	auth := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
 
-	body := strings.NewReader(clientCredentials.Encode())
+	form := url.Values{}
+	form.Set("grant_type", "client_credentials")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, urlPath, body)
-	log.Printf("Making REQUEST: %v", *req)
-
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, urlPath, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Printf("Failed to create request: %v", err)
-		return nil, fmt.Errorf("failed to create request")
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Basic "+auth)
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("bad response: %s", resp.Status)
-	}
+	respBody, _ := io.ReadAll(resp.Body)
+	log.Printf("Status: %s", resp.Status)
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil || len(respBody) < 1 {
-		return nil, fmt.Errorf("failed to read response body")
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status: %s", resp.Status)
 	}
 
 	var tokenResponse TokenResponse
-
 	if err := json.Unmarshal(respBody, &tokenResponse); err != nil {
 		return nil, fmt.Errorf("failed to decode response")
 	}
-	id, err := DecodeJWT(tokenResponse.AccessToken)
 
+	id, err := DecodeJWT(tokenResponse.AccessToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode access token")
+		return nil, fmt.Errorf("failed to retrieve id from access token: %w", err)
 	}
 
 	tokenResponse.BotID = id

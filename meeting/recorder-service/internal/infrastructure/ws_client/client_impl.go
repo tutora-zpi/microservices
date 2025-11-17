@@ -44,6 +44,7 @@ func (c *clientImpl) Connect(ctx context.Context) error {
 
 	token, err := security.FetchToken(ctx)
 	if err != nil {
+		log.Printf("Something went wrong during fetching token: %v", err)
 		return err
 	}
 

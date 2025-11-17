@@ -16,18 +16,6 @@ services:
     networks:
       - tutora_net
 
-  # voice_webrtc_service_app:
-  #   container_name: voice_webrtc_service
-  #   build:
-  #     context: ./meeting/voice-webrtc
-  #     dockerfile: ./Dockerfile
-  #   ports:
-  #     - "8004:8004"
-  #   env_file:
-  #     - ./meeting/voice-webrtc/.env
-  #   networks:
-  #     - tutora_net
-
   meeting_scheduler_service_app:
     container_name: meeting_scheduler_service
     build:
@@ -288,14 +276,14 @@ services:
     ports:
       - "8050:8050"
     depends_on:
+      ws_gateway:
+        condition: service_started
       recording_service_db:
         condition: service_healthy
       meeting_scheduler_service_cache:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    volumes:
-      - ~/.aws:/root/.aws:ro
     networks:
       - tutora_net
   
