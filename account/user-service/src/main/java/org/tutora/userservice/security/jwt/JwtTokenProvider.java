@@ -26,6 +26,12 @@ public class JwtTokenProvider {
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
+    @Value("${app.oauth2.issuer-uri}")
+    private String issuerUri;
+
+    @Value("${app.oauth2.token-id}")
+    private String keyId;
+
     public String createToken(Authentication authentication) {
         CustomUserDetails userPrincipal = (CustomUserDetails) authentication.getPrincipal();
         Date now = new Date();
@@ -33,11 +39,12 @@ public class JwtTokenProvider {
 
         String roles = userPrincipal.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(","));
+                .collect(Collectors.joining(" "));
 
         return Jwts.builder()
-                .header().add("kid", "rsa-key-1")
+                .header().add("kid", keyId)
                 .and()
+                .issuer(issuerUri)
                 .subject(userPrincipal.getId().toString())
                 .claim("email", userPrincipal.getUsername())
                 .claim("roles", roles)
@@ -45,7 +52,7 @@ public class JwtTokenProvider {
                 .claim("last_name", userPrincipal.getLastName())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(rsaKeyProperties.privateKey())
+                .signWith(rsaKeyProperties.privateKey(), Jwts.SIG.RS256)
                 .compact();
     }
 
