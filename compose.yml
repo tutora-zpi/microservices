@@ -267,7 +267,7 @@ services:
       dockerfile: Dockerfile
     container_name: ws_gateway
     env_file:
-      - ./meeting/ws-gateway/.env
+      - ./gateway/ws-gateway/.env
     ports:
       - "8010:8010"
     depends_on:
