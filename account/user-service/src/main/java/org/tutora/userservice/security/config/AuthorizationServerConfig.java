@@ -50,6 +50,9 @@ public class AuthorizationServerConfig {
     @Value("${app.oauth2.issuer-uri}")
     private String issuerUri;
 
+    @Value("${app.oauth2.token-id}")
+    private String keyId;
+
     @Bean
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
@@ -115,7 +118,7 @@ public class AuthorizationServerConfig {
     public JWKSource<SecurityContext> jwkSource(RsaKeyProperties rsaKeyProperties) {
         RSAKey rsaKey = new RSAKey.Builder(rsaKeyProperties.publicKey())
                 .privateKey(rsaKeyProperties.privateKey())
-                .keyID(UUID.randomUUID().toString())
+                .keyID(keyId)
                 .build();
 
         JWKSet jwkSet = new JWKSet(rsaKey);
