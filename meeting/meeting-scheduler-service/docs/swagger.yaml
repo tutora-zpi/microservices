@@ -26,6 +26,10 @@ definitions:
     type: object
   dto.MeetingDTO:
     properties:
+      finishDate:
+        description: Meeting's finish time
+        example: "2025-10-10T12:50:05+02:00"
+        type: string
       meetingId:
         description: Meeting unique identifier
         type: string
@@ -34,12 +38,56 @@ definitions:
         items:
           $ref: '#/definitions/dto.UserDTO'
         type: array
-      timestamp:
-        description: Timestamp of started meeting
-        type: integer
+      startedTime:
+        description: Meeting's started time
+        type: string
       title:
         description: Meetings title
         type: string
+    required:
+    - finishDate
+    type: object
+  dto.PlannedMeetingDTO:
+    properties:
+      classId:
+        description: |-
+          Class id - where meeting will be started (UUIDv4)
+          required: true
+        type: string
+      finishDate:
+        description: |-
+          Finish Date - date and time when meeting finshes, use toISOString to cast your date
+          required: true
+        example: "2025-10-10T12:50:05+02:00"
+        type: string
+      id:
+        description: Identifier of planned meeting
+        type: integer
+      members:
+        description: |-
+          Members participating in the meeting (minimum 2)
+          required: true
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        minItems: 2
+        type: array
+      startDate:
+        description: |-
+          Start Date - date and time when meeting starts, use toISOString to cast your date
+          required: true
+        example: "2025-10-10T12:36:05+02:00"
+        type: string
+      title:
+        description: |-
+          The title of the class eg. C++ Object oriented: pointers
+          reqiured: true
+        type: string
+    required:
+    - classId
+    - finishDate
+    - members
+    - startDate
+    - title
     type: object
   dto.StartMeetingDTO:
     properties:
@@ -47,6 +95,12 @@ definitions:
         description: |-
           Class id - where meeting will be started (UUIDv4)
           required: true
+        type: string
+      finishDate:
+        description: |-
+          Finish Date - date and time when meeting finshes, use toISOString to cast your date
+          required: true
+        example: "2025-10-10T12:50:05+02:00"
         type: string
       members:
         description: |-
@@ -63,6 +117,7 @@ definitions:
         type: string
     required:
     - classId
+    - finishDate
     - members
     - title
     type: object
@@ -101,8 +156,8 @@ definitions:
     properties:
       data:
         description: Data contains the response payload (optional)
-      message:
-        description: Message contains the response message
+      error:
+        description: Information about occurred error
         type: string
       success:
         description: Success indicates whether the operation was successful
@@ -113,7 +168,7 @@ info:
   contact: {}
   description: Serivce to requesting meetings in .tutora
   title: Meeting Scheduler API
-  version: "1.0"
+  version: "1.1"
 paths:
   /api/v1/meeting/{class_id}:
     get:
@@ -146,8 +201,6 @@ paths:
           schema:
             $ref: '#/definitions/server.Response'
       summary: Gets active meeting
-      tags:
-      - meetings class
   /api/v1/meeting/end:
     delete:
       consumes:
@@ -163,52 +216,99 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
           schema:
-            allOf:
-            - $ref: '#/definitions/server.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.MeetingDTO'
-              type: object
+            $ref: '#/definitions/server.Response'
         "400":
           description: Bad Request
           schema:
             $ref: '#/definitions/server.Response'
       summary: End a meeting
-      tags:
-      - ending meetings
+  /api/v1/meeting/plan:
     post:
       consumes:
       - application/json
-      description: Ends a meeting based on the provided DTO
+      description: Used to plan meetings and starts meeting automatically at start
+        date
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Meeting planned successfully!
+          schema:
+            allOf:
+            - $ref: '#/definitions/server.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PlannedMeetingDTO'
+              type: object
+        "400":
+          description: Invalid body | meeting already started | meeting already planned
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Plan meeting for the future
+  /api/v1/meeting/plan/{class_id}:
+    get:
+      description: Paginated fetch of planned meetings supporting infinite scroll
       parameters:
-      - description: End Meeting DTO
-        in: body
-        name: meeting
+      - description: Class ID
+        in: path
+        name: class_id
         required: true
-        schema:
-          $ref: '#/definitions/dto.EndMeetingDTO'
+        type: string
+      - description: Last start date timestamp (unix utc format eg. 1760121360)
+        in: query
+        name: last_start_timestamp
+        type: string
+      - description: Max number per page, default is 10
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: List of planned meetings
           schema:
             allOf:
             - $ref: '#/definitions/server.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.MeetingDTO'
+                  items:
+                    $ref: '#/definitions/dto.PlannedMeetingDTO'
+                  type: array
               type: object
         "400":
-          description: Bad Request
+          description: Invalid parameters
           schema:
             $ref: '#/definitions/server.Response'
-      summary: End a meeting
-      tags:
-      - ending meetings
+        "404":
+          description: No planned meetings found
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Fetch planned meetings
+  /api/v1/meeting/plan/{id}:
+    delete:
+      description: Delete from planned meetings, one with provided id
+      parameters:
+      - description: Identifier of planned meeting
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            $ref: '#/definitions/server.Response'
+        "400":
+          description: Invalid id provided
+          schema:
+            $ref: '#/definitions/server.Response'
+      summary: Cancel not started meeting
   /api/v1/meeting/start:
     post:
       consumes:
@@ -237,45 +337,5 @@ paths:
           description: Bad request due to invalid data or DTO type
           schema:
             $ref: '#/definitions/server.Response'
-        "405":
-          description: Method not allowed (only POST supported)
-          schema:
-            $ref: '#/definitions/server.Response'
       summary: Start a meeting
-      tags:
-      - start meetings
-    put:
-      consumes:
-      - application/json
-      description: Starts a meeting based on the provided DTO
-      parameters:
-      - description: Start Meeting DTO
-        in: body
-        name: meeting
-        required: true
-        schema:
-          $ref: '#/definitions/dto.StartMeetingDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Meeting details after operation
-          schema:
-            allOf:
-            - $ref: '#/definitions/server.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.MeetingDTO'
-              type: object
-        "400":
-          description: Bad request due to invalid data or DTO type
-          schema:
-            $ref: '#/definitions/server.Response'
-        "405":
-          description: Method not allowed (only POST supported)
-          schema:
-            $ref: '#/definitions/server.Response'
-      summary: Start a meeting
-      tags:
-      - start meetings
 swagger: "2.0"

@@ -9,34 +9,45 @@ import (
 // @name Response
 // @Description Standard API response format containing message, data, and success status
 type Response struct {
-	// Message contains the response message
-	Message string `json:"message"`
-
-	// Data contains the response payload (optional)
-	Data any `json:"data,omitempty"`
-
 	// Success indicates whether the operation was successful
 	Success bool `json:"success"`
+	// Data contains the response payload (optional)
+	Data any `json:"data,omitempty"`
+	// Information about occurred error
+	Error *string `json:"error,omitempty"`
 }
 
-// NewResponse creates and sends a standardized JSON response
-// Note: This is an internal function and doesn't need Swagger documentation
-// as it's not an API endpoint
-func NewResponse(w http.ResponseWriter, message string, httpCode int, data any) {
-	var success bool = false
+func NewResponse(w http.ResponseWriter, err *string, httpCode int, data any) {
+	w.WriteHeader(httpCode)
 
-	if httpCode < 300 && httpCode >= 200 {
-		success = true
+	if httpCode == http.StatusNoContent {
+		return
 	}
 
-	w.WriteHeader(httpCode)
 	w.Header().Set("Content-Type", "application/json")
+	var response Response
 
-	if err := json.NewEncoder(w).Encode(&Response{
-		Message: message,
-		Data:    data,
-		Success: success,
-	}); err != nil {
+	if httpCode < 300 && httpCode >= 200 && err == nil {
+		response = buildPositiveResponse(data)
+	} else {
+		response = buildNegativeResponse(err)
+	}
+
+	if err := json.NewEncoder(w).Encode(&response); err != nil {
 		http.Error(w, "failed to encode response: "+err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func buildPositiveResponse(data any) Response {
+	return Response{
+		Success: true,
+		Data:    data,
+	}
+}
+
+func buildNegativeResponse(err *string) Response {
+	return Response{
+		Error:   err,
+		Success: false,
 	}
 }

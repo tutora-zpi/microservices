@@ -1,0 +1,22 @@
+package config
+
+const (
+	APP_ENV  string = "APP_ENV"
+	JWKS_URL string = "JWKS_URL"
+	APP_PORT string = "APP_PORT"
+
+	RABBITMQ_DEFAULT_USER string = "RABBITMQ_DEFAULT_USER"
+	RABBITMQ_DEFAULT_PASS string = "RABBITMQ_DEFAULT_PASS"
+	RABBITMQ_HOST         string = "RABBITMQ_HOST"
+	RABBITMQ_PORT         string = "RABBITMQ_PORT"
+	RABBITMQ_URL          string = "RABBITMQ_URL"
+
+	REDIS_ADDR     string = "REDIS_ADDR"
+	REDIS_DB       string = "REDIS_DB"
+	REDIS_PASSWORD string = "REDIS_PASSWORD"
+
+	CHAT_EXCHANGE    string = "CHAT_EXCHANGE"
+	BOARD_EXCHANGE   string = "BOARD_EXCHANGE"
+	MEETING_EXCHANGE string = "MEETING_EXCHANGE"
+	FILE_QUEUE       string = "FILE_QUEUE"
+)

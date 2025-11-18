@@ -1,12 +1,10 @@
 package interfaces
 
 import (
-	"notification-serivce/internal/domain/event"
+	"context"
 )
 
 type Broker interface {
-	Publish(e event.EventWrapper) error
-	Consume() error
-
+	Consume(ctx context.Context, exchange string) error
 	Close()
 }

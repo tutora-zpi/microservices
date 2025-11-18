@@ -10,6 +10,8 @@ import { BoardController } from './app/controllers/board.controller';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AutosaveScheduler } from './infrastructure/scheduler/autosave.scheduler';
 import { BoardGateway } from './infrastructure/ws/board.gateway'
+import { RabbitMQModule } from './infrastructure/messaging/messaging.module';
+import { BoardModule } from './app/events/event-handlers.module';
 
 
 @Module({
@@ -17,11 +19,12 @@ import { BoardGateway } from './infrastructure/ws/board.gateway'
         ScheduleModule.forRoot(),
         AppConfigModule,
         DatabaseModule,
+        RabbitMQModule,
+        BoardModule,
         MongooseModule.forFeature([{ name: BoardEntity.name, schema: BoardSchema }])
     ],
     providers: [
         AutosaveScheduler,
-        BoardGateway,
         BoardService,
         {
             provide: 'BoardRepository',
@@ -31,4 +34,4 @@ import { BoardGateway } from './infrastructure/ws/board.gateway'
     controllers: [BoardController],
     exports: [BoardService],
 })
-export class AppModule {}
+export class AppModule { }

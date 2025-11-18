@@ -9,155 +9,138 @@ import (
 )
 
 type NotificationBuffer struct {
-	mu      sync.RWMutex
-	buffers map[string][]*buffer.BufferedNotification
-	maxSize int
-	ttl     time.Duration
-
-	// clientID -> notificationID -> acknowledged
-	acknowledged map[string]map[string]bool
+	mutex        sync.RWMutex
+	buffers      map[string][]*buffer.BufferedNotification
+	maxSize      int
+	ttl          time.Duration
+	acknowledged map[string]map[int64]bool // clientID -> notificationID -> acknowledged
 }
 
 func NewNotificationBuffer(maxSize int, ttl time.Duration) *NotificationBuffer {
-	buffer := &NotificationBuffer{
+	nb := &NotificationBuffer{
 		buffers:      make(map[string][]*buffer.BufferedNotification),
-		acknowledged: make(map[string]map[string]bool),
+		acknowledged: make(map[string]map[int64]bool),
 		maxSize:      maxSize,
 		ttl:          ttl,
 	}
 
-	go buffer.cleanupRoutine()
-
-	return buffer
+	go nb.cleanupRoutine()
+	return nb
 }
 
-func (mb *NotificationBuffer) AddNotification(dto dto.NotificationDTO) {
-	mb.mu.Lock()
-	defer mb.mu.Unlock()
-
-	log.Println("Appending notification to the buffer")
+func (nb *NotificationBuffer) AddNotification(dto dto.NotificationDTO) {
+	nb.mutex.Lock()
+	defer nb.mutex.Unlock()
 
 	clientID := dto.Receiver.ID
-
 	msg := buffer.NewBufferedNotification(dto)
 
-	mb.buffers[clientID] = append(mb.buffers[clientID], msg)
+	nb.buffers[clientID] = append(nb.buffers[clientID], msg)
+	nb.ensureAcknowledgedMap(clientID)
 
-	currentSize := len(mb.buffers[clientID])
-
-	if currentSize > mb.maxSize {
-		removedNotification := mb.buffers[clientID][0]
-
-		mb.buffers[clientID] = mb.buffers[clientID][1:]
-
-		log.Printf("Removed oldest notification %s from client %s", removedNotification.ID, clientID)
+	if len(nb.buffers[clientID]) > nb.maxSize {
+		removed := nb.buffers[clientID][0]
+		nb.buffers[clientID] = nb.buffers[clientID][1:]
+		log.Printf("Removed oldest notification %d from client %s", removed.ID, clientID)
 	}
 }
 
-func (mb *NotificationBuffer) GetBufferedNotifications(clientID string) []*buffer.BufferedNotification {
-	mb.mu.RLock()
-	defer mb.mu.RUnlock()
+func (nb *NotificationBuffer) GetBufferedNotifications(clientID string) []*buffer.BufferedNotification {
+	nb.mutex.RLock()
+	defer nb.mutex.RUnlock()
 
-	notifications := mb.buffers[clientID]
 	now := time.Now()
+	valid := nb.filterValidNotifications(clientID, now)
 
-	log.Printf("Get notifications for client %s - total: %d", clientID, len(notifications))
-
-	var validNotifications []*buffer.BufferedNotification
-	for _, msg := range notifications {
-
-		age := now.Sub(msg.Timestamp)
-
-		if age < mb.ttl {
-
-			if mb.acknowledged[clientID] == nil || !mb.acknowledged[clientID][msg.ID] {
-				validNotifications = append(validNotifications, msg)
-				log.Printf("Valid notification %s (age: %v)", msg.ID, age)
-
-			} else {
-				log.Printf("Notification %s already acknowledged", msg.ID)
-			}
-
-		} else {
-			log.Printf("Notification %s expired (age: %v, TTL: %v)", msg.ID, age, mb.ttl)
-		}
-	}
-
-	log.Printf("Returning %d valid notifications for client %s", len(validNotifications), clientID)
-	return validNotifications
+	log.Printf("Returning %d valid notifications for client %s", len(valid), clientID)
+	return valid
 }
 
-func (mb *NotificationBuffer) AcknowledgeNotification(clientID string, notificationID string) {
-	mb.mu.Lock()
-	defer mb.mu.Unlock()
-
-	if mb.acknowledged[clientID] == nil {
-		mb.acknowledged[clientID] = make(map[string]bool)
-	}
-	mb.acknowledged[clientID][notificationID] = true
+func (nb *NotificationBuffer) AcknowledgeNotification(clientID string, notificationID int64) {
+	nb.mutex.Lock()
+	defer nb.mutex.Unlock()
+	nb.ensureAcknowledgedMap(clientID)
+	nb.acknowledged[clientID][notificationID] = true
 }
 
-func (mb *NotificationBuffer) MarkAllAsAcknowledged(clientID string) {
-	mb.mu.Lock()
-	defer mb.mu.Unlock()
+func (nb *NotificationBuffer) MarkAllAsAcknowledged(clientID string) {
+	nb.mutex.Lock()
+	defer nb.mutex.Unlock()
+	nb.ensureAcknowledgedMap(clientID)
 
-	if mb.acknowledged[clientID] == nil {
-		mb.acknowledged[clientID] = make(map[string]bool)
-	}
-
-	for _, msg := range mb.buffers[clientID] {
-		mb.acknowledged[clientID][msg.ID] = true
+	for _, msg := range nb.buffers[clientID] {
+		nb.acknowledged[clientID][msg.ID] = true
 	}
 }
 
-func (mb *NotificationBuffer) ClearExpiredNotifications(clientID ...string) {
-	mb.mu.Lock()
-	defer mb.mu.Unlock()
+func (nb *NotificationBuffer) ClearExpiredNotifications(clientIDs ...string) {
+	nb.mutex.Lock()
+	defer nb.mutex.Unlock()
 
 	now := time.Now()
 
-	if len(clientID) > 0 {
-		for _, id := range clientID {
-			mb.clearForClient(id, now)
+	if len(clientIDs) > 0 {
+		for _, id := range clientIDs {
+			nb.clearForClient(id, now)
 		}
 	} else {
-		for clientID := range mb.buffers {
-			mb.clearForClient(clientID, now)
+		for clientID := range nb.buffers {
+			nb.clearForClient(clientID, now)
 		}
 	}
 }
 
-func (mb *NotificationBuffer) clearForClient(clientID string, now time.Time) {
-	notifications := mb.buffers[clientID]
+func (nb *NotificationBuffer) clearForClient(clientID string, now time.Time) {
+	notifications := nb.buffers[clientID]
 	if len(notifications) == 0 {
 		return
 	}
 
-	var validNotifications []*buffer.BufferedNotification
-
+	var valid []*buffer.BufferedNotification
 	for _, msg := range notifications {
-		if now.Sub(msg.Timestamp) < mb.ttl {
-			validNotifications = append(validNotifications, msg)
+		if msg.Age(&now) < nb.ttl {
+			valid = append(valid, msg)
 		} else {
-			if mb.acknowledged[clientID] != nil {
-				delete(mb.acknowledged[clientID], msg.ID)
+			if nb.acknowledged[clientID] != nil {
+				delete(nb.acknowledged[clientID], msg.ID)
 			}
+			log.Printf("Expired notification %d removed for client %s", msg.ID, clientID)
 		}
 	}
 
-	if len(validNotifications) == 0 {
-		delete(mb.buffers, clientID)
-		delete(mb.acknowledged, clientID)
+	if len(valid) == 0 {
+		delete(nb.buffers, clientID)
+		delete(nb.acknowledged, clientID)
 	} else {
-		mb.buffers[clientID] = validNotifications
+		nb.buffers[clientID] = valid
 	}
 }
 
-func (mb *NotificationBuffer) cleanupRoutine() {
+func (nb *NotificationBuffer) ensureAcknowledgedMap(clientID string) {
+	if nb.acknowledged[clientID] == nil {
+		nb.acknowledged[clientID] = make(map[int64]bool)
+	}
+}
+
+func (nb *NotificationBuffer) isAcknowledged(clientID string, notificationID int64) bool {
+	return nb.acknowledged[clientID] != nil && nb.acknowledged[clientID][notificationID]
+}
+
+func (nb *NotificationBuffer) filterValidNotifications(clientID string, now time.Time) []*buffer.BufferedNotification {
+	var valid []*buffer.BufferedNotification
+	for _, msg := range nb.buffers[clientID] {
+		if msg.Age(&now) < nb.ttl && !nb.isAcknowledged(clientID, msg.ID) {
+			valid = append(valid, msg)
+		}
+	}
+	return valid
+}
+
+func (nb *NotificationBuffer) cleanupRoutine() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		mb.ClearExpiredNotifications()
+		nb.ClearExpiredNotifications()
 	}
 }

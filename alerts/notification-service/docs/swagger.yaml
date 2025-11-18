@@ -33,10 +33,6 @@ definitions:
         description: A part of link used to navigate user after clicking notification
         example: /meeting/some_id
         type: string
-      sender:
-        allOf:
-        - $ref: '#/definitions/dto.UserDTO'
-        description: Sender informations
       title:
         description: Title
         type: string
@@ -139,6 +135,21 @@ paths:
           schema:
             $ref: '#/definitions/server.Response'
       summary: List with user's notifications
+      tags:
+      - notifications
+  /api/v1/notification/stream:
+    get:
+      description: Server-Sent Events (SSE) stream for sending notifications in real-time.
+      parameters:
+      - description: JWT token for auth
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses: {}
+      summary: Stream user notifications
       tags:
       - notifications
 swagger: "2.0"

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"meeting-scheduler-service/internal/domain/dto"
+	"meeting-scheduler-service/internal/domain/validator"
 	"meeting-scheduler-service/internal/infrastructure/server"
+	"meeting-scheduler-service/pkg"
 	"net/http"
 )
 
@@ -15,6 +17,7 @@ const dtoKey key = "dto"
 var dtoRegistry = map[string]func() any{
 	"/api/v1/meeting/start": func() any { return &dto.StartMeetingDTO{} },
 	"/api/v1/meeting/end":   func() any { return &dto.EndMeetingDTO{} },
+	"/api/v1/meeting/plan":  func() any { return &dto.PlanMeetingDTO{} },
 }
 
 func Validate(next http.Handler) http.Handler {
@@ -27,19 +30,13 @@ func Validate(next http.Handler) http.Handler {
 
 		dtoInstance := constructor()
 		if err := json.NewDecoder(r.Body).Decode(dtoInstance); err != nil {
-			server.NewResponse(w, "Failed to decode body", http.StatusBadRequest, nil)
+			server.NewResponse(w, pkg.Ptr("Failed to decode body"), http.StatusBadRequest, nil)
 			return
 		}
 
-		switch v := dtoInstance.(type) {
-		case *dto.StartMeetingDTO:
-			if err := v.IsValid(); err != nil {
-				server.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
-				return
-			}
-		case *dto.EndMeetingDTO:
-			if err := v.IsValid(); err != nil {
-				server.NewResponse(w, "Validation error: "+err.Error(), http.StatusBadRequest, nil)
+		if validatable, ok := dtoInstance.(validator.Validator); ok {
+			if err := validatable.IsValid(); err != nil {
+				server.NewResponse(w, pkg.Ptr("Invalid body error: "+err.Error()), http.StatusBadRequest, nil)
 				return
 			}
 		}

@@ -10,30 +10,38 @@ import (
 )
 
 type MeetingStartedEvent struct {
+	ClassID     string        `json:"classId"`
 	MeetingID   string        `json:"meetingId"`
 	Members     []dto.UserDTO `json:"members"`
 	StartedTime time.Time     `json:"startedTime"` // ISO 8601 format
+	FinishTime  time.Time     `json:"finishTime"`
 }
 
 func NewMeetingStartedEvent(dto dto.StartMeetingDTO) *MeetingStartedEvent {
-	event := &MeetingStartedEvent{
+	return &MeetingStartedEvent{
 		MeetingID:   uuid.New().String(),
 		Members:     dto.Members,
-		StartedTime: time.Now(),
+		StartedTime: time.Now().UTC().Truncate(time.Minute),
+		FinishTime:  dto.FinishDate.UTC(),
+		ClassID:     dto.ClassID,
 	}
-
-	return event
 }
 
 func (m *MeetingStartedEvent) Name() string {
 	return reflect.TypeOf(*m).Name()
 }
 
-func (m *MeetingStartedEvent) NewMeeting(classID, title string) *models.Meeting {
+func (m *MeetingStartedEvent) NewMeeting(dto dto.StartMeetingDTO) *models.Meeting {
+	ids := make([]string, len(dto.Members))
+	for i, user := range dto.Members {
+		ids[i] = user.ID
+	}
+
 	return &models.Meeting{
 		MeetingID: m.MeetingID,
 		Timestamp: m.StartedTime.Unix(),
-		Title:     title,
-		ClassID:   classID,
+		ClassID:   m.ClassID,
+		Title:     dto.Title,
+		MemberIDs: ids,
 	}
 }

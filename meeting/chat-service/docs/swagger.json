@@ -1,0 +1,443 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Service responsible for chat feature",
+        "title": "Chat Serivce API",
+        "contact": {},
+        "version": "2.0"
+    },
+    "host": "localhost:8002",
+    "paths": {
+        "/api/v1/chats/general": {
+            "post": {
+                "description": "Creates a new general chat with specified members",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Create a new general chat",
+                "parameters": [
+                    {
+                        "description": "CreateGeneralChat DTO",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.CreateGeneralChat"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChatDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/update-members": {
+            "put": {
+                "description": "Updates the list of members in a specific chat. Requires chat ID and at least one member ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Update chat members",
+                "parameters": [
+                    {
+                        "description": "Chat members update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requests.UpdateChatMembers"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}": {
+            "get": {
+                "description": "Retrieves chat details by ID",
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Get chat by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChatDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Chat not found",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes chat by ID",
+                "tags": [
+                    "Chats"
+                ],
+                "summary": "Delete a chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "No id in url",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Failed to remove chat",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/messages": {
+            "get": {
+                "description": "Fetches more messages from a chat with optional pagination",
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Get more messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of messages to fetch",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Last message ID for pagination",
+                        "name": "lastMessageId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.MessageDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "No more messages",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chats/{id}/upload-file": {
+            "post": {
+                "description": "Uploads a file to the server, saves its metadata, and creates a chat message referencing the uploaded file.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Upload a file and create a file message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional message content",
+                        "name": "content",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "UUID of the sender",
+                        "name": "senderId",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Unix timestamp when the message was sent",
+                        "name": "sentAt",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "File uploaded successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid parameters or file metadata",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized access",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "422": {
+                        "description": "File metadata has been lost",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error while saving the file",
+                        "schema": {
+                            "$ref": "#/definitions/server.Response"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.ChatDTO": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "memberIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MessageDTO"
+                    }
+                }
+            }
+        },
+        "dto.MessageDTO": {
+            "type": "object",
+            "properties": {
+                "chatId": {
+                    "description": "ID of the chat\nrequired: false",
+                    "type": "string"
+                },
+                "content": {
+                    "description": "Content of the message\nrequired: false",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "ID of the message\nrequired: true",
+                    "type": "string"
+                },
+                "reactions": {
+                    "description": "Reactions to the message\nrequired: false",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReactionDTO"
+                    }
+                },
+                "reply": {
+                    "description": "Optional reply to another message\nrequired: false",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.MessageDTO"
+                        }
+                    ]
+                },
+                "senderId": {
+                    "description": "ID of the sender\nrequired: false",
+                    "type": "string"
+                },
+                "sentAt": {
+                    "description": "Timestamp when the message was sent\nrequired: true",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ReactionDTO": {
+            "type": "object",
+            "properties": {
+                "emoji": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "messageId": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "requests.CreateGeneralChat": {
+            "type": "object",
+            "required": [
+                "classId",
+                "memberIds"
+            ],
+            "properties": {
+                "classId": {
+                    "type": "string"
+                },
+                "memberIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "requests.UpdateChatMembers": {
+            "type": "object",
+            "required": [
+                "chatId",
+                "membersIds"
+            ],
+            "properties": {
+                "chatId": {
+                    "type": "string"
+                },
+                "membersIds": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server.Response": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

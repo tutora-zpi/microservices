@@ -3,11 +3,8 @@ package classinvitation
 import (
 	"fmt"
 	"notification-serivce/internal/domain/dto"
-	"notification-serivce/internal/domain/enums"
-	"notification-serivce/internal/domain/metadata"
 	"notification-serivce/internal/domain/models"
 	"reflect"
-	"time"
 )
 
 type ClassInvitationCreatedEvent struct {
@@ -20,19 +17,33 @@ func (c *ClassInvitationCreatedEvent) Name() string {
 	return reflect.TypeOf(c).Elem().Name()
 }
 
-func (c *ClassInvitationCreatedEvent) Notification() models.Notification {
-	title := fmt.Sprintf("%s, meeting has already started!", c.Receiver.FirstName)
+func (c *ClassInvitationCreatedEvent) NotificationForReceiver() *models.Notification {
+	title := "Got new invitation!"
+	body := fmt.Sprintf("You've been invited to %s. Click down below to check new invitations.", c.ClassName)
 	link := c.buildLink()
 
-	notification := models.NewNotification(enums.INVITATION, c.Receiver, c.Sender, title, "", link, map[metadata.Key]any{})
-	time.Unix(notification.CreatedAt, 0)
-
-	hour, minute := notification.GetHourAndMinute()
-
-	notification.Body = fmt.Sprintf("Meeting was scheduled on %02d:%02d. Click down below to join!",
-		hour, minute)
+	notification := models.InitInvitationNotification()
+	c.buildNotification(notification, title, body, link, c.Receiver)
 
 	return notification
+}
+
+func (c *ClassInvitationCreatedEvent) NotificationForSender() *models.Notification {
+	title := "Got it!"
+	body := fmt.Sprintf("Your invitation to %s has been sent.", c.ClassName)
+	link := c.buildLink()
+
+	notification := models.InitInvitationNotification()
+	c.buildNotification(notification, title, body, link, c.Sender)
+
+	return notification
+}
+
+func (c *ClassInvitationCreatedEvent) buildNotification(dest *models.Notification, title, body, link string, user dto.UserDTO) {
+	dest.Title = title
+	dest.Body = body
+	dest.RedirectionLink = link
+	dest.Receiver = models.NewUser(user.ID, user.FirstName, user.LastName)
 }
 
 func (c *ClassInvitationCreatedEvent) buildLink() string {

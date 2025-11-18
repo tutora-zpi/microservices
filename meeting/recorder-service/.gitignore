@@ -1,0 +1,5 @@
+*.yml
+
+static/
+.env
+.env.local

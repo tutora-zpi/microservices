@@ -113,6 +113,28 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/notification/stream": {
+            "get": {
+                "description": "Server-Sent Events (SSE) stream for sending notifications in real-time.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Stream user notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "JWT token for auth",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
         }
     },
     "definitions": {
@@ -160,14 +182,6 @@ const docTemplate = `{
                     "description": "A part of link used to navigate user after clicking notification",
                     "type": "string",
                     "example": "/meeting/some_id"
-                },
-                "sender": {
-                    "description": "Sender informations",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.UserDTO"
-                        }
-                    ]
                 },
                 "title": {
                     "description": "Title",

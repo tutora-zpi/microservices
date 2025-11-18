@@ -11,8 +11,6 @@ type NotificationDTO struct {
 	ID string `json:"id"`
 	// Receiver informations
 	Receiver UserDTO `json:"receiver"`
-	// Sender informations
-	Sender UserDTO `json:"sender"`
 	// Timestamp of creation time in seconds (unix)
 	CreatedAt int64 `json:"createdAt"`
 	// Type of notification system either invitation

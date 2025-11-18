@@ -16,17 +16,17 @@ services:
     networks:
       - tutora_net
 
-  voice_webrtc_service_app:
-    container_name: voice_webrtc_service
-    build:
-      context: ./meeting/voice-webrtc
-      dockerfile: ./Dockerfile
-    ports:
-      - "8004:8004"
-    env_file:
-      - ./meeting/voice-webrtc/.env
-    networks:
-      - tutora_net
+  # voice_webrtc_service_app:
+  #   container_name: voice_webrtc_service
+  #   build:
+  #     context: ./meeting/voice-webrtc
+  #     dockerfile: ./Dockerfile
+  #   ports:
+  #     - "8004:8004"
+  #   env_file:
+  #     - ./meeting/voice-webrtc/.env
+  #   networks:
+  #     - tutora_net
 
   meeting_scheduler_service_app:
     container_name: meeting_scheduler_service
@@ -41,6 +41,8 @@ services:
       rabbitmq:
         condition: service_healthy
       meeting_scheduler_service_db:
+        condition: service_healthy
+      meeting_scheduler_service_cache:
         condition: service_healthy
     networks:
       - tutora_net
@@ -60,6 +62,8 @@ services:
       - user_service_app
     networks:
       - tutora_net
+    volumes:
+      - ./meeting/chat-service/media:/app/media
 
   chat_service_db:
     image: mongo:latest
@@ -76,7 +80,6 @@ services:
       retries: 5
     networks:
       - tutora_net
-
   board-service:
     container_name: board-service
     build:
@@ -188,8 +191,8 @@ services:
     networks:
       - tutora_net
 
-  meeting_scheduler_service_db:
-    container_name: meeting_scheduler_db
+  meeting_scheduler_service_cache:
+    container_name: meeting_scheduler_cache
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -202,6 +205,23 @@ services:
       retries: 5
     volumes:
       - cache:/data
+    networks:
+      - tutora_net
+
+  meeting_scheduler_service_db:
+    container_name: meeting_scheduler_db
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${SCHEDULER_POSTGRES_DB}
+      POSTGRES_USER: ${SCHEDULER_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${SCHEDULER_POSTGRES_PASSWORD}
+    ports:
+      - "${SCHEDULER_POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SCHEDULER_POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - tutora_net
 
@@ -232,6 +252,25 @@ services:
       - "8888:8888"
     depends_on:
       notification_service_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tutora_net
+
+  ws_gateway:
+    build:
+      context: ./gateway/ws-gateway/
+      dockerfile: Dockerfile
+    container_name: ws_gateway
+    env_file:
+      - ./gateway/ws-gateway/.env
+    ports:
+      - "8010:8010"
+    depends_on:
+      meeting_scheduler_service_cache:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - tutora_net

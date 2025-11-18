@@ -29,8 +29,11 @@ func NewServer(router *mux.Router) *Server {
 		port = DEFAULT_PORT
 	}
 
+	allowedOrigins := []string{os.Getenv(config.FRONTEND_URL), "http://localhost:3000"}
+
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	})
 
