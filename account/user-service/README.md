@@ -89,14 +89,15 @@ docker-compose up --build
 
 ## Endpointy API
 
-| Metoda | Ścieżka | Opis | Dostęp | Body |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/oauth2/authorization/{provider}` | Inicjuje proces logowania przez danego dostawcę (`google` lub `github`). | Publiczny | – |
-| `GET` | `/.well-known/jwks.json` | Zwraca klucz publiczny RSA w formacie JWKS do weryfikacji tokenów. | Publiczny | – |
-| `GET` | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. | Chroniony (JWT) | – |
-| `GET` | `/users/{id}` | Pobiera dane użytkownika po UUID. | Chroniony (JWT) | – |
-| `PATCH` | `/users/{id}` | Aktualizuje dane użytkownika (`email`, `name`, `surname`). | Chroniony (JWT) | JSON `{ "email": "", "name": "", "surname": "" }` |
-| `POST` | `/users/{id}/avatar` | Generuje presigned URL do uploadu avatara. | Chroniony (JWT) | JSON `{ "contentType": "image/png" }` |
+| Metoda  | Ścieżka | Opis | Dostęp | Body                                                  |
+|:--------| :--- | :--- | :--- |:------------------------------------------------------|
+| `GET`   | `/oauth2/authorization/{provider}` | Inicjuje proces logowania przez danego dostawcę (`google` lub `github`). | Publiczny | –                                                     |
+| `GET`   | `/.well-known/jwks.json` | Zwraca klucz publiczny RSA w formacie JWKS do weryfikacji tokenów. | Publiczny | –                                                     |
+| `POST`  | `/oauth2/token` | Generuje token JWT dla bota/serwisu w zamian za jego `client_id` i `client_secret`. | Publiczny | `x-www-form-urlencoded` (`grant_type=client_credentials`) |
+| `GET`   | `/auth/me` | Zwraca dane o aktualnie zalogowanym użytkowniku. | Chroniony (JWT) | –                                                     |
+| `GET`   | `/users/{id}` | Pobiera dane użytkownika po UUID. | Chroniony (JWT) | –                                                     |
+| `PATCH` | `/users/{id}` | Aktualizuje dane użytkownika (`email`, `name`, `surname`). | Chroniony (JWT) | JSON `{ "email": "", "name": "", "surname": "" }`     |
+| `POST`  | `/users/{id}/avatar` | Generuje presigned URL do uploadu avatara. | Chroniony (JWT) | JSON `{ "contentType": "image/png" }`                 |
 
 ---
 
@@ -128,6 +129,17 @@ docker-compose up --build
 }
 ```
 
+## Przykładowy response dla /oauth2/token
+
+```
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyZWNvcmRpbmctYm90LXNlcnZpY2UiLCJzY29wZSI6WyJST0xFX0JPVCIsInVybjpzeXN0ZW06cmVjb3JkaW5nIl0sImlzcyI6Imh0dHA6Ly91c2VyLXNlcnZpY2U6ODA4MCIsImV4cCI6MTcwNTU5NDIwMH0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+  "token_type": "Bearer",
+  "expires_in": 300,
+  "scope": "ROLE_BOT urn:system:recording"
+}
+```
+
 ## Przykładowy response dla users/{id}/avatar
 
 ```
@@ -140,3 +152,47 @@ Opis pól:
 - kty (Key Type): Typ algorytmu kryptograficznego. Najczęściej będzie to "RSA".
 - kid (Key ID): NAJWAŻNIEJSZE POLE. Jest to unikalny identyfikator klucza. Każdy token JWT, który podpisujemy, ma w swoim nagłówku (header) pole kid, które odpowiada jednemu z kluczy na tej liście.
 - e (Exponent) i n (Modulus): Te dwa pola razem tworzą klucz publiczny RSA. Twoja biblioteka do obsługi JWT użyje ich do zbudowania klucza publicznego potrzebnego do weryfikacji.
+
+
+
+## Przepływ uwierzytelniania
+
+Serwis ten obsługuje dwa główne przepływy uwierzytelniania, oba bazujące na standardzie OAuth 2.0.
+
+1. **Przepływ Użytkownika (Authorization Code Flow)**
+
+    
+  Ten przepływ jest używany, gdy człowiek loguje się do systemu za pośrednictwem aplikacji frontendowej i zewnętrznego dostawcy (np. Google). Jest to proces wieloetapowy, oparty na przekierowaniach.
+
+    Kroki:
+    
+    Inicjalizacja (Frontend ➔ Auth-Service): Użytkownik na frontendzie klika "Zaloguj przez Google". Frontend przekierowuje przeglądarkę użytkownika do endpointu autoryzacji naszego serwera (/oauth2/authorize?client_id=frontend-app...), prosząc o zalogowanie.
+    
+    Przekierowanie (Auth-Service ➔ Google): Nasz serwer rozpoznaje, że to logowanie dla użytkownika (.oauth2Login()), i przekierowuje przeglądarkę do strony logowania Google.
+    
+    Logowanie (Użytkownik ➔ Google): Użytkownik loguje się swoimi danymi w domenie Google.
+    
+    Kod Zwrotny (Google ➔ Auth-Service): Google odsyła przeglądarkę z powrotem do naszego serwisu (na adres .../login/oauth2/code/google) z tymczasowym kodem autoryzacyjnym.
+    
+    Wymiana i Stworzenie Tokenu (Auth-Service): Nasze handlery (OAuth2AuthenticationSuccessHandler) przechwytują ten kod. Serwis w tle wymienia go z Google na dane użytkownika, a następnie JwtTokenProvider generuje nasz wewnętrzny token JWT.
+    
+    Finał (Auth-Service ➔ Frontend): Serwis odsyła przeglądarkę użytkownika z powrotem na adres redirectUri frontendu (np. http://localhost:3000/callback), dołączając nowo stworzony token JWT jako parametr URL (?token=...).
+
+
+2. **Przepływ Serwisu/Bota (Client Credentials Flow)**
+   
+  Ten przepływ jest używany, gdy zaufana aplikacja backendowa (jak Twój bot nagrywający) potrzebuje uzyskać token do komunikacji M2M (Machine-to-Machine). Ten proces jest bezpośredni i nie wymaga przeglądarki ani interakcji użytkownika.
+
+    Kroki:
+    
+    - Żądanie Tokenu (Bot ➔ Auth-Service): Bot wysyła bezpośrednie zapytanie POST na endpoint /oauth2/token.
+    
+    - Uwierzytelnienie Bota: 
+      W nagłówku Authorization żądania bot przesyła swoje clientId i clientSecret (np. recording-bot-service i jego hasło) 
+      zakodowane w Basic Auth.
+      W ciele żądania (jako x-www-form-urlencoded) przesyła grant_type=client_credentials.
+    
+    - Walidacja i Wydanie Tokenu (Auth-Service): Serwer sprawdza clientId i clientSecret bota w RegisteredClientRepository. 
+      Jeśli są poprawne, natychmiast generuje i podpisuje nowy token JWT.
+    
+    - Odpowiedź (Auth-Service ➔ Bot): Serwer zwraca odpowiedź HTTP 200 OK z ciałem JSON, zawierającym access_token dla bota.
