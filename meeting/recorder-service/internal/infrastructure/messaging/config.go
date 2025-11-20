@@ -50,5 +50,3 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		RecorderQueue:   os.Getenv(config.RECORDER_QUEUE),
 	}
 }
-
-// exchange type: queue name recording-requests
