@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 
-class RecordingsUploaded(BaseModel):
+class RecordingsPayload(BaseModel):
     merged: str = Field(
         ...,
         description="Zmergeowane audio pliku"

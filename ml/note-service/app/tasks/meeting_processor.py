@@ -1,80 +1,109 @@
-from .celery_app import celery_app
+from celery.utils.log import get_task_logger
 from celery.signals import worker_process_init
-from app.schemas.events import RecordingsUploaded
+from .celery_app import celery_app
+
+from app.schemas.events import RecordingsPayload
 from app.services.storage import StorageS3
 from app.services.ai_processor import AIProcessor
 from app.services.transcription import TranscriptionService
 from app.services.summarization import SummarizationService
+from app.tasks.file_cleaner import delete_audio_files_task
 
-transcription_service = None
-summarization_service = None
+logger = get_task_logger(__name__)
+
+_transcription_service: TranscriptionService = None
+_summarization_service: SummarizationService = None
 
 
 @worker_process_init.connect
 def on_worker_init(**kwargs):
-    """
-    Ta funkcja jest automatycznie wywoływana przez Celery raz,
-    gdy proces workera jest inicjalizowany.
-    To idealne miejsce na załadowanie ciężkich modeli AI.
-    """
-    print("Sygnał 'worker_process_init': Inicjalizacja serwisów...")
+    global _transcription_service, _summarization_service
 
-    global transcription_service, summarization_service
+    logger.info("Inicjalizacja serwisów AI i Storage...")
 
-    storage_service = StorageS3()
-    ai_processor = AIProcessor()
+    try:
+        storage = StorageS3()
+        ai_processor = AIProcessor()
 
-    transcription_service = TranscriptionService(
-        storage_service=storage_service,
-        ai_processor=ai_processor
-    )
-    summarization_service = SummarizationService(
-        storage_service=storage_service,
-        ai_processor=ai_processor
-    )
+        _transcription_service = TranscriptionService(
+            storage_service=storage,
+            ai_processor=ai_processor
+        )
+        _summarization_service = SummarizationService(
+            storage_service=storage,
+            ai_processor=ai_processor
+        )
+        logger.info("Serwisy zainicjalizowane pomyślnie.")
 
-    print("Sygnał 'worker_process_init': Serwisy gotowe do pracy.")
+    except Exception as e:
+        logger.critical(f"Błąd krytyczny inicjalizacji serwisów: {e}", exc_info=True)
 
 
 @celery_app.task(name="process_audio_file")
 def process_audio_file_task(event_data: dict):
-    """
-    Główne zadanie Celery, które przyjmuje surowe dane zdarzenia z kolejki,
-    waliduje je i deleguje do odpowiednich serwisów.
-    """
-
-    print(f"Otrzymano nowe zadanie z danymi: {event_data}")
-
-    if not transcription_service or not summarization_service:
-        error_msg = "Serwisy nie zostały zainicjalizowane. Zadanie nie może być wykonane."
-        print(error_msg)
-        return {"status": "error", "message": error_msg}
+    if not _check_services_availability():
+        return {"status": "error", "message": "Services not initialized"}
 
     try:
-        event = RecordingsUploaded.model_validate(event_data)
-    except Exception as e:
-        print(f"Błąd walidacji danych: {e}")
-        return {"status": "error", "message": "Invalid event data"}
+        event = _parse_event_data(event_data)
 
-    try:
-        transcript = transcription_service.process_recording(
-            bucket=event.bucket_name,
-            key=event.object_key
-        )
+        transcript = _perform_transcription(event.merged)
 
-        print("\n--- OTRZYMANA TRANSKRYPCJA ---")
-        print(transcript)
-        print("------------------------------\n")
+        _perform_summarization(transcript, event.merged)
 
-        summarization_service.generate_and_save_notes(
-            transcript=transcript,
-            original_filename=event.object_key
-        )
+        _trigger_cleanup(event)
 
-        final_message = f"Proces dla pliku {event.object_key} zakończony. Transkrypcja i notatki zostały zapisane."
-        print(final_message)
-        return {"status": "success", "message": final_message}
+        logger.info(f"Proces zakończony sukcesem dla: {event.merged}")
+        return {"status": "success", "file": event.merged}
 
-    except Exception as e:
-        print(f"Zadanie nie powiodło się dla pliku {event.object_key}. Błąd: {e}")
+    except ValueError as e:
+        logger.error(f"Błąd danych wejściowych: {e}")
         return {"status": "error", "message": str(e)}
+
+    except Exception as e:
+        logger.error(f"Błąd przetwarzania taska: {e}", exc_info=True)
+        raise e
+
+
+def _check_services_availability() -> bool:
+    if not _transcription_service or not _summarization_service:
+        logger.error("Próba uruchomienia zadania bez zainicjalizowanych serwisów.")
+        return False
+    return True
+
+
+def _parse_event_data(raw_data: dict) -> RecordingsPayload:
+    try:
+        return RecordingsPayload(**raw_data)
+    except Exception as e:
+        raise ValueError(f"Invalid payload structure: {e}")
+
+
+def _perform_transcription(s3_key: str) -> str:
+    logger.info(f"Rozpoczynam transkrypcję pliku: {s3_key}")
+
+    text = _transcription_service.process_recording(key=s3_key)
+
+    if not text:
+        raise RuntimeError("Transkrypcja zwróciła pusty wynik.")
+
+    logger.info(f"Transkrypcja gotowa. Długość: {len(text)} znaków.")
+    return text
+
+
+def _perform_summarization(transcript: str, s3_key: str) -> None:
+    """Uruchamia logikę generowania notatek."""
+    logger.info("Generowanie podsumowania...")
+
+    _summarization_service.generate_and_save_notes(
+        transcript=transcript,
+        original_filename=s3_key
+    )
+    logger.info("Podsumowanie wygenerowane i zapisane w S3.")
+
+
+def _trigger_cleanup(event: RecordingsPayload) -> None:
+    files = [event.merged] + event.voices
+    logger.info(f"Zlecanie usunięcia {len(files)} plików.")
+
+    delete_audio_files_task.delay({"file_paths": files})
