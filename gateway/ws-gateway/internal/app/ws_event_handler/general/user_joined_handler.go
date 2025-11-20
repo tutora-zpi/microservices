@@ -41,7 +41,9 @@ func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client inte
 
 		log.Printf("Sending to %s info: %v", client.ID(), *info)
 
-		u.hubManager.EmitToClientInRoom(event.RoomID, client.ID(), [][]byte{info.ToBytes()})
+		wrapped, _ := wsevent.EncodeSocketEventWrapper(info)
+
+		u.hubManager.EmitToClientInRoom(event.RoomID, client.ID(), [][]byte{wrapped})
 	}()
 
 	go func() {
