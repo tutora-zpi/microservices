@@ -9,6 +9,10 @@ import (
 // VoiceSessionMetadataDTO represents a voice session data transfer object.
 // swagger:model VoiceSessionMetadataDTO
 type VoiceSessionMetadataDTO struct {
+	// Unique identifier of the session
+	// required: true
+	ID string `json:"id" validate:"required"`
+
 	// Unique identifier of the voice session (UUID v4) in our case it will be MeetingID.
 	// required: true
 	// example: "123e4567-e89b-12d3-a456-426614174000"

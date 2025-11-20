@@ -4,14 +4,44 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 	"ws-gateway/internal/app/interfaces"
 	wsevent "ws-gateway/internal/domain/ws_event"
+	"ws-gateway/internal/domain/ws_event/recorder"
 	cache "ws-gateway/internal/infrastructure/cache/repo"
 	"ws-gateway/pkg/gzip"
 )
 
 type cacheEventServiceImpl struct {
 	repo cache.CacheEventRepository
+}
+
+// IsMeetingRecorded implements interfaces.CacheEventService.
+func (c *cacheEventServiceImpl) IsMeetingRecorded(ctx context.Context, keyRoomID string) (*recorder.RecordRequestedWSEvent, error) {
+	res, err := c.repo.Get(ctx, keyRoomID)
+	if err != nil {
+		return nil, err
+	}
+
+	evt := recorder.NewRecordRequestedWSEventFromBytes(res)
+
+	if evt == nil {
+		return nil, fmt.Errorf("failed to decode event")
+	}
+
+	return evt, nil
+}
+
+// RemoveMeetingFromPool implements interfaces.CacheEventService.
+func (c *cacheEventServiceImpl) RemoveMeetingFromPool(ctx context.Context, keyRoomID string) error {
+	return c.repo.Del(ctx, keyRoomID)
+}
+
+// SetMeetingIsRecorded implements interfaces.CacheEventService.
+func (c *cacheEventServiceImpl) SetMeetingIsRecorded(ctx context.Context, keyRoomID string, evt recorder.RecordRequestedWSEvent) error {
+	ttl := time.Until(evt.FinishTime)
+
+	return c.repo.Set(ctx, keyRoomID, ttl, evt.ToBytes())
 }
 
 // GetSnapshot implements interfaces.CacheEventService.

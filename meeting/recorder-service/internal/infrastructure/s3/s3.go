@@ -7,7 +7,9 @@ import (
 	"os"
 	"path"
 	literals "recorder-service/internal/config"
+	"recorder-service/pkg"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,17 +20,29 @@ import (
 
 type S3Service interface {
 	PutObject(ctx context.Context, pathToFiles string) ([]string, error)
+	GetPresignURL(ctx context.Context, key string) (string, error)
 }
 
 type s3Service struct {
-	bucketName string
-	uploader   *manager.Uploader
-	downloader *manager.Downloader
+	bucketName  string
+	uploader    *manager.Uploader
+	presigner   *s3.PresignClient
+	presignTime time.Duration
 }
 
-// GetObject implements S3Service.
-func (s *s3Service) GetObject(ctx context.Context, key string) (string, error) {
-	return "", nil
+// GetPresignURL implements S3Service.
+func (s *s3Service) GetPresignURL(ctx context.Context, key string) (string, error) {
+	resp, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(s.presignTime))
+
+	if err != nil {
+		log.Println("Failed to sign request", err)
+		return "", fmt.Errorf("failed to generate presign url, try later")
+	}
+
+	return resp.URL, nil
 }
 
 // PutObject implements S3Service.
@@ -90,7 +104,7 @@ func (s *s3Service) PutObject(ctx context.Context, pathToFiles string) ([]string
 	return res, nil
 }
 
-func NewS3Service(ctx context.Context, bucketName string) (S3Service, error) {
+func NewS3Service(ctx context.Context, bucketName string, presignTime string) (S3Service, error) {
 	if bucketName == "" {
 		return nil, fmt.Errorf("no bucket name")
 	}
@@ -115,7 +129,9 @@ func NewS3Service(ctx context.Context, bucketName string) (S3Service, error) {
 	client := s3.NewFromConfig(cfg)
 
 	uploader := manager.NewUploader(client)
-	downloader := manager.NewDownloader(client)
+	presigner := s3.NewPresignClient(client)
 
-	return &s3Service{uploader: uploader, downloader: downloader, bucketName: bucketName}, nil
+	presignT := pkg.StrToTime(time.Minute*30, presignTime)
+
+	return &s3Service{uploader: uploader, presigner: presigner, bucketName: bucketName, presignTime: presignT}, nil
 }

@@ -7,5 +7,6 @@ import (
 )
 
 type VoiceSessionService interface {
+	GetAudio(ctx context.Context, req request.GetAudioRequest) (*dto.GetAudioDTO, error)
 	GetSessions(ctx context.Context, req request.FetchSessions) ([]*dto.VoiceSessionMetadataDTO, error)
 }

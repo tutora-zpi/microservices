@@ -5,12 +5,12 @@ import "strconv"
 const DEFAULT_LIMIT = 10
 
 type FetchSessions struct {
-	ClassID              string
-	LastFetchedMeetingID *string
-	Limit                int64
+	MeetingID     string
+	LastFetchedID *string
+	Limit         int64
 }
 
-func NewFetchSessions(classID, lastFetchedMeetingID, limit string) *FetchSessions {
+func NewFetchSessions(meetingID, lastFetchedID, limit string) *FetchSessions {
 	var result FetchSessions
 
 	limitNum, err := strconv.Atoi(limit)
@@ -20,11 +20,11 @@ func NewFetchSessions(classID, lastFetchedMeetingID, limit string) *FetchSession
 
 	result.Limit = int64(limitNum)
 
-	if lastFetchedMeetingID != "" {
-		result.LastFetchedMeetingID = &lastFetchedMeetingID
+	if lastFetchedID != "" {
+		result.LastFetchedID = &lastFetchedID
 	}
 
-	result.ClassID = classID
+	result.MeetingID = meetingID
 
 	return &result
 }

@@ -18,6 +18,7 @@ func NewRouter(h handlers.Handler) *mux.Router {
 
 	sessions := api.PathPrefix("/sessions").Subrouter()
 	sessions.Handle("/{meeting_id}", h.IsAuth(http.HandlerFunc(h.FetchSessions))).Methods(http.MethodGet)
+	sessions.Handle("/{meeting_id}/audio/{name}", h.IsAuth(http.HandlerFunc(h.GetAudio))).Methods(http.MethodGet)
 
 	return router
 }

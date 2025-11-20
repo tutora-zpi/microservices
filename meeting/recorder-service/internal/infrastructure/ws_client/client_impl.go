@@ -79,6 +79,8 @@ func (c *clientImpl) Close() error {
 		return c.conn.Close()
 	}
 
+	log.Printf("Successfully left meeting by: %s", c.botID)
+
 	return nil
 }
 

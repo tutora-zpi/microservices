@@ -11,7 +11,7 @@ import (
 
 // FetchSessions implements Handler.
 func (h *handlerImpl) FetchSessions(w http.ResponseWriter, r *http.Request) {
-	classID, ok := mux.Vars(r)["class_id"]
+	classID, ok := mux.Vars(r)["meeting_id"]
 	if !ok {
 		server.NewResponse(w, pkg.Ptr("No class id"), http.StatusBadRequest, nil)
 		return
@@ -19,7 +19,7 @@ func (h *handlerImpl) FetchSessions(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	lastFetchedMeetingID := r.URL.Query().Get("last_fetched_meeting_id")
+	lastFetchedMeetingID := r.URL.Query().Get("last_fetched_id")
 	limit := r.URL.Query().Get("limit")
 
 	req := request.NewFetchSessions(classID, lastFetchedMeetingID, limit)

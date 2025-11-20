@@ -19,7 +19,8 @@ type offerHandler struct {
 
 // Handle implements handler.EventHandler.
 func (o *offerHandler) Handle(ctx context.Context, body []byte) error {
-	log.Println("OFFER HANDLER")
+	log.Println("Handling offer")
+
 	var evt rtc.OfferWSEvent
 	if err := json.Unmarshal(body, &evt); err != nil {
 		log.Printf("Failed to decode Offer event: %v", err)
@@ -27,10 +28,6 @@ func (o *offerHandler) Handle(ctx context.Context, body []byte) error {
 	}
 
 	log.Printf("Received event: FROM=%s TO=%s ROOMID=%s", evt.From, evt.To, evt.RoomID)
-
-	// if err := evt.IsValid(); err != nil {
-	// 	return err
-	// }
 
 	bot, ok := o.botService.GetBot(evt.RoomID)
 	if !ok {
