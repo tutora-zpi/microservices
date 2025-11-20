@@ -1,14 +1,20 @@
 from pydantic import BaseModel, Field
+from typing import List
 
 
-class AudioUploadedEvent(BaseModel):
-    bucket_name: str = Field(
+class RecordingsUploaded(BaseModel):
+    merged: str = Field(
         ...,
-        description="Nazwa bucketa S3, w którym znajduje się nagranie.",
-        examples=["tutora-meeting-recordings"]
+        description="Zmergeowane audio pliku"
     )
-    object_key: str = Field(
+    voices: List[str] = Field(
         ...,
-        description="Klucz (ścieżka do pliku) nagrania w buckecie S3.",
-        examples=["raw/meeting-12345.wav"]
+        description="Pojedyncze głosy"
+    )
+
+
+class DeleteAudioPayload(BaseModel):
+    file_paths: List[str] = Field(
+        ...,
+        description="Lista ścieżek do plików, które należy usunąć"
     )

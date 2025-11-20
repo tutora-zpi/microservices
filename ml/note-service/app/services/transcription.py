@@ -1,5 +1,5 @@
 import os
-from app.services.storage_local_fs import StorageLocalFS
+from app.services.storage import StorageS3
 from app.services.ai_processor import AIProcessor
 
 
@@ -8,7 +8,7 @@ class TranscriptionService:
     Serwis orkiestrujący proces transkrypcji nagrania.
     """
 
-    def __init__(self, storage_service: StorageLocalFS, ai_processor: AIProcessor):
+    def __init__(self, storage_service: StorageS3, ai_processor: AIProcessor):
         """
         Inicjalizuje serwis, wstrzykując zależności do S3 i procesora AI.
         """
@@ -40,9 +40,9 @@ class TranscriptionService:
             print(f"Plik pobrany do: {local_audio_path}. Przekazywanie do transkrypcji...")
             transcript = self.ai_processor.transcribe(audio_path=local_audio_path)
 
-            base_name = os.path.splitext(key)[0]
-            transcript_filename = f"{base_name}_transcript.txt"
-            self.storage.save_debug_file('transcript', transcript_filename, transcript)
+            # base_name = os.path.splitext(key)[0]
+            # transcript_filename = f"{base_name}_transcript.txt"
+            # self.storage.save_debug_file('transcript', transcript_filename, transcript)
 
             print(f"Transkrypcja dla {key} zakończona pomyślnie.")
             # self.storage.delete_audio(object_name=key)

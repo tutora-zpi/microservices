@@ -1,6 +1,6 @@
 import os
 import tempfile
-from .storage_local_fs import StorageLocalFS
+from .storage import StorageS3
 from .ai_processor import AIProcessor
 
 MAP_PROMPT = """Jesteś asystentem AI. Twoim zadaniem jest stworzenie zwięzłych notatek z poniższego fragmentu transkrypcji spotkania. 
@@ -16,7 +16,7 @@ Usuń redundancje i stwórz profesjonalne podsumowanie całego spotkania.
 
 
 class SummarizationService:
-    def __init__(self, storage_service: StorageLocalFS, ai_processor: AIProcessor):
+    def __init__(self, storage_service: StorageS3, ai_processor: AIProcessor):
         self.storage = storage_service
         self.ai_processor = ai_processor
         self.token_limit = 1_000_000
@@ -73,6 +73,6 @@ class SummarizationService:
 
         self.storage.upload_notes(
             local_file_path=local_notes_path,
-            object_name=notes_filename
+            object_key=notes_filename
         )
         os.remove(local_notes_path)

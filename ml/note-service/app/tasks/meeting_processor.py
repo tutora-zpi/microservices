@@ -1,7 +1,7 @@
 from .celery_app import celery_app
 from celery.signals import worker_process_init
-from app.schemas.events import AudioUploadedEvent
-from app.services.storage_local_fs import StorageLocalFS
+from app.schemas.events import RecordingsUploaded
+from app.services.storage import StorageS3
 from app.services.ai_processor import AIProcessor
 from app.services.transcription import TranscriptionService
 from app.services.summarization import SummarizationService
@@ -19,11 +19,9 @@ def on_worker_init(**kwargs):
     """
     print("Sygnał 'worker_process_init': Inicjalizacja serwisów...")
 
-    # Używamy `global`, aby zmodyfikować globalne zmienne
     global transcription_service, summarization_service
 
-    # Inicjalizujemy wszystkie serwisy
-    storage_service = StorageLocalFS()
+    storage_service = StorageS3()
     ai_processor = AIProcessor()
 
     transcription_service = TranscriptionService(
@@ -53,7 +51,7 @@ def process_audio_file_task(event_data: dict):
         return {"status": "error", "message": error_msg}
 
     try:
-        event = AudioUploadedEvent.model_validate(event_data)
+        event = RecordingsUploaded.model_validate(event_data)
     except Exception as e:
         print(f"Błąd walidacji danych: {e}")
         return {"status": "error", "message": "Invalid event data"}
@@ -79,6 +77,4 @@ def process_audio_file_task(event_data: dict):
 
     except Exception as e:
         print(f"Zadanie nie powiodło się dla pliku {event.object_key}. Błąd: {e}")
-        # Dzięki temu, że `TranscriptionService` rzuca wyjątek, zadanie w Celery
-        # zostanie oznaczone jako FAILED.
         return {"status": "error", "message": str(e)}

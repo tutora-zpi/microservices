@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
     AWS_REGION: str
-    S3_BUCKET_NAME: str
+    S3_RECORDINGS_BUCKET_NAME: str
+    S3_NOTES_BUCKET_NAME: str
 
     GEMINI_API_KEY: str
 

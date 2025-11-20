@@ -2,6 +2,7 @@ fastapi
 google-generativeai
 uvicorn[standard]
 celery
+kombu
 pika
 pydantic
 pydantic-settings
