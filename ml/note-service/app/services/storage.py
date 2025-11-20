@@ -14,14 +14,14 @@ class StorageS3:
         self.notes_bucket = settings.S3_NOTES_BUCKET_NAME
         self.region = settings.AWS_REGION
 
+        self.local_tmp_dir = settings.LOCAL_TMP_DIR
+
         self.s3_client = boto3.client(
             's3',
             region_name=self.region,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
         )
-
-        self.local_tmp_dir = "/tmp/transcriptions"
 
     def download_audio(self, object_name: str) -> str:
         try:
