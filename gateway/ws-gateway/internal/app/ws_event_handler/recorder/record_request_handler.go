@@ -15,9 +15,10 @@ import (
 )
 
 type recordRequestHandler struct {
-	broker     interfaces.Broker
-	exchange   string
-	hubManager interfaces.HubManager
+	broker       interfaces.Broker
+	exchange     string
+	hubManager   interfaces.HubManager
+	cacheService interfaces.CacheEventService
 }
 
 // Handle implements interfaces.EventHandler.
@@ -36,7 +37,7 @@ func (r *recordRequestHandler) Handle(ctx context.Context, body []byte, client i
 
 	newEvent := event.NewRecordMeetingEvent(evt, expectedUsers)
 
-	var errorsCh chan error = make(chan error, 2)
+	var errorsCh chan error = make(chan error, 3)
 
 	wg.Go(func() {
 		dest := broker.NewExchangeDestination(newEvent, r.exchange)
@@ -44,6 +45,13 @@ func (r *recordRequestHandler) Handle(ctx context.Context, body []byte, client i
 		err := r.broker.Publish(ctx, newEvent, dest)
 		if err != nil {
 			errorsCh <- fmt.Errorf("failed to publish %s", newEvent.Name())
+		}
+	})
+
+	wg.Go(func() {
+		err := r.cacheService.SetMeetingIsRecorded(ctx, evt.RoomID, evt)
+		if err != nil {
+			errorsCh <- err
 		}
 	})
 
@@ -74,6 +82,6 @@ func (r *recordRequestHandler) Handle(ctx context.Context, body []byte, client i
 	return nil
 }
 
-func NewRecordRequestHandler(broker interfaces.Broker, exchange string, hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &recordRequestHandler{broker: broker, exchange: exchange, hubManager: hubManager}
+func NewRecordRequestHandler(broker interfaces.Broker, exchange string, hubManager interfaces.HubManager, cacheService interfaces.CacheEventService) interfaces.EventHandler {
+	return &recordRequestHandler{broker: broker, exchange: exchange, hubManager: hubManager, cacheService: cacheService}
 }

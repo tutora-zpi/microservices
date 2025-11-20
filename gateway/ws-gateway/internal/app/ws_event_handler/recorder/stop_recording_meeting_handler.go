@@ -14,9 +14,10 @@ import (
 )
 
 type stopRecordMeetingHandler struct {
-	broker     interfaces.Broker
-	exchange   string
-	hubManager interfaces.HubManager
+	broker       interfaces.Broker
+	exchange     string
+	hubManager   interfaces.HubManager
+	cacheService interfaces.CacheEventService
 }
 
 // Handle implements interfaces.EventHandler.
@@ -40,6 +41,13 @@ func (s *stopRecordMeetingHandler) Handle(ctx context.Context, body []byte, clie
 		err := s.broker.Publish(ctx, newEvent, dest)
 		if err != nil {
 			errorsCh <- fmt.Errorf("failed to publish %s", newEvent.Name())
+		}
+	})
+
+	wg.Go(func() {
+		err := s.cacheService.RemoveMeetingFromPool(ctx, evt.RoomID)
+		if err != nil {
+			errorsCh <- err
 		}
 	})
 
@@ -70,6 +78,6 @@ func (s *stopRecordMeetingHandler) Handle(ctx context.Context, body []byte, clie
 	return nil
 }
 
-func NewStopRecordMeetingHandler(broker interfaces.Broker, exchange string, hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &stopRecordMeetingHandler{broker: broker, exchange: exchange, hubManager: hubManager}
+func NewStopRecordMeetingHandler(broker interfaces.Broker, exchange string, hubManager interfaces.HubManager, cacheService interfaces.CacheEventService) interfaces.EventHandler {
+	return &stopRecordMeetingHandler{broker: broker, exchange: exchange, hubManager: hubManager, cacheService: cacheService}
 }

@@ -8,7 +8,6 @@ import (
 )
 
 type VoiceSessionMetadata struct {
-	// ID is meeting ID to easily identify the voice meeting.
 	MeetingID string `bson:"meetingId"`
 	ClassID   string `bson:"classId"`
 

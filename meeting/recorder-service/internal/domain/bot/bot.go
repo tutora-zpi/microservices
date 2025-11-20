@@ -11,12 +11,12 @@ import (
 	"sync"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/google/uuid"
 )
 
 type Bot interface {
 	ID() string
 	Name() string
+	SetID(id string)
 
 	DTO() dto.BotDTO
 
@@ -107,13 +107,13 @@ func (b *bot) Name() string {
 	return b.name
 }
 
-func NewBot(client client.Client) Bot {
-	botID := uuid.NewString()
+func (b *bot) SetID(id string) {
+	b.id = id
+}
 
-	client.SetBotID(botID)
+func NewBot(client client.Client) Bot {
 
 	return &bot{
-		id:     botID,
 		name:   gofakeit.FirstName(),
 		client: client,
 		peers:  make(map[string]peer.Peer),

@@ -71,7 +71,7 @@ func main() {
 
 	wg.Go(func() {
 		var err error
-		s3Service, err = s3.NewS3Service(initCtx, os.Getenv(config.AWS_BUCKET_NAME))
+		s3Service, err = s3.NewS3Service(initCtx, os.Getenv(config.AWS_BUCKET_NAME), os.Getenv(config.AWS_PRESIGN_TIME))
 		if err != nil {
 			errors <- err
 		}
@@ -125,7 +125,7 @@ func main() {
 	voiceRepo := repoimpl.NewVoiceMeetingRepository(mongoClient, mongoConfig)
 	botRepo := cache.NewBotRepository(redisClient)
 
-	voiceSessionService := service.NewVoiceSessionService(voiceRepo)
+	voiceSessionService := service.NewVoiceSessionService(voiceRepo, s3Service)
 
 	clientFactory := factoryimpl.NewClientFactory(dispatcher)
 	recorderFactory := factoryimpl.NewRecorderFactory()

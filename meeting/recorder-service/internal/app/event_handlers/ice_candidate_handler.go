@@ -22,10 +22,6 @@ func (i *iceCandidateHandler) Handle(ctx context.Context, body []byte) error {
 		return fmt.Errorf("invalid event payload")
 	}
 
-	// if err := evt.IsValid(); err != nil {
-	// 	return err
-	// }
-
 	bot, ok := i.botService.GetBot(evt.RoomID)
 	if !ok {
 		return fmt.Errorf("bot not found for room %s", evt.RoomID)

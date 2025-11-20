@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 	"ws-gateway/internal/infrastructure/cache/enum"
 
@@ -14,12 +15,50 @@ type CacheEventRepository interface {
 	SaveSnapshot(ctx context.Context, roomID string, compressedData []byte) error
 	GetSnapshot(ctx context.Context, roomID string) ([]byte, error)
 	GetCachedEvents(ctx context.Context, roomID string) ([][]byte, error)
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, ttl time.Duration, data []byte) error
+	Del(ctx context.Context, key string) error
 }
 
 type cacheEventRepoImpl struct {
 	client     *redis.Client
 	maxPerRoom int
 	ttl        time.Duration
+}
+
+// Del implements CacheEventRepository.
+func (c *cacheEventRepoImpl) Del(ctx context.Context, key string) error {
+	_, err := c.client.Del(ctx, enum.IsRecorded(key)).Result()
+	if err != nil {
+		return fmt.Errorf("failed to delete entry: %w", err)
+	}
+
+	return nil
+}
+
+// Get implements CacheEventRepository.
+func (c *cacheEventRepoImpl) Get(ctx context.Context, key string) ([]byte, error) {
+	res, err := c.client.Get(ctx, enum.IsRecorded(key)).Result()
+	if err == redis.Nil {
+		log.Printf("Not found key: %s", key)
+		return nil, nil
+	}
+
+	if err != nil || len(res) < 1 {
+		return nil, fmt.Errorf("failed to get entry: %w", err)
+	}
+
+	return []byte(res), nil
+}
+
+// Set implements CacheEventRepository.
+func (c *cacheEventRepoImpl) Set(ctx context.Context, key string, ttl time.Duration, data []byte) error {
+	_, err := c.client.Set(ctx, enum.IsRecorded(key), data, ttl).Result()
+	if err != nil {
+		return fmt.Errorf("failed to set: %w", err)
+	}
+
+	return nil
 }
 
 // GetSnapshot implements CacheEventRepository.

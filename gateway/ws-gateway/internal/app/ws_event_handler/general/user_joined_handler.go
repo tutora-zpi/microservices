@@ -24,16 +24,25 @@ func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client inte
 	}
 
 	log.Printf("User with id: %s tries to join to room: %s", event.UserID, event.RoomID)
-	log.Printf("Client: %s", client.ID())
 
 	ids := u.hubManager.AddRoomMember(event.RoomID, client)
-
-	log.Println(ids)
 
 	roomUsers := &general.RoomUsersWSEvent{Users: ids, RoomID: event.RoomID}
 	bytes, _ := wsevent.EncodeSocketEventWrapper(roomUsers)
 
 	go u.hubManager.Emit(event.RoomID, bytes, func(id string) bool { return true })
+
+	go func() {
+		info, err := u.cacheService.IsMeetingRecorded(ctx, event.RoomID)
+		if err != nil {
+			log.Printf("Something went during getting meeting recoreded")
+			return
+		}
+
+		log.Printf("Sending to %s info: %v", client.ID(), *info)
+
+		u.hubManager.EmitToClientInRoom(event.RoomID, client.ID(), [][]byte{info.ToBytes()})
+	}()
 
 	go func() {
 		payloads, eventsErr := u.cacheService.GetLastEventsData(ctx, event.RoomID)

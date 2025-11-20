@@ -7,6 +7,7 @@ import (
 
 type Handler interface {
 	FetchSessions(w http.ResponseWriter, r *http.Request)
+	GetAudio(w http.ResponseWriter, r *http.Request)
 	NotFound(w http.ResponseWriter, r *http.Request)
 	IsAuth(next http.Handler) http.Handler
 }
