@@ -56,7 +56,8 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 			errors <- err
 		}
 
-		evt := &event.RecordingsUploaded{RecordingKeys: keys, RoomID: evt.RoomID}
+		evt := event.NewRecordingsUploaded(keys)
+		log.Printf("RecordingsUploaded body: %v", *evt)
 
 		dest := broker.NewExchangeDestination(evt, s.exchange)
 		err = s.broker.Publish(ctx, evt, dest)
