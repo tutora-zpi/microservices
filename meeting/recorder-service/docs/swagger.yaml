@@ -1,0 +1,136 @@
+definitions:
+  dto.GetAudioDTO:
+    properties:
+      audioName:
+        type: string
+      meetingId:
+        type: string
+      urlToAudio:
+        type: string
+    type: object
+  dto.VoiceSessionMetadataDTO:
+    properties:
+      audioName:
+        description: |-
+          URL to the recorded audio file (optional).
+          nullable: true
+        type: string
+      classId:
+        description: |-
+          ClassID is a identifier of class
+          required: true
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        type: string
+      duration:
+        description: |-
+          Duration of the session in seconds.
+          required: true
+          minimum: 1
+          example: 3600
+        minimum: 1
+        type: integer
+      endedAt:
+        description: |-
+          ISO8601 formatted end time of the session (optional).
+          example: "2025-06-08T13:34:56Z"
+          nullable: true
+        type: string
+      id:
+        description: |-
+          Unique identifier of the session
+          required: true
+        type: string
+      meetingId:
+        description: |-
+          Unique identifier of the voice session (UUID v4) in our case it will be MeetingID.
+          required: true
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        type: string
+      memberIDs:
+        description: |-
+          List of member IDs participating in the session.
+          required: true
+          min length: 2
+          example: ["uuid1", "uuid2"]
+        items:
+          type: string
+        minItems: 2
+        type: array
+      startedAt:
+        description: |-
+          ISO8601 formatted start time of the session.
+          required: true
+          example: "2025-06-08T12:34:56Z"
+        type: string
+    required:
+    - classId
+    - duration
+    - id
+    - meetingId
+    - memberIDs
+    - startedAt
+    type: object
+host: localhost:8050
+info:
+  contact: {}
+  description: Service responsible for recording meetings
+  title: Recording Serivce API
+  version: "1.0"
+paths:
+  /api/v1/sessions/{meeting_id}:
+    get:
+      description: Returns a list of voice session metadata for a given meeting. Supports
+        pagination with lastFetchedId and limit.
+      parameters:
+      - description: Meeting ID
+        in: path
+        name: meeting_id
+        required: true
+        type: string
+      - description: ID of the last fetched session for pagination
+        in: query
+        name: lastFetchedId
+        type: string
+      - description: Maximum number of sessions to return
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: List of session metadata
+          schema:
+            items:
+              $ref: '#/definitions/dto.VoiceSessionMetadataDTO'
+            type: array
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+      summary: Fetch sessions metadata
+      tags:
+      - sessions
+  /api/v1/sessions/audio/{meeting_id}/{name}:
+    get:
+      description: Returns a presigned URL for the requested audio file of a meeting
+      parameters:
+      - description: Meeting ID
+        in: path
+        name: meeting_id
+        required: true
+        type: string
+      - description: Audio file name
+        in: path
+        name: name
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Presigned URL for audio
+          schema:
+            $ref: '#/definitions/dto.GetAudioDTO'
+        "400":
+          description: Bad Request
+      summary: Get audio URL
+      tags:
+      - audio
+swagger: "2.0"

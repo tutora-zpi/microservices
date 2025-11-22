@@ -6,11 +6,13 @@ import (
 )
 
 type RecordingsUploaded struct {
-	Merged string   `json:"merged"`
-	Voices []string `json:"voices"`
+	ClassID string   `json:"classId"`
+	RoomID  string   `json:"meetingId"`
+	Merged  string   `json:"merged"`
+	Voices  []string `json:"voices"`
 }
 
-func NewRecordingsUploaded(keys []string) *RecordingsUploaded {
+func NewRecordingsUploaded(keys []string, classID, roomID string) *RecordingsUploaded {
 	var r RecordingsUploaded
 	for _, key := range keys {
 		if strings.Contains(key, "merged") {
@@ -19,6 +21,9 @@ func NewRecordingsUploaded(keys []string) *RecordingsUploaded {
 			r.Voices = append(r.Voices, key)
 		}
 	}
+
+	r.ClassID = classID
+	r.RoomID = roomID
 
 	return &r
 }

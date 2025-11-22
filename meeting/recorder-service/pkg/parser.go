@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,4 +17,10 @@ func StrToTime(defValue time.Duration, s string) time.Duration {
 	}
 
 	return presignT
+}
+
+func GetFileName(s string) string {
+	tokens := strings.Split(s, "/")
+	last := tokens[len(tokens)-1]
+	return last
 }
