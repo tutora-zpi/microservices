@@ -2,6 +2,7 @@ package ws
 
 import (
 	"sync"
+
 	"ws-gateway/internal/app/interfaces"
 
 	"github.com/gorilla/websocket"

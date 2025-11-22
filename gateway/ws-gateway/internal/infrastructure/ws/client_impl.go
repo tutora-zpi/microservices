@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+
 	"ws-gateway/internal/app/interfaces"
 	wsevent "ws-gateway/internal/domain/ws_event"
 
@@ -41,16 +42,22 @@ func (c *clientImpl) GetConnection() interfaces.Connection { return c.conn }
 func (c *clientImpl) Close() {
 	c.closed.Do(func() {
 		close(c.done)
+
 		if c.cancel != nil {
 			c.cancel()
 		}
+
 		c.hub.RemoveGlobalMember(c)
 		c.conn.Close()
+		close(c.send)
 	})
 }
 
 func (c *clientImpl) runSendLoop() {
-	defer func() { recover() }()
+	defer func() {
+		_ = recover()
+	}()
+
 	for {
 		select {
 		case msg, ok := <-c.send:
@@ -62,7 +69,17 @@ func (c *clientImpl) runSendLoop() {
 				return
 			}
 		case <-c.done:
-			return
+			for {
+				select {
+				case msg, ok := <-c.send:
+					if !ok {
+						return
+					}
+					_ = c.conn.WriteMessage(websocket.TextMessage, msg)
+				default:
+					return
+				}
+			}
 		}
 	}
 }
@@ -75,6 +92,7 @@ func (c *clientImpl) Listen(ctx context.Context, handler func(context.Context, s
 	for {
 		select {
 		case <-ctx.Done():
+			return
 		case <-c.done:
 			return
 		default:

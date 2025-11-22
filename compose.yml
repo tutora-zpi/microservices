@@ -77,8 +77,8 @@ services:
       - "8001:8001"
     env_file:
       - ./meeting/board-service/.env
-    # depends_on:
-    #   - board-db
+    depends_on:
+      - board-db
     networks:
       - tutora_net
 

@@ -22,6 +22,16 @@ type hub struct {
 	once          sync.Once
 }
 
+func NewHub() interfaces.HubManager {
+	h := &hub{
+		register:   make(chan interfaces.Client, 32),
+		unregister: make(chan interfaces.Client, 32),
+		closing:    make(chan struct{}),
+	}
+	go h.run()
+	return h
+}
+
 func (h *hub) GetUsersFromRoomID(roomID string) []string {
 	v, ok := h.rooms.Load(roomID)
 	if !ok {
@@ -39,16 +49,6 @@ func (h *hub) GetUsersFromRoomID(roomID string) []string {
 	return ids
 }
 
-func NewHub() interfaces.HubManager {
-	h := &hub{
-		register:   make(chan interfaces.Client, 32),
-		unregister: make(chan interfaces.Client, 32),
-		closing:    make(chan struct{}),
-	}
-	go h.run()
-	return h
-}
-
 func (h *hub) run() {
 	for {
 		select {
@@ -59,20 +59,12 @@ func (h *hub) run() {
 
 			h.rooms.Range(func(_ any, v any) bool {
 				r := v.(*Room)
-
 				r.mu.Lock()
 				delete(r.members, c.ID())
 				r.mu.Unlock()
 				return true
 			})
-			if cc, ok := c.(*clientImpl); ok {
-				select {
-				case <-cc.done:
-				default:
-					close(cc.done)
-				}
-				close(cc.send)
-			}
+
 		case <-h.closing:
 			return
 		}
@@ -159,6 +151,9 @@ func (h *hub) EmitGlobal(payload []byte) {
 
 func (h *hub) EmitToClient(clientID string, payloads [][]byte) {
 	v, _ := h.globalMembers.Load(clientID)
+	if v == nil {
+		return
+	}
 	c := v.(interfaces.Client)
 
 	for _, p := range payloads {
@@ -188,9 +183,18 @@ func (h *hub) EmitToClientInRoom(roomID, clientID string, payloads [][]byte) {
 }
 
 func (h *hub) sendSafe(c interfaces.Client, payload []byte) {
-	cli := c.(*clientImpl)
+	cli, ok := c.(*clientImpl)
+	if !ok {
+		return
+	}
 
-	timer := time.NewTimer(100 * time.Millisecond)
+	select {
+	case <-cli.done:
+		return
+	default:
+	}
+
+	timer := time.NewTimer(3 * time.Second)
 	defer timer.Stop()
 
 	select {
@@ -210,7 +214,6 @@ func (h *hub) Close() {
 			if ok {
 				client.Close()
 			}
-
 			return ok
 		})
 	})
