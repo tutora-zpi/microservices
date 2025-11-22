@@ -24,6 +24,8 @@ func (m *meetingStartedHandler) Handle(ctx context.Context, body []byte) error {
 	}
 
 	_, err := m.repo.CreateSessionMetadata(ctx, evt)
+
+	log.Println("Session sucessfully created")
 	return err
 }
 

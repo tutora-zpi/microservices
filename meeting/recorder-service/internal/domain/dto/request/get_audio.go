@@ -8,5 +8,5 @@ type GetAudioRequest struct {
 }
 
 func (g *GetAudioRequest) Key() string {
-	return path.Join(g.MeetingID, g.AudioName)
+	return path.Join("recordings", g.MeetingID, g.AudioName)
 }

@@ -47,7 +47,7 @@ type VoiceSessionMetadataDTO struct {
 
 	// URL to the recorded audio file (optional).
 	// nullable: true
-	AudioURL *string `json:"audioURL,omitempty" validate:"omitempty,url"`
+	AudioName *string `json:"audioName,omitempty" validate:"omitempty,url"`
 }
 
 func (v *VoiceSessionMetadataDTO) IsFinished() bool {

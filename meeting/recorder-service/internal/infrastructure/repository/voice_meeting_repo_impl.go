@@ -9,6 +9,8 @@ import (
 	"recorder-service/internal/domain/model"
 	"recorder-service/internal/domain/repository"
 	"recorder-service/internal/infrastructure/mongo"
+	"recorder-service/pkg"
+	"sort"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	mongodb "go.mongodb.org/mongo-driver/v2/mongo"
@@ -20,37 +22,54 @@ type voiceMeetingRepoImpl struct {
 }
 
 // AppendAudioName implements repository.VoiceSessionMetadataRepository.
-func (v *voiceMeetingRepoImpl) AppendAudioName(ctx context.Context, id string, audioName string) error {
-	filter := bson.M{"meetingId": id}
-	update := bson.M{"$set": bson.M{"audioName": audioName}}
+func (v *voiceMeetingRepoImpl) AppendAudioName(ctx context.Context, meetingID string, audioName string) (*dto.VoiceSessionMetadataDTO, error) {
+	name := pkg.GetFileName(audioName)
 
-	res, err := v.collection.UpdateOne(ctx, filter, update)
-	if err != nil || res.ModifiedCount != 1 {
-		log.Printf("Error occurred during appending audio name")
-		return fmt.Errorf("failed to update metadata with id: %s", id)
+	filter := bson.M{"meetingId": meetingID}
+	update := bson.M{"$set": bson.M{"audioName": name}}
+
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var model model.VoiceSessionMetadata
+
+	err := v.collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&model)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update metadata with meetingId %s: %w", meetingID, err)
 	}
 
-	return nil
+	return model.DTO(), nil
 }
 
 // CreateSessionMetadata implements repository.VoiceSessionMetadataRepository.
 func (v *voiceMeetingRepoImpl) CreateSessionMetadata(ctx context.Context, event event.MeetingStartedEvent) (*dto.VoiceSessionMetadataDTO, error) {
-	newMetadata := model.NewVoiceSession(event)
+	model := model.NewVoiceSession(event)
 
-	_, err := v.collection.InsertOne(ctx, newMetadata)
+	res, err := v.collection.InsertOne(ctx, model)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save metadata")
 	}
 
-	return newMetadata.DTO(), nil
+	oid, ok := res.InsertedID.(bson.ObjectID)
+	if !ok {
+		return nil, fmt.Errorf("unexpected inserted id type")
+	}
+
+	model.ID = oid
+
+	return model.DTO(), nil
 }
 
 // FetchSessionMetadata implements repository.VoiceSessionMetadataRepository.
-func (v *voiceMeetingRepoImpl) FetchSessionMetadata(ctx context.Context, classID string, limit int64, lastFetchedMeetingID *string) ([]*dto.VoiceSessionMetadataDTO, error) {
-	filter := bson.M{"classId": classID}
+func (v *voiceMeetingRepoImpl) FetchSessionMetadata(ctx context.Context, meetingID string, limit int64, lastFetchedID *string) ([]*dto.VoiceSessionMetadataDTO, error) {
+	filter := bson.M{"meetingId": meetingID}
 
-	if lastFetchedMeetingID != nil {
-		filter["meetingId"] = lastFetchedMeetingID
+	if lastFetchedID != nil {
+		objID, err := bson.ObjectIDFromHex(*lastFetchedID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid format of string id: %w", err)
+		}
+
+		filter["_id"] = bson.M{"$lt": objID}
 	}
 
 	opts := options.Find().
@@ -79,6 +98,10 @@ func (v *voiceMeetingRepoImpl) FetchSessionMetadata(ctx context.Context, classID
 	for i, model := range models {
 		dtos[i] = model.DTO()
 	}
+
+	sort.Slice(dtos, func(i, j int) bool {
+		return dtos[i].StartedAt.Before(*dtos[j].EndedAt)
+	})
 
 	return dtos, nil
 }

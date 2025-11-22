@@ -1,0 +1,161 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Service responsible for recording meetings",
+        "title": "Recording Serivce API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8050",
+    "paths": {
+        "/api/v1/sessions/audio/{meeting_id}/{name}": {
+            "get": {
+                "description": "Returns a presigned URL for the requested audio file of a meeting",
+                "tags": [
+                    "audio"
+                ],
+                "summary": "Get audio URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Meeting ID",
+                        "name": "meeting_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Audio file name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Presigned URL for audio",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetAudioDTO"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                }
+            }
+        },
+        "/api/v1/sessions/{meeting_id}": {
+            "get": {
+                "description": "Returns a list of voice session metadata for a given meeting. Supports pagination with lastFetchedId and limit.",
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Fetch sessions metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Meeting ID",
+                        "name": "meeting_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ID of the last fetched session for pagination",
+                        "name": "lastFetchedId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of sessions to return",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of session metadata",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.VoiceSessionMetadataDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.GetAudioDTO": {
+            "type": "object",
+            "properties": {
+                "audioName": {
+                    "type": "string"
+                },
+                "meetingId": {
+                    "type": "string"
+                },
+                "urlToAudio": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.VoiceSessionMetadataDTO": {
+            "type": "object",
+            "required": [
+                "classId",
+                "duration",
+                "id",
+                "meetingId",
+                "memberIDs",
+                "startedAt"
+            ],
+            "properties": {
+                "audioName": {
+                    "description": "URL to the recorded audio file (optional).\nnullable: true",
+                    "type": "string"
+                },
+                "classId": {
+                    "description": "ClassID is a identifier of class\nrequired: true\nexample: \"123e4567-e89b-12d3-a456-426614174000\"",
+                    "type": "string"
+                },
+                "duration": {
+                    "description": "Duration of the session in seconds.\nrequired: true\nminimum: 1\nexample: 3600",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "endedAt": {
+                    "description": "ISO8601 formatted end time of the session (optional).\nexample: \"2025-06-08T13:34:56Z\"\nnullable: true",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Unique identifier of the session\nrequired: true",
+                    "type": "string"
+                },
+                "meetingId": {
+                    "description": "Unique identifier of the voice session (UUID v4) in our case it will be MeetingID.\nrequired: true\nexample: \"123e4567-e89b-12d3-a456-426614174000\"",
+                    "type": "string"
+                },
+                "memberIDs": {
+                    "description": "List of member IDs participating in the session.\nrequired: true\nmin length: 2\nexample: [\"uuid1\", \"uuid2\"]",
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "startedAt": {
+                    "description": "ISO8601 formatted start time of the session.\nrequired: true\nexample: \"2025-06-08T12:34:56Z\"",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

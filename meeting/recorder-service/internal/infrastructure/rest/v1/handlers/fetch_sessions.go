@@ -9,9 +9,19 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// FetchSessions implements Handler.
+// FetchSessions godoc
+// @Summary      Fetch sessions metadata
+// @Description  Returns a list of voice session metadata for a given meeting. Supports pagination with lastFetchedId and limit.
+// @Tags         sessions
+// @Param        meeting_id    path     string  true   "Meeting ID"
+// @Param        lastFetchedId query    string  false  "ID of the last fetched session for pagination"
+// @Param        limit         query    int     false  "Maximum number of sessions to return"
+// @Success      200  {array}   dto.VoiceSessionMetadataDTO "List of session metadata"
+// @Failure      400
+// @Failure      404
+// @Router       /api/v1/sessions/{meeting_id} [get]
 func (h *handlerImpl) FetchSessions(w http.ResponseWriter, r *http.Request) {
-	classID, ok := mux.Vars(r)["meeting_id"]
+	meetingID, ok := mux.Vars(r)["meeting_id"]
 	if !ok {
 		server.NewResponse(w, pkg.Ptr("No class id"), http.StatusBadRequest, nil)
 		return
@@ -19,10 +29,10 @@ func (h *handlerImpl) FetchSessions(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	lastFetchedMeetingID := r.URL.Query().Get("last_fetched_id")
+	lastFetchedID := r.URL.Query().Get("lastFetchedId")
 	limit := r.URL.Query().Get("limit")
 
-	req := request.NewFetchSessions(classID, lastFetchedMeetingID, limit)
+	req := request.NewFetchSessions(meetingID, lastFetchedID, limit)
 
 	result, err := h.voiceService.GetSessions(ctx, *req)
 	if err != nil {

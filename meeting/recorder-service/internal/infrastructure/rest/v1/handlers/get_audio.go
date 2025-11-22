@@ -10,7 +10,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAudio implements Handler.
+// GetAudio godoc
+// @Summary      Get audio URL
+// @Description  Returns a presigned URL for the requested audio file of a meeting
+// @Tags         audio
+// @Param        meeting_id   path     string  true  "Meeting ID"
+// @Param        name         path     string  true  "Audio file name"
+// @Success      200  {object}  dto.GetAudioDTO "Presigned URL for audio"
+// @Failure      400
+// @Router       /api/v1/sessions/audio/{meeting_id}/{name} [get]
 func (h *handlerImpl) GetAudio(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -32,6 +40,7 @@ func (h *handlerImpl) GetAudio(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Something went wrong during fetching audio url: %v", err)
 		server.NewResponse(w, pkg.Ptr(err.Error()), http.StatusBadRequest, nil)
+		return
 	}
 
 	server.NewResponse(w, nil, http.StatusOK, *result)
