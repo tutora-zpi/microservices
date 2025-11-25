@@ -37,8 +37,12 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 	}
 
 	infos, err := s.botService.RemoveBot(ctx, evt.RoomID)
-	if err != nil || len(infos) < 1 {
+	if err != nil {
 		log.Printf("%v", err)
+	}
+
+	if len(infos) < 1 {
+		return fmt.Errorf("no info about tracks")
 	}
 
 	outputPath, err := s.MergeRecordings(infos)
