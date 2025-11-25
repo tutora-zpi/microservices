@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"ws-gateway/internal/app/interfaces"
 	wsevent "ws-gateway/internal/domain/ws_event"
 	"ws-gateway/internal/domain/ws_event/rtc"
@@ -18,6 +19,10 @@ func (o *offerHandler) Handle(ctx context.Context, body []byte, client interface
 	var event rtc.OfferWSEvent
 	if err := json.Unmarshal(body, &event); err != nil {
 		return fmt.Errorf("failed to decode %s payload", event.Name())
+	}
+
+	if err := event.IsValid(); err != nil {
+		log.Printf("Invalid ws event: %v", err)
 	}
 
 	wrapper := wsevent.SocketEventWrapper{

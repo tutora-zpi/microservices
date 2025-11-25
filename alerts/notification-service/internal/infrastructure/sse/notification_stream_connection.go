@@ -83,7 +83,7 @@ func (conn *NotificationStreamConnection) HandleEvents() {
 		case notification, ok := <-conn.Channel:
 			if !ok {
 				log.Printf("Notification channel closed for client: %s", conn.ClientID)
-				continue
+				return
 			}
 
 			if err := conn.SendSSEEvent("notification", notification); err != nil {
