@@ -12,6 +12,7 @@ import (
 	"recorder-service/internal/config"
 	"recorder-service/internal/domain/event"
 	"recorder-service/internal/domain/ws_event/general"
+	"recorder-service/internal/domain/ws_event/recorder"
 	"recorder-service/internal/domain/ws_event/rtc"
 	"recorder-service/internal/infrastructure/bus"
 	"recorder-service/internal/infrastructure/cache"
@@ -133,7 +134,7 @@ func main() {
 	botService := service.NewBotService(botRepo, recorderFactory, clientFactory)
 
 	dispatcher.Register(&event.MeetingStartedEvent{}, eventhandlers.NewMeetingStartedHandler(voiceRepo))
-	dispatcher.Register(&event.StopRecordingMeetingEvent{}, eventhandlers.NewStopRecordingMeetingHandler(botService, voiceRepo, s3Service, broker, rabbitMQConfig.MeetingExchange))
+	dispatcher.Register(&recorder.StopRecordingRequestedWSEvent{}, eventhandlers.NewStopRecordingMeetingHandler(botService, voiceRepo, s3Service, broker, rabbitMQConfig.MeetingExchange))
 	dispatcher.Register(&event.RecordMeetingEvent{}, eventhandlers.NewRecorderMeetingHandler(botService, writer.NewLocalWriter))
 
 	dispatcher.Register(&rtc.OfferWSEvent{}, eventhandlers.NewOfferHandler(botService, writer.NewLocalWriter))
