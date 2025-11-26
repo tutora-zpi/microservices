@@ -56,6 +56,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		},
 		FileQueue: os.Getenv(config.FILE_QUEUE),
 
-		PrefetchCount: 10,
+		PrefetchCount: 2,
 	}
 }

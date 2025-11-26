@@ -116,7 +116,7 @@ func (r *RabbitMQBroker) PublishMultiple(ctx context.Context, ev event.Event, de
 	return firstErr
 }
 
-func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
+func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	r.connMu.Lock()
 	if r.conn == nil || r.conn.IsClosed() {
 		r.connMu.Unlock()
@@ -130,7 +130,7 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		queueName,
+		exchange,
 		false,
 		false,
 		false,
@@ -143,6 +143,12 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 
 	if err := ch.Qos(r.config.PrefetchCount, 0, false); err != nil {
 		return fmt.Errorf("failed to set QoS: %w", err)
+	}
+
+	for _, p := range r.dispatcher.AvailablePatterns() {
+		if err := ch.QueueBind(q.Name, p, exchange, false, nil); err != nil {
+			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", exchange, p, err)
+		}
 	}
 
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
@@ -163,6 +169,7 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 				return fmt.Errorf("consumer channel closed")
 			}
 			if len(msg.Body) == 0 {
+				log.Printf("No body: %v", msg.Body)
 				if err := msg.Ack(false); err != nil {
 					log.Printf("Failed to ack empty message: %v", err)
 				}
