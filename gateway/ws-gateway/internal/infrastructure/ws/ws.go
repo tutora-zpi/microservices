@@ -22,6 +22,26 @@ type hub struct {
 	once          sync.Once
 }
 
+// RemoveBotFromRoom implements interfaces.HubManager.
+func (h *hub) RemoveRoomMemberByID(roomID string, botID string) (roomUsers []string) {
+	v, ok := h.rooms.Load(roomID)
+	if !ok {
+		return h.roomIDs(roomID)
+	}
+
+	room := v.(*Room)
+	room.mu.Lock()
+	delete(room.members, botID)
+	empty := len(room.members) == 0
+	room.mu.Unlock()
+
+	if empty {
+		h.rooms.Delete(roomID)
+	}
+	return h.roomIDs(roomID)
+
+}
+
 func NewHub() interfaces.HubManager {
 	h := &hub{
 		register:   make(chan interfaces.Client, 32),
@@ -91,21 +111,7 @@ func (h *hub) AddRoomMember(roomID string, c interfaces.Client) []string {
 }
 
 func (h *hub) RemoveRoomMember(roomID string, c interfaces.Client) []string {
-	v, ok := h.rooms.Load(roomID)
-	if !ok {
-		return nil
-	}
-
-	room := v.(*Room)
-	room.mu.Lock()
-	delete(room.members, c.ID())
-	empty := len(room.members) == 0
-	room.mu.Unlock()
-
-	if empty {
-		h.rooms.Delete(roomID)
-	}
-	return h.roomIDs(roomID)
+	return h.RemoveRoomMemberByID(roomID, c.ID())
 }
 
 func (h *hub) roomIDs(roomID string) []string {
