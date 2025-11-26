@@ -22,6 +22,8 @@ type RabbitConfig struct {
 
 	PoolSize int
 	Timeout  time.Duration
+
+	PrefetchCount int
 }
 
 func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
@@ -53,5 +55,7 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 			os.Getenv(config.CHAT_EXCHANGE),
 		},
 		FileQueue: os.Getenv(config.FILE_QUEUE),
+
+		PrefetchCount: 10,
 	}
 }

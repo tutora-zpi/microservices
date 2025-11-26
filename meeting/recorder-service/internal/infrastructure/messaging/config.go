@@ -21,6 +21,8 @@ type RabbitConfig struct {
 
 	PoolSize int
 	Timeout  time.Duration
+
+	PrefetchCount int
 }
 
 func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
@@ -48,5 +50,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		ExchangeType:    "fanout",
 		MeetingExchange: os.Getenv(config.MEETING_EXCHANGE),
 		RecorderQueue:   os.Getenv(config.RECORDER_QUEUE),
+		PrefetchCount:   10,
 	}
 }

@@ -30,8 +30,10 @@ services:
         condition: service_healthy
       meeting_scheduler_service_db:
         condition: service_healthy
-      meeting_scheduler_service_cache:
+      tutora_cache:
         condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
 
@@ -45,9 +47,12 @@ services:
     env_file:
       - ./meeting/chat-service/.env
     depends_on:
-      - rabbitmq
-      - chat_service_db
-      - user_service_app
+      rabbitmq:
+        condition: service_healthy
+      chat_service_db:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
     volumes:
@@ -78,7 +83,12 @@ services:
     env_file:
       - ./meeting/board-service/.env
     depends_on:
-      - board-db
+      rabbitmq:
+        condition: service_healthy
+      board-db:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
 
@@ -182,8 +192,8 @@ services:
     networks:
       - tutora_net
 
-  meeting_scheduler_service_cache:
-    container_name: meeting_scheduler_cache
+  tutora_cache:
+    container_name: tutora_cache
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -242,6 +252,8 @@ services:
     ports:
       - "8888:8888"
     depends_on:
+      user_service_app:
+        condition: service_started
       notification_service_db:
         condition: service_healthy
       rabbitmq:
@@ -259,7 +271,9 @@ services:
     ports:
       - "8010:8010"
     depends_on:
-      meeting_scheduler_service_cache:
+      user_service_app:
+        condition: service_started
+      tutora_cache:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -280,10 +294,12 @@ services:
         condition: service_started
       recording_service_db:
         condition: service_healthy
-      meeting_scheduler_service_cache:
+      tutora_cache:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
   

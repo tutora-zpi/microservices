@@ -167,6 +167,10 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 		return fmt.Errorf("failed to declare queue: %w", err)
 	}
 
+	if err := ch.Qos(r.config.PrefetchCount, 0, false); err != nil {
+		return fmt.Errorf("failed to set QoS: %w", err)
+	}
+
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)
@@ -191,26 +195,21 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 				continue
 			}
 
-			var wrapper event.EventWrapper
-			pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
-			if err != nil {
-				if err := msg.Nack(false, false); err != nil {
-					log.Printf("Failed to nack message: %v", err)
+			go func(msg amqp.Delivery) {
+				var wrapper event.EventWrapper
+				pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
+				if err != nil {
+					msg.Nack(false, false)
+					return
 				}
-				continue
-			}
 
-			if err := r.dispatcher.HandleEvent(ctx, pattern, data, nil); err != nil {
-				log.Printf("Failed to handle event %s: %v", pattern, err)
-				if err := msg.Nack(false, true); err != nil {
-					log.Printf("Failed to nack message: %v", err)
+				if err := r.dispatcher.HandleEvent(context.Background(), pattern, data, nil); err != nil {
+					msg.Nack(false, true)
+					return
 				}
-				continue
-			}
 
-			if err := msg.Ack(false); err != nil {
-				log.Printf("Failed to ack message: %v", err)
-			}
+				msg.Ack(false)
+			}(msg)
 		}
 	}
 }
