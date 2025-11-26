@@ -24,6 +24,8 @@ type RabbitConfig struct {
 
 	ExchangeType string
 	FileQueue    string
+
+	PrefetchCount int
 }
 
 func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
@@ -53,5 +55,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 		ExchangeType:    "fanout",
 		Timeout:         timeout,
 		FileQueue:       os.Getenv(config.FILE_QUEUE),
+		PrefetchCount:   10,
 	}
 }
