@@ -29,6 +29,8 @@ func (r *replyHandler) Handle(ctx context.Context, body []byte, client interface
 		return fmt.Errorf("failed to decode %s payload", wsEvent.Name())
 	}
 
+	wsEvent.AppendID()
+
 	newEvent := event.NewReplyOnMessageEvent(wsEvent)
 
 	wrapper := wsevent.SocketEventWrapper{
