@@ -10,9 +10,7 @@ type ReplyOnMessageEvent struct {
 }
 
 func NewReplyOnMessageEvent(wsevent chat.ReplyOnMessageWSEvent) *ReplyOnMessageEvent {
-	evt := &ReplyOnMessageEvent{ReplyOnMessageWSEvent: wsevent}
-	evt.AppendID()
-	return evt
+	return &ReplyOnMessageEvent{ReplyOnMessageWSEvent: wsevent}
 }
 
 func (r *ReplyOnMessageEvent) Name() string {
