@@ -9,7 +9,7 @@ import (
 type ReplyOnMessageWSEvent struct {
 	SendMessageWSEvent
 
-	ReplyToMessageID string `json:"replyToMessageId" validate:"reqiured,uuid4"`
+	ReplyToMessageID string `json:"replyToMessageId" validate:"reqiured"`
 }
 
 func (r *ReplyOnMessageWSEvent) IsValid() error {
