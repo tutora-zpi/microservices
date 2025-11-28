@@ -6,7 +6,7 @@ import (
 
 type Client interface {
 	Send(msg []byte) error
-	SetBotID(botID string)
+	GetBotID() string
 	Close() error
 	IsConnected() bool
 	Connect(ctx context.Context) error

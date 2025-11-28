@@ -29,6 +29,7 @@ func findToken(r *http.Request) (string, error) {
 
 	token = r.URL.Query().Get(Token)
 	if token != "" {
+		log.Printf("Token: %s", token)
 		return token, nil
 	}
 

@@ -23,6 +23,8 @@ type RabbitConfig struct {
 	ExchangeType string
 
 	Exchanges []string
+
+	PrefetchCount int
 }
 
 func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
@@ -53,5 +55,6 @@ func NewRabbitMQConfig(timeout time.Duration, poolSize int) *RabbitConfig {
 			os.Getenv(config.MEETING_EXCHANGE),
 			os.Getenv(config.CLASS_EXCHANGE),
 		},
+		PrefetchCount: 10,
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"recorder-service/internal/config"
 	"recorder-service/internal/domain/event"
 	"recorder-service/internal/domain/ws_event/general"
+	"recorder-service/internal/domain/ws_event/recorder"
 	"recorder-service/internal/domain/ws_event/rtc"
 	"recorder-service/internal/infrastructure/bus"
 	"recorder-service/internal/infrastructure/cache"
@@ -71,7 +72,7 @@ func main() {
 
 	wg.Go(func() {
 		var err error
-		s3Service, err = s3.NewS3Service(initCtx, os.Getenv(config.AWS_BUCKET_NAME))
+		s3Service, err = s3.NewS3Service(initCtx, os.Getenv(config.AWS_BUCKET_NAME), os.Getenv(config.AWS_PRESIGN_TIME))
 		if err != nil {
 			errors <- err
 		}
@@ -125,7 +126,7 @@ func main() {
 	voiceRepo := repoimpl.NewVoiceMeetingRepository(mongoClient, mongoConfig)
 	botRepo := cache.NewBotRepository(redisClient)
 
-	voiceSessionService := service.NewVoiceSessionService(voiceRepo)
+	voiceSessionService := service.NewVoiceSessionService(voiceRepo, s3Service)
 
 	clientFactory := factoryimpl.NewClientFactory(dispatcher)
 	recorderFactory := factoryimpl.NewRecorderFactory()
@@ -133,7 +134,7 @@ func main() {
 	botService := service.NewBotService(botRepo, recorderFactory, clientFactory)
 
 	dispatcher.Register(&event.MeetingStartedEvent{}, eventhandlers.NewMeetingStartedHandler(voiceRepo))
-	dispatcher.Register(&event.StopRecordingMeetingEvent{}, eventhandlers.NewStopRecordingMeetingHandler(botService, voiceRepo, s3Service, broker, rabbitMQConfig.MeetingExchange))
+	dispatcher.Register(&recorder.StopRecordingRequestedWSEvent{}, eventhandlers.NewStopRecordingMeetingHandler(botService, voiceRepo, s3Service, broker, rabbitMQConfig.MeetingExchange))
 	dispatcher.Register(&event.RecordMeetingEvent{}, eventhandlers.NewRecorderMeetingHandler(botService, writer.NewLocalWriter))
 
 	dispatcher.Register(&rtc.OfferWSEvent{}, eventhandlers.NewOfferHandler(botService, writer.NewLocalWriter))

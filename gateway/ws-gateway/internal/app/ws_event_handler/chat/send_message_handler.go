@@ -35,8 +35,6 @@ func (s *sendMessageHandler) Handle(ctx context.Context, body []byte, client int
 
 	newEvent := event.NewSendMessageEvent(wsEvent)
 
-	log.Println(newEvent.SentAt)
-
 	body, _ = json.Marshal(&wsEvent)
 
 	wrapper := wsevent.SocketEventWrapper{

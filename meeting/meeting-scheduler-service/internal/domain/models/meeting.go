@@ -7,11 +7,12 @@ import (
 )
 
 type Meeting struct {
-	ClassID   string   `json:"classId"`
-	MeetingID string   `json:"meetingId"`
-	Timestamp int64    `json:"timestamp"`
-	Title     string   `json:"title"`
-	MemberIDs []string `json:"memberIds"`
+	ClassID               string   `json:"classId"`
+	MeetingID             string   `json:"meetingId"`
+	ActualStartTimestamp  int64    `json:"actualStartTimestamp"`
+	PredictedEndTimestamp int64    `json:"predictedEndTimestamp"`
+	Title                 string   `json:"title"`
+	MemberIDs             []string `json:"memberIds"`
 }
 
 func (m *Meeting) ToBytes() []byte {
@@ -23,7 +24,8 @@ func (m *Meeting) ToBytes() []byte {
 }
 
 func (m *Meeting) DTO() *dto.MeetingDTO {
-	start := time.Unix(m.Timestamp, 0).UTC().Truncate(time.Minute)
+	start := time.Unix(m.ActualStartTimestamp, 0).UTC().Truncate(time.Minute)
+	finish := time.Unix(m.PredictedEndTimestamp, 0).UTC()
 
 	var members []dto.UserDTO = make([]dto.UserDTO, len(m.MemberIDs))
 	for i, id := range m.MemberIDs {
@@ -33,6 +35,7 @@ func (m *Meeting) DTO() *dto.MeetingDTO {
 	return &dto.MeetingDTO{
 		MeetingID:   m.MeetingID,
 		StartedDate: &start,
+		FinishDate:  finish,
 		Title:       m.Title,
 		Members:     members,
 	}

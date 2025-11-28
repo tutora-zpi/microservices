@@ -16,18 +16,6 @@ services:
     networks:
       - tutora_net
 
-  # voice_webrtc_service_app:
-  #   container_name: voice_webrtc_service
-  #   build:
-  #     context: ./meeting/voice-webrtc
-  #     dockerfile: ./Dockerfile
-  #   ports:
-  #     - "8004:8004"
-  #   env_file:
-  #     - ./meeting/voice-webrtc/.env
-  #   networks:
-  #     - tutora_net
-
   meeting_scheduler_service_app:
     container_name: meeting_scheduler_service
     build:
@@ -42,8 +30,10 @@ services:
         condition: service_healthy
       meeting_scheduler_service_db:
         condition: service_healthy
-      meeting_scheduler_service_cache:
+      tutora_cache:
         condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
 
@@ -57,9 +47,12 @@ services:
     env_file:
       - ./meeting/chat-service/.env
     depends_on:
-      - rabbitmq
-      - chat_service_db
-      - user_service_app
+      rabbitmq:
+        condition: service_healthy
+      chat_service_db:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
     volumes:
@@ -90,13 +83,21 @@ services:
     env_file:
       - ./meeting/board-service/.env
     depends_on:
-      - board-db
+      rabbitmq:
+        condition: service_healthy
+      board-db:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
     networks:
       - tutora_net
 
   board-db:
     image: mongo
     container_name: board_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     ports:
       - "27018:27017"
     healthcheck:
@@ -191,8 +192,8 @@ services:
     networks:
       - tutora_net
 
-  meeting_scheduler_service_cache:
-    container_name: meeting_scheduler_cache
+  tutora_cache:
+    container_name: tutora_cache
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -251,6 +252,8 @@ services:
     ports:
       - "8888:8888"
     depends_on:
+      user_service_app:
+        condition: service_started
       notification_service_db:
         condition: service_healthy
       rabbitmq:
@@ -268,7 +271,9 @@ services:
     ports:
       - "8010:8010"
     depends_on:
-      meeting_scheduler_service_cache:
+      user_service_app:
+        condition: service_started
+      tutora_cache:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
@@ -311,6 +316,46 @@ services:
         condition: service_healthy
     networks:
       - tutora_net
+
+  recording_service:
+    build:
+        context: ./meeting/recorder-service
+        dockerfile: Dockerfile
+    container_name: recording_service
+    env_file:
+      - ./meeting/recorder-service/.env
+    ports:
+      - "8050:8050"
+    depends_on:
+      ws_gateway:
+        condition: service_started
+      recording_service_db:
+        condition: service_healthy
+      tutora_cache:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user_service_app:
+        condition: service_started
+    networks:
+      - tutora_net
+  
+  recording_service_db:
+    image: mongo:latest
+    container_name: recording_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27020:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tutora_net
+
 
 volumes:
   pgdata:

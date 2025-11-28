@@ -9,12 +9,12 @@ import (
 	"recorder-service/internal/app/interfaces/handler"
 	"recorder-service/internal/app/interfaces/service"
 	"recorder-service/internal/domain/broker"
+	"recorder-service/internal/domain/dto"
 	"recorder-service/internal/domain/event"
 	"recorder-service/internal/domain/recorder"
 	"recorder-service/internal/domain/repository"
 	"recorder-service/internal/infrastructure/ffmpeg"
 	"recorder-service/internal/infrastructure/s3"
-	"sync"
 )
 
 type stopRecordingMeetingHandler struct {
@@ -29,14 +29,20 @@ type stopRecordingMeetingHandler struct {
 // Handle implements interfaces.EventHandler.
 func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) error {
 	var evt event.StopRecordingMeetingEvent
-	if err := json.Unmarshal(body, &evt); err != nil {
+	var err error
+
+	if err = json.Unmarshal(body, &evt); err != nil {
 		log.Printf("Failed to decode: %v", err)
 		return fmt.Errorf("failed to decode: %s", evt.Name())
 	}
 
 	infos, err := s.botService.RemoveBot(ctx, evt.RoomID)
-	if err != nil || len(infos) < 1 {
+	if err != nil {
 		log.Printf("%v", err)
+	}
+
+	if len(infos) < 1 {
+		return fmt.Errorf("no info about tracks")
 	}
 
 	outputPath, err := s.MergeRecordings(infos)
@@ -46,39 +52,25 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 
 	log.Printf("Recordings merged and saved: %s", outputPath)
 
-	var wg sync.WaitGroup
-	var errors chan error = make(chan error, 2)
+	basePath := infos[0].BasePath
+	keys, err := s.s3service.PutObject(ctx, basePath)
+	if err != nil {
+		return fmt.Errorf("failed to upload object: %w", err)
+	}
 
-	wg.Go(func() {
-		basePath := infos[0].BasePath
-		keys, err := s.s3service.PutObject(ctx, basePath)
-		if err != nil {
-			errors <- err
-		}
+	var updated *dto.VoiceSessionMetadataDTO
+	updated, err = s.repo.AppendAudioName(ctx, evt.RoomID, outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to update audio name: %w", err)
+	}
 
-		evt := &event.RecordingsUploaded{RecordingKeys: keys, RoomID: evt.RoomID}
+	uploadEvent := event.NewRecordingsUploaded(keys, updated.ClassID, updated.MeetingID)
+	log.Printf("RecordingsUploaded body: %v", *uploadEvent)
 
-		dest := broker.NewExchangeDestination(evt, s.exchange)
-		err = s.broker.Publish(ctx, evt, dest)
-		if err != nil {
-			errors <- err
-		}
-	})
-
-	wg.Go(func() {
-		var err = s.repo.AppendAudioName(ctx, evt.RoomID, outputPath)
-		if err != nil {
-			errors <- err
-		}
-	})
-
-	wg.Wait()
-	close(errors)
-
-	for err := range errors {
-		if err != nil {
-			return err
-		}
+	dest := broker.NewExchangeDestination(uploadEvent, s.exchange)
+	err = s.broker.Publish(ctx, uploadEvent, dest)
+	if err != nil {
+		return fmt.Errorf("failed to publish event: %w", err)
 	}
 
 	return nil

@@ -9,14 +9,15 @@ import (
 	"recorder-service/internal/domain/recorder"
 	"recorder-service/internal/infrastructure/webrtc/peer"
 	"sync"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/google/uuid"
 )
 
 type Bot interface {
 	ID() string
 	Name() string
+	SetID(id string)
 
 	DTO() dto.BotDTO
 
@@ -40,6 +41,8 @@ type bot struct {
 
 // FinishRecording implements Bot.
 func (b *bot) FinishRecording() []recorder.RecordingInfo {
+	s := time.Now().UTC()
+
 	infos := []recorder.RecordingInfo{}
 	for userID, peer := range b.peers {
 		log.Printf("Stopping for %s", userID)
@@ -47,10 +50,20 @@ func (b *bot) FinishRecording() []recorder.RecordingInfo {
 		if info != nil {
 			infos = append(infos, *info)
 		}
-		peer.Close()
+		if err := peer.Close(); err != nil {
+			log.Printf("Failed to close peer connection with %s", userID)
+			return []recorder.RecordingInfo{}
+		}
 	}
 
-	b.client.Close()
+	err := b.client.Close()
+	if err != nil {
+		log.Printf("Failed to close ws connection: %v", err)
+	}
+
+	f := time.Now().UTC()
+
+	log.Printf("Disconnected in: %.2f", f.Sub(s).Seconds())
 
 	return infos
 }
@@ -107,13 +120,13 @@ func (b *bot) Name() string {
 	return b.name
 }
 
-func NewBot(client client.Client) Bot {
-	botID := uuid.NewString()
+func (b *bot) SetID(id string) {
+	b.id = id
+}
 
-	client.SetBotID(botID)
+func NewBot(client client.Client) Bot {
 
 	return &bot{
-		id:     botID,
 		name:   gofakeit.FirstName(),
 		client: client,
 		peers:  make(map[string]peer.Peer),

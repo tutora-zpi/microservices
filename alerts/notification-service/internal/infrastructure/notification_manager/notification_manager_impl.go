@@ -39,30 +39,33 @@ func (m *notificationManagerImpl) EnableBuffering(maxSize int, ttl time.Duration
 
 func (m *notificationManagerImpl) Subscribe(ctx context.Context, clientID string) (chan []byte, error) {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 
 	lastConnection := m.connectionTracker[clientID]
-	m.connectionTracker[clientID] = time.Now()
+	oldChan, existed := m.clients[clientID]
 
-	oldChan, exists := m.clients[clientID]
+	isQuickReconnect := !lastConnection.IsZero() && time.Since(lastConnection) < 2*time.Minute
+
+	if existed && oldChan != nil {
+		close(oldChan)
+		log.Printf("Closed old channel for reconnecting client %s", clientID)
+	}
+
 	clientChan := make(chan []byte, 200)
 	m.clients[clientID] = clientChan
+	m.connectionTracker[clientID] = time.Now()
+
+	m.mutex.Unlock()
 
 	go func() {
 		<-ctx.Done()
 		m.Unsubscribe(clientID)
 	}()
 
-	log.Printf("Client %s subscribed (total clients: %d)", clientID, len(m.clients))
-
-	if exists && oldChan != nil {
-		close(oldChan)
-		log.Printf("Closed old channel for reconnecting client %s", clientID)
-	}
-
-	if !lastConnection.IsZero() && time.Since(lastConnection) < 2*time.Minute {
+	if isQuickReconnect {
 		log.Printf("Quick reconnect detected for client %s (last seen: %v ago)", clientID, time.Since(lastConnection))
 	}
+
+	log.Printf("Client %s subscribed (total clients: %d)", clientID, len(m.clients))
 
 	return clientChan, nil
 }

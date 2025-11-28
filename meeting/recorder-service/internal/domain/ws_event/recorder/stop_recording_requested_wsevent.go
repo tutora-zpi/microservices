@@ -10,7 +10,6 @@ import (
 type StopRecordingRequestedWSEvent struct {
 	RoomID   string    `json:"roomId"`
 	StopTime time.Time `json:"stopTime"`
-	BotID    string    `json:"botId"`
 }
 
 func (s *StopRecordingRequestedWSEvent) IsValid() error {

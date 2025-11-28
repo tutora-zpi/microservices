@@ -25,7 +25,8 @@ const (
 	APP_PORT string = "APP_PORT"
 	APP_ENV  string = "APP_ENV"
 
-	JWKS_URL string = "JWKS_URL"
+	JWKS_URL  string = "JWKS_URL"
+	TOKEN_URL string = "TOKEN_URL"
 
 	WS_GATEWAY_URL string = "WS_GATEWAY_URL"
 
@@ -33,4 +34,9 @@ const (
 	AWS_SECRET_ACCESS_KEY string = "AWS_SECRET_ACCESS_KEY"
 	AWS_BUCKET_NAME       string = "AWS_BUCKET_NAME"
 	AWS_REGION            string = "AWS_REGION"
+	AWS_SESSION_TOKEN     string = "AWS_SESSION_TOKEN"
+	AWS_PRESIGN_TIME      string = "AWS_PRESIGN_TIME"
+
+	OAUTH_BOT_CLIENT_SECRET string = "OAUTH_BOT_CLIENT_SECRET"
+	OAUTH_BOT_CLIENT_ID     string = "OAUTH_BOT_CLIENT_ID"
 )

@@ -190,7 +190,8 @@ func (m *messageRepoImpl) Reply(ctx context.Context, event event.ReplyOnMessageE
 
 	replyObjectID, err := bson.ObjectIDFromHex(event.ReplyToMessageID)
 	if err != nil {
-
+		log.Print("Failed to cast string from event to oid")
+		return fmt.Errorf("cast failed, invalid hex from ObjectID")
 	}
 
 	newReply.ReplyToID = &replyObjectID

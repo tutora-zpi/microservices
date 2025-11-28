@@ -6,27 +6,43 @@ import (
 	"log"
 	"os"
 	"path"
+	literals "recorder-service/internal/config"
+	"recorder-service/pkg"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type S3Service interface {
 	PutObject(ctx context.Context, pathToFiles string) ([]string, error)
+	GetPresignURL(ctx context.Context, key string) (string, error)
 }
 
 type s3Service struct {
-	bucketName string
-	uploader   *manager.Uploader
-	downloader *manager.Downloader
+	bucketName  string
+	uploader    *manager.Uploader
+	presigner   *s3.PresignClient
+	presignTime time.Duration
 }
 
-// GetObject implements S3Service.
-func (s *s3Service) GetObject(ctx context.Context, key string) (string, error) {
-	return "", nil
+// GetPresignURL implements S3Service.
+func (s *s3Service) GetPresignURL(ctx context.Context, key string) (string, error) {
+	resp, err := s.presigner.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(s.presignTime))
+
+	if err != nil {
+		log.Println("Failed to sign request", err)
+		return "", fmt.Errorf("failed to generate presign url, try later")
+	}
+
+	return resp.URL, nil
 }
 
 // PutObject implements S3Service.
@@ -88,20 +104,34 @@ func (s *s3Service) PutObject(ctx context.Context, pathToFiles string) ([]string
 	return res, nil
 }
 
-func NewS3Service(ctx context.Context, bucketName string) (S3Service, error) {
+func NewS3Service(ctx context.Context, bucketName string, presignTime string) (S3Service, error) {
 	if bucketName == "" {
 		return nil, fmt.Errorf("no bucket name")
 	}
 
-	cfg, err := config.LoadDefaultConfig(ctx)
+	var cfg aws.Config
+	var err error
+
+	cfg, err = config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			os.Getenv(literals.AWS_ACCESS_KEY_ID),
+			os.Getenv(literals.AWS_SECRET_ACCESS_KEY),
+			os.Getenv(literals.AWS_SESSION_TOKEN),
+		)),
+		config.WithRegion(os.Getenv(literals.AWS_REGION)),
+	)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to laod default conifg: %v", err)
+		log.Printf("Failed to set config: %v", err)
+		return nil, fmt.Errorf("failed to set config: %w", err)
 	}
 
 	client := s3.NewFromConfig(cfg)
 
 	uploader := manager.NewUploader(client)
-	downloader := manager.NewDownloader(client)
+	presigner := s3.NewPresignClient(client)
 
-	return &s3Service{uploader: uploader, downloader: downloader, bucketName: bucketName}, nil
+	presignT := pkg.StrToTime(time.Minute*30, presignTime)
+
+	return &s3Service{uploader: uploader, presigner: presigner, bucketName: bucketName, presignTime: presignT}, nil
 }

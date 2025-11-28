@@ -52,6 +52,8 @@ func (m *ManageMeetingHandler) StartMeeting(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	log.Printf("[Start meeting] %v: ", meeting.FinishDate)
+
 	server.NewResponse(w, nil, http.StatusOK, meeting)
 }
 
@@ -107,6 +109,8 @@ func (m *ManageMeetingHandler) GetActiveMeeting(w http.ResponseWriter, r *http.R
 		server.NewResponse(w, pkg.Ptr("Not found or not started yet"), http.StatusNotFound, nil)
 		return
 	}
+
+	log.Printf("[Get active meeting finish time] %v: ", dto.FinishDate)
 
 	server.NewResponse(w, nil, http.StatusOK, *dto)
 }

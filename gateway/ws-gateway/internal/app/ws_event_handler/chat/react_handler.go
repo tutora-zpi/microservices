@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"ws-gateway/internal/app/interfaces"
 	"ws-gateway/internal/config"
@@ -15,9 +16,10 @@ import (
 )
 
 type reactHandler struct {
-	hubManager  interfaces.HubManager
-	eventBuffer bus.EventBuffer
-	exchange    string
+	hubManager   interfaces.HubManager
+	eventBuffer  bus.EventBuffer
+	exchange     string
+	cacheService interfaces.CacheEventService
 }
 
 // Handle implements interfaces.EventHandler.
@@ -38,10 +40,18 @@ func (r *reactHandler) Handle(ctx context.Context, body []byte, client interface
 
 	go r.eventBuffer.Add(newEvent, broker.NewExchangeDestination(newEvent, r.exchange))
 
+	go func() {
+		if err := r.cacheService.PushRecentEvent(ctx, wrapper, wsEvent.ChatID); err != nil {
+			log.Printf("An error occurred during pushing event: %v", err)
+		} else {
+			log.Printf("Successfully pushed recent event: %s", wrapper.Name)
+		}
+	}()
+
 	return nil
 }
 
-func NewReactHandler(hubManager interfaces.HubManager, eventBuffer bus.EventBuffer) interfaces.EventHandler {
+func NewReactHandler(hubManager interfaces.HubManager, eventBuffer bus.EventBuffer, cacheService interfaces.CacheEventService) interfaces.EventHandler {
 	ex := os.Getenv(config.CHAT_EXCHANGE)
-	return &reactHandler{hubManager: hubManager, eventBuffer: eventBuffer, exchange: ex}
+	return &reactHandler{hubManager: hubManager, eventBuffer: eventBuffer, exchange: ex, cacheService: cacheService}
 }

@@ -35,6 +35,7 @@ func (b *botServiceImpl) AddNewBot(ctx context.Context, evt event.RecordMeetingE
 
 	newBot := bot.NewBot(client)
 	newBot.Client().Connect(ctx)
+	newBot.SetID(client.GetBotID())
 
 	b.mutex.Lock()
 	defer b.mutex.Unlock()

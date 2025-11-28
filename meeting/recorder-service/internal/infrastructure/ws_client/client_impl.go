@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"recorder-service/internal/domain/client"
 	wsevent "recorder-service/internal/domain/ws_event"
 	"recorder-service/internal/infrastructure/bus"
+	"recorder-service/internal/infrastructure/security"
+	"strings"
 
 	"sync"
 
@@ -32,13 +35,26 @@ func NewWSClient(url string, dispatcher bus.Dispachable) client.Client {
 	}
 }
 
-func (c *clientImpl) SetBotID(botID string) {
-	c.botID = botID
+func (c *clientImpl) GetBotID() string {
+	return c.botID
 }
 
 func (c *clientImpl) Connect(ctx context.Context) error {
 	var err error
-	c.conn, _, err = websocket.DefaultDialer.Dial(fmt.Sprintf("%s?id=%s", c.url, c.botID), nil)
+
+	token, err := security.FetchToken(ctx)
+	if err != nil {
+		log.Printf("Something went wrong during fetching token: %v", err)
+		return err
+	}
+
+	c.botID = token.BotID
+
+	header := http.Header{}
+	bearer := strings.Join([]string{"Bearer", token.AccessToken}, " ")
+	header.Set("Authorization", bearer)
+
+	c.conn, _, err = websocket.DefaultDialer.Dial(fmt.Sprintf("%s", c.url), header)
 	if err != nil {
 		return err
 	}
@@ -62,6 +78,8 @@ func (c *clientImpl) Close() error {
 	if c.conn != nil {
 		return c.conn.Close()
 	}
+
+	log.Printf("Successfully left meeting by: %s", c.botID)
 
 	return nil
 }

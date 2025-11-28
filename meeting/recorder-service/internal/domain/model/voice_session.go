@@ -1,16 +1,17 @@
 package model
 
 import (
-	"path"
 	"recorder-service/internal/domain/dto"
 	"recorder-service/internal/domain/event"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type VoiceSessionMetadata struct {
-	// ID is meeting ID to easily identify the voice meeting.
-	MeetingID string `bson:"meetingId"`
-	ClassID   string `bson:"classId"`
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	MeetingID string        `bson:"meetingId"`
+	ClassID   string        `bson:"classId"`
 
 	StartedAt time.Time  `bson:"startedAt"`
 	EndedAt   *time.Time `bson:"endedAt,omitempty"`
@@ -36,21 +37,15 @@ func NewVoiceSession(event event.MeetingStartedEvent) *VoiceSessionMetadata {
 	}
 }
 
-func (v *VoiceSessionMetadata) GetAudioURL() string {
-	path := path.Join("api", "v1", "recordings", v.MeetingID)
-	return path
-}
-
 func (v *VoiceSessionMetadata) DTO() *dto.VoiceSessionMetadataDTO {
-	audioURL := v.GetAudioURL()
-
 	return &dto.VoiceSessionMetadataDTO{
+		ID:        v.ID.Hex(),
 		ClassID:   v.ClassID,
 		MeetingID: v.MeetingID,
 		EndedAt:   v.EndedAt,
 		StartedAt: &v.StartedAt,
 		Duration:  int64(v.EndedAt.Sub(v.StartedAt)),
 		MemberIDs: v.MemberIDs,
-		AudioURL:  &audioURL,
+		AudioName: v.MergedAudioName,
 	}
 }

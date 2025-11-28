@@ -1,6 +1,7 @@
 package recorder
 
 import (
+	"encoding/json"
 	"reflect"
 	"time"
 
@@ -20,4 +21,22 @@ func (r *RecordRequestedWSEvent) IsValid() error {
 
 func (r *RecordRequestedWSEvent) Name() string {
 	return reflect.TypeOf(*r).Name()
+}
+
+func (r *RecordRequestedWSEvent) ToBytes() []byte {
+	if bytes, err := json.Marshal(&r); err != nil {
+		return nil
+	} else {
+		return bytes
+	}
+}
+
+func NewRecordRequestedWSEventFromBytes(data []byte) *RecordRequestedWSEvent {
+	var e RecordRequestedWSEvent
+
+	if err := json.Unmarshal(data, &e); err != nil {
+		return nil
+	}
+
+	return &e
 }
