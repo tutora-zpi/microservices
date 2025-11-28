@@ -3,11 +3,12 @@ from celery.signals import worker_process_init
 from .celery_app import celery_app
 
 from app.schemas.events import RecordingsPayload
-from app.services.storage import StorageS3
+from app.services.storage_s3 import StorageS3
 from app.services.ai_processor import AIProcessor
 from app.services.transcription import TranscriptionService
 from app.services.summarization import SummarizationService
 from app.tasks.file_cleaner import delete_audio_files_task
+from app.core.config import settings
 
 logger = get_task_logger(__name__)
 
@@ -49,7 +50,7 @@ def process_audio_file_task(event_data: dict):
 
         transcript = _perform_transcription(event.merged)
 
-        _perform_summarization(transcript, event.merged)
+        _perform_summarization(transcript, event.class_id, event.meeting_id)
 
         _trigger_cleanup(event)
 
@@ -82,7 +83,7 @@ def _parse_event_data(raw_data: dict) -> RecordingsPayload:
 def _perform_transcription(s3_key: str) -> str:
     logger.info(f"Rozpoczynam transkrypcję pliku: {s3_key}")
 
-    text = _transcription_service.process_recording(key=s3_key)
+    text = _transcription_service.process_recording(key=s3_key, bucket=settings.S3_RECORDINGS_BUCKET_NAME)
 
     if not text:
         raise RuntimeError("Transkrypcja zwróciła pusty wynik.")
@@ -91,13 +92,14 @@ def _perform_transcription(s3_key: str) -> str:
     return text
 
 
-def _perform_summarization(transcript: str, s3_key: str) -> None:
+def _perform_summarization(transcript: str, class_id: str, meeting_id: str) -> None:
     """Uruchamia logikę generowania notatek."""
     logger.info("Generowanie podsumowania...")
 
-    _summarization_service.generate_and_save_notes(
+    _summarization_service.generate_and_save_outputs(
         transcript=transcript,
-        original_filename=s3_key
+        class_id=class_id,
+        meeting_id=meeting_id
     )
     logger.info("Podsumowanie wygenerowane i zapisane w S3.")
 

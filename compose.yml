@@ -299,10 +299,11 @@ services:
     build:
       context: ./ml/note-service
       dockerfile: Dockerfile
-    command: celery -A app.tasks.celery_app worker --loglevel=INFO
+    command: celery -A app.tasks.celery_app worker --loglevel=INFO --concurrency=1
     volumes:
       - ./ml/note-service/app:/app/app
       - models_cache:/root/.cache/huggingface
+      - note_service_temp_data:/app/local_storage
     env_file:
       - ./ml/note-service/.env
     depends_on:
@@ -317,6 +318,8 @@ volumes:
   cache:
     driver: local
   models_cache:
+    driver: local
+  note_service_temp_data:
     driver: local
 
 networks:

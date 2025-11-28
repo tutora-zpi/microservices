@@ -1,35 +1,34 @@
-# app/main.py
-
-from fastapi import FastAPI, BackgroundTasks
-from app.schemas.events import AudioUploadedEvent
-from app.tasks.meeting_processor import process_audio_file_task
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes import router as downloads_router
+from app.core.config import settings
 
 app = FastAPI(
-    title="Meeting Notes Service",
-    description="Mikroserwis do transkrypcji i podsumowywania spotkań."
+    title="TutorAI Storage API",
+    description="API do zarządzania plikami i generowania linków S3",
+    version="1.0.0"
 )
 
 
-@app.get("/", summary="Endpoint statusu")
-def read_root():
-    """Sprawdza, czy serwis działa."""
-    return {"status": "ok"}
+origins = [
+    "http://localhost:3000",  # Twój frontend
+    "http://localhost:8080",
+    "*"                       # W developmencie można dać '*', na produkcji podaj konkretne domeny
+]
+
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
-@app.post("/process-audio", summary="Zleć przetwarzanie nagrania")
-def trigger_audio_processing(event: AudioUploadedEvent):
-    """
-    Testowy endpoint do symulowania otrzymania zdarzenia 'AudioUploadedEvent'.
-    Przyjmuje dane o pliku i wysyła zadanie do przetworzenia w tle przez Celery.
-    """
-    print(f"Otrzymano zlecenie przez API dla pliku: {event.object_key}")
+app.include_router(downloads_router, prefix="/api", tags=["Downloads"])
 
-    # Wysyłamy zadanie do kolejki RabbitMQ.
-    # .delay() to skrót do wysłania zadania.
-    # .model_dump() konwertuje obiekt Pydantic na słownik, który Celery może zserializować.
-    process_audio_file_task.delay(event.model_dump())
 
-    return {
-        "message": "Zadanie przetwarzania audio zostało pomyślnie zlecone.",
-        "event_data": event
-    }
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "note-service"}

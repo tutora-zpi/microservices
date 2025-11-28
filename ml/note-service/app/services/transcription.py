@@ -1,5 +1,5 @@
 import os
-from app.services.storage import StorageS3
+from app.services.storage_s3 import StorageS3
 from app.services.ai_processor import AIProcessor
 
 
