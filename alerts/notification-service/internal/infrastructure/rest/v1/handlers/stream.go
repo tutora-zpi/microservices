@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"maps"
@@ -90,7 +89,7 @@ func (h *SSEHandler) StreamNotifications(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *SSEHandler) prepareSSEConnection(w http.ResponseWriter, r *http.Request) (sse.NotificationStreamConnectionInterface, error) {
-	ctx := context.Background()
+	ctx := r.Context()
 	clientID, err := ExtractClientID(r)
 	if err != nil {
 		return nil, err
