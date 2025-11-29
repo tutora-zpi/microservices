@@ -130,14 +130,19 @@ func (p *planner) addToScheduledMeetings(meeting dto.PlanMeetingDTO) {
 }
 
 func (p *planner) getMeetings(now int64) []dto.PlanMeetingDTO {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
-	if meetings, ok := p.scheduledMeetings[now]; !ok {
-		return []dto.PlanMeetingDTO{}
-	} else {
-		return meetings
+	var due []dto.PlanMeetingDTO
+
+	for ts, list := range p.scheduledMeetings {
+		if ts <= now {
+			due = append(due, list...)
+			delete(p.scheduledMeetings, ts)
+		}
 	}
+
+	return due
 }
 
 func (p *planner) StartCron(ctx context.Context) error {

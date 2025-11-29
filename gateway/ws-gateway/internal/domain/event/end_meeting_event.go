@@ -1,25 +1,14 @@
 package event
 
 import (
-	"meeting-scheduler-service/internal/domain/dto"
 	"reflect"
-	"time"
+	"ws-gateway/internal/domain/dto"
 )
 
 type MeetingEndedEvent struct {
 	MeetingID    string        `json:"meetingId"`
 	EndTimestamp int64         `json:"endTimestamp"`
 	Members      []dto.UserDTO `json:"members"`
-}
-
-func NewMeetingEndedEvent(dto dto.EndMeetingDTO) *MeetingEndedEvent {
-	event := &MeetingEndedEvent{
-		MeetingID:    dto.MeetingID,
-		EndTimestamp: time.Now().UTC().Unix(),
-		Members:      dto.Members,
-	}
-
-	return event
 }
 
 func (m *MeetingEndedEvent) Name() string {

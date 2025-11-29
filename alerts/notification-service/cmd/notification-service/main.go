@@ -102,6 +102,10 @@ func main() {
 		&meetinginvitation.PlannedMeetingEvent{},
 		eventhandler.NewMeetingPlannedHandler(manager, repo),
 	)
+	dispatcher.Register(
+		&meetinginvitation.MeetingEndedEvent{},
+		eventhandler.NewMeetingEndedHandler(manager, repo),
+	)
 
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 

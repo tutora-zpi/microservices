@@ -36,7 +36,7 @@ The main service's purpose is to:
 
 ### Workflow
 
-Client connects with server and it adds him to connected clients after successfully validation. 
+Client connects with server and it adds him to connected clients after successfully validation.
 
 Use case of [UserJoinedHandler](/internal/app/socket_event_handler/general/user_joined_handler.go):
 

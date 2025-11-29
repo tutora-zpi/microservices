@@ -19,7 +19,7 @@ type plannedMeetingsRepoImpl struct {
 // CancelMeeting implements repository.PlannedMeetingsRepository.
 func (p *plannedMeetingsRepoImpl) CancelMeeting(ctx context.Context, id int) error {
 	tx := p.db.WithContext(ctx).
-		Where("id = ? AND is_processed = false", id).
+		Where("id = ?", id).
 		Delete(&models.PlannedMeeting{})
 
 	if tx.Error != nil {

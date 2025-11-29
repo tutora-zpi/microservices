@@ -9,7 +9,8 @@ import (
 )
 
 type userLeftHandler struct {
-	hubManager interfaces.HubManager
+	hubManager   interfaces.HubManager
+	cacheService interfaces.CacheEventService
 }
 
 // Handle implements interfaces.EventHandler.
@@ -37,6 +38,6 @@ func (u *userLeftHandler) Handle(ctx context.Context, body []byte, client interf
 	return nil
 }
 
-func NewUserLeftHandler(hubManager interfaces.HubManager) interfaces.EventHandler {
-	return &userLeftHandler{hubManager: hubManager}
+func NewUserLeftHandler(hubManager interfaces.HubManager, cacheService interfaces.CacheEventService) interfaces.EventHandler {
+	return &userLeftHandler{hubManager: hubManager, cacheService: cacheService}
 }

@@ -16,6 +16,7 @@ type ManageMeetingImlp struct {
 	broker                    interfaces.Broker
 	meetingRepository         repository.MeetingRepository
 	plannedMeetingsRepository repository.PlannedMeetingsRepository
+	terminator                interfaces.MeetingTerminator
 
 	meetingExchange string
 }
@@ -101,7 +102,21 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 
 	meeting := meetingStartedEvent.NewMeeting(startedMeetingDto)
 
-	err := m.meetingRepository.Append(ctx, meeting)
+	err := m.terminator.AppendNewMeeting(
+		dto.EndMeetingDTO{
+			ClassID:   meetingStartedEvent.ClassID,
+			MeetingID: meetingStartedEvent.MeetingID,
+			Members:   meetingStartedEvent.Members,
+		},
+		meeting.PredictedEndTimestamp,
+	)
+
+	if err != nil {
+		log.Printf("Failed to append new meeting to terminator")
+		return nil, err
+	}
+
+	err = m.meetingRepository.Append(ctx, meeting)
 	if err != nil {
 		log.Println(err)
 		return nil, fmt.Errorf("failed to add new meeting to cache")
@@ -142,7 +157,7 @@ func (m *ManageMeetingImlp) Stop(ctx context.Context, endMeetingDto dto.EndMeeti
 	meetingEndedEvent := event.NewMeetingEndedEvent(endMeetingDto)
 	err := m.meetingRepository.Delete(ctx, endMeetingDto.ClassID)
 	if err != nil {
-		return err
+		return fmt.Errorf("meeting had been removed before")
 	}
 
 	err = m.broker.Publish(ctx, meetingEndedEvent, broker.NewExchangeDestination(meetingEndedEvent, m.meetingExchange))
@@ -160,6 +175,7 @@ func NewManageMeeting(
 	broker interfaces.Broker,
 	meetingRepo repository.MeetingRepository,
 	plannedMeetingsRepo repository.PlannedMeetingsRepository,
+	terminator interfaces.MeetingTerminator,
 	meetingExchange string,
 ) interfaces.ManageMeeting {
 	return &ManageMeetingImlp{
@@ -167,5 +183,6 @@ func NewManageMeeting(
 		meetingRepository:         meetingRepo,
 		plannedMeetingsRepository: plannedMeetingsRepo,
 		meetingExchange:           meetingExchange,
+		terminator:                terminator,
 	}
 }
