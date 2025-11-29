@@ -40,8 +40,9 @@ class EventConsumer(bootsteps.ConsumerStep):
             "payload": { "merged": "...", "voices": [...] }
         }
         """
-        event_name = body.get('name')
-        payload = body.get('payload')
+        logging.info(f"Body: {body}")
+        event_name = body.get('pattern')
+        payload = body.get('data')
 
         logging.info(f"Otrzymano event: {event_name}")
 
