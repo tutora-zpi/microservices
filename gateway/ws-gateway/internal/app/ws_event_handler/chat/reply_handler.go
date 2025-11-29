@@ -33,6 +33,8 @@ func (r *replyHandler) Handle(ctx context.Context, body []byte, client interface
 
 	newEvent := event.NewReplyOnMessageEvent(wsEvent)
 
+	body, _ = json.Marshal(&wsEvent)
+
 	wrapper := wsevent.SocketEventWrapper{
 		Name:    wsEvent.Name(),
 		Payload: body,
