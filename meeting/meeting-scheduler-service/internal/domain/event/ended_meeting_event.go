@@ -8,15 +8,17 @@ import (
 
 type MeetingEndedEvent struct {
 	MeetingID    string        `json:"meetingId"`
+	ClassID      string        `json:"classId"`
 	EndTimestamp int64         `json:"endTimestamp"`
 	Members      []dto.UserDTO `json:"members"`
 }
 
-func NewMeetingEndedEvent(dto dto.EndMeetingDTO) *MeetingEndedEvent {
+func NewMeetingEndedEvent(dto dto.EndMeetingDTO, members []dto.UserDTO) *MeetingEndedEvent {
 	event := &MeetingEndedEvent{
 		MeetingID:    dto.MeetingID,
 		EndTimestamp: time.Now().UTC().Unix(),
-		Members:      dto.Members,
+		Members:      members,
+		ClassID:      dto.ClassID,
 	}
 
 	return event
