@@ -171,6 +171,13 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, queueName string) error {
 		return fmt.Errorf("failed to set QoS: %w", err)
 	}
 
+	for _, p := range r.dispatcher.AvailablePatterns() {
+		if err := ch.QueueBind(q.Name, p, r.config.MeetingExchange, false, nil); err != nil {
+			return fmt.Errorf("failed to bind queue to %s with pattern %s: %w", r.config.MeetingExchange, p, err)
+		}
+	}
+	log.Printf("Successfully bound %s exchange to %s queue", r.config.MeetingExchange, q.Name)
+
 	msgs, err := ch.ConsumeWithContext(ctx, q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start consumer: %w", err)

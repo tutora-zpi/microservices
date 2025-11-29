@@ -109,7 +109,7 @@ func main() {
 	defer eventBuffer.Close()
 
 	dispacher.Register(&generalDomain.UserJoinedWSEvent{}, generalHandler.NewUserJoinedHandler(hub, cacheService))
-	dispacher.Register(&generalDomain.UserLeftWSEvent{}, generalHandler.NewUserLeftHandler(hub))
+	dispacher.Register(&generalDomain.UserLeftWSEvent{}, generalHandler.NewUserLeftHandler(hub, cacheService))
 	dispacher.Register(&chatDomain.UserTypingWSEvent{}, chatHandler.NewUserTypingHandler(hub))
 	dispacher.Register(&chatDomain.SendMessageWSEvent{}, chatHandler.NewSendMessageHandler(hub, eventBuffer, cacheService))
 	dispacher.Register(&chatDomain.ReactOnMessageWSEvent{}, chatHandler.NewReactHandler(hub, eventBuffer, cacheService))
@@ -119,6 +119,7 @@ func main() {
 	dispacher.Register(&rtcDomain.IceCandidateWSEvent{}, rtcHandler.NewIceCandidateHandler(hub))
 	dispacher.Register(&rtcDomain.OfferWSEvent{}, rtcHandler.NewOfferHandler(hub))
 	dispacher.Register(&event.SendFileMessageEvent{}, eventhandler.NewSendFileMessageHandler(hub, cacheService))
+	dispacher.Register(&event.MeetingEndedEvent{}, eventhandler.NewEndMeetingHandler(hub, cacheService))
 	dispacher.Register(&recorderDomain.RecordRequestedWSEvent{}, recorderHandler.NewRecordRequestHandler(broker, rabbitmqConfig.MeetingExchange, hub, cacheService))
 	dispacher.Register(&recorderDomain.StopRecordingRequestedWSEvent{}, recorderHandler.NewStopRecordMeetingHandler(broker, rabbitmqConfig.MeetingExchange, hub, cacheService))
 

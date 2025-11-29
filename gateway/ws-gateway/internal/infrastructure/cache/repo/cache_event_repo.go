@@ -28,7 +28,7 @@ type cacheEventRepoImpl struct {
 
 // Del implements CacheEventRepository.
 func (c *cacheEventRepoImpl) Del(ctx context.Context, key string) error {
-	_, err := c.client.Del(ctx, enum.IsRecorded(key)).Result()
+	_, err := c.client.Del(ctx, key).Result()
 	if err != nil {
 		return fmt.Errorf("failed to delete entry: %w", err)
 	}

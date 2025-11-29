@@ -42,10 +42,24 @@ func (h *hub) RemoveRoomMemberByID(roomID string, botID string) (roomUsers []str
 
 }
 
+func (h *hub) RemoveMembersFromRoom(roomID string) {
+	v, ok := h.rooms.Load(roomID)
+	if !ok {
+		log.Println("Room not found")
+		return
+	}
+
+	room := v.(*Room)
+	room.mu.Lock()
+	defer room.mu.Unlock()
+
+	h.rooms.Delete(roomID)
+}
+
 func NewHub() interfaces.HubManager {
 	h := &hub{
-		register:   make(chan interfaces.Client, 32),
-		unregister: make(chan interfaces.Client, 32),
+		register:   make(chan interfaces.Client, 256),
+		unregister: make(chan interfaces.Client, 256),
 		closing:    make(chan struct{}),
 	}
 	go h.run()

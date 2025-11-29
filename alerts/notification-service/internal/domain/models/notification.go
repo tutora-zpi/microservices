@@ -48,3 +48,13 @@ func InitInvitationNotification() *Notification {
 		Metadata:  map[metadata.Key]any{},
 	}
 }
+
+func BaseNotification() *Notification {
+	return &Notification{
+		ID:        bson.NewObjectID(),
+		CreatedAt: pkg.GenerateTimestamp(),
+		Type:      enums.SYSTEM,
+		Status:    enums.CREATED,
+		Metadata:  map[metadata.Key]any{},
+	}
+}

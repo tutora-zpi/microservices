@@ -41,9 +41,7 @@ func (m *meetingRepoImpl) Append(ctx context.Context, meeting *models.Meeting) e
 // Delete implements repository.MeetingRepository.
 func (m *meetingRepoImpl) Delete(ctx context.Context, classID string) error {
 	key := cache.MeetingKey(classID)
-	log.Println(key)
 	removedAmount, err := m.client.Del(ctx, key).Result()
-	log.Println(removedAmount)
 	if err != nil || removedAmount < 1 {
 		log.Println(err)
 		return fmt.Errorf("failed to delete value with id: %s", classID)

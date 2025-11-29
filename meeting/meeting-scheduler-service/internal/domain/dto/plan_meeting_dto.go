@@ -27,9 +27,9 @@ func (dto *PlanMeetingDTO) IsValid() error {
 
 	dto.ConvertTimeToUTC()
 
-	if time.Until(dto.StartDate) < time.Minute*5 {
-		return fmt.Errorf("difference between now and start dates must be at least 5 minutes")
-	}
+	// if time.Until(dto.StartDate) < time.Minute*5 {
+	// 	return fmt.Errorf("difference between now and start dates must be at least 5 minutes")
+	// }
 
 	sub := dto.FinishDate.Sub(dto.StartDate)
 	if sub < 0 {

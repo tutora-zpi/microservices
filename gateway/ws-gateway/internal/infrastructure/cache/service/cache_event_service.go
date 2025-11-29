@@ -8,12 +8,18 @@ import (
 	"ws-gateway/internal/app/interfaces"
 	wsevent "ws-gateway/internal/domain/ws_event"
 	"ws-gateway/internal/domain/ws_event/recorder"
+	"ws-gateway/internal/infrastructure/cache/enum"
 	cache "ws-gateway/internal/infrastructure/cache/repo"
 	"ws-gateway/pkg/gzip"
 )
 
 type cacheEventServiceImpl struct {
 	repo cache.CacheEventRepository
+}
+
+// DeleteSnapshot implements interfaces.CacheEventService.
+func (c *cacheEventServiceImpl) DeleteSnapshot(ctx context.Context, roomID string) error {
+	return c.repo.Del(ctx, enum.SnapshotKey(roomID))
 }
 
 // IsMeetingRecorded implements interfaces.CacheEventService.
@@ -34,7 +40,7 @@ func (c *cacheEventServiceImpl) IsMeetingRecorded(ctx context.Context, keyRoomID
 
 // RemoveMeetingFromPool implements interfaces.CacheEventService.
 func (c *cacheEventServiceImpl) RemoveMeetingFromPool(ctx context.Context, keyRoomID string) error {
-	return c.repo.Del(ctx, keyRoomID)
+	return c.repo.Del(ctx, enum.IsRecorded(keyRoomID))
 }
 
 // SetMeetingIsRecorded implements interfaces.CacheEventService.

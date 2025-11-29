@@ -38,7 +38,7 @@ func (dto *StartMeetingDTO) IsValid() error {
 		return err
 	}
 
-	if dto.FinishDate.Before(time.Now()) {
+	if dto.FinishDate.UTC().Before(time.Now().UTC()) {
 		return fmt.Errorf("finish date must be in the future")
 	}
 

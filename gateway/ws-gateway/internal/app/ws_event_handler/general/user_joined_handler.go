@@ -35,7 +35,7 @@ func (u *userJoinedHandler) Handle(ctx context.Context, body []byte, client inte
 	go func() {
 		info, err := u.cacheService.IsMeetingRecorded(ctx, event.RoomID)
 		if err != nil {
-			log.Printf("Something went during getting meeting recoreded")
+			log.Printf("Meeting is not recorded")
 			return
 		}
 

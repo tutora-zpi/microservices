@@ -7,6 +7,7 @@ type HubManager interface {
 	RemoveGlobalMember(client Client)
 	RemoveRoomMember(roomID string, client Client) (roomUsers []string)
 	RemoveRoomMemberByID(roomID string, id string) (roomUsers []string)
+	RemoveMembersFromRoom(roomID string)
 
 	Emit(roomID string, payload []byte, pred func(id string) bool)
 	EmitGlobal(payload []byte)
