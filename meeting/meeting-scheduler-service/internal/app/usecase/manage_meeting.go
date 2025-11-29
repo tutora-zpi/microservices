@@ -154,8 +154,13 @@ func (m *ManageMeetingImlp) Start(ctx context.Context, startedMeetingDto dto.Sta
 func (m *ManageMeetingImlp) Stop(ctx context.Context, endMeetingDto dto.EndMeetingDTO) error {
 	log.Println("Stopping meeting...")
 
-	meetingEndedEvent := event.NewMeetingEndedEvent(endMeetingDto)
-	err := m.meetingRepository.Delete(ctx, endMeetingDto.ClassID)
+	meetingDTO, err := m.meetingRepository.Get(ctx, endMeetingDto.ClassID)
+	if err != nil {
+		return fmt.Errorf("Meeting %s not found", endMeetingDto.MeetingID)
+	}
+
+	meetingEndedEvent := event.NewMeetingEndedEvent(endMeetingDto, meetingDTO.Members)
+	err = m.meetingRepository.Delete(ctx, endMeetingDto.ClassID)
 	if err != nil {
 		return fmt.Errorf("meeting had been removed before")
 	}

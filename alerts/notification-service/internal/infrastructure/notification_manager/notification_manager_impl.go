@@ -11,9 +11,16 @@ import (
 	"time"
 )
 
+type connectionInfo struct {
+	channel      chan []byte
+	createdAt    time.Time
+	ctx          context.Context
+	connectionID string
+}
+
 type notificationManagerImpl struct {
 	mutex              sync.RWMutex
-	clients            map[string]chan []byte
+	clients            map[string][]*connectionInfo
 	notificationBuffer *NotificationBuffer
 	bufferingEnabled   bool
 	connectionTracker  map[string]time.Time
@@ -21,7 +28,7 @@ type notificationManagerImpl struct {
 
 func NewManager() interfaces.NotificationManager {
 	manager := &notificationManagerImpl{
-		clients:           make(map[string]chan []byte),
+		clients:           make(map[string][]*connectionInfo),
 		connectionTracker: make(map[string]time.Time),
 		bufferingEnabled:  false,
 	}
@@ -39,61 +46,118 @@ func (m *notificationManagerImpl) EnableBuffering(maxSize int, ttl time.Duration
 
 func (m *notificationManagerImpl) Subscribe(ctx context.Context, clientID string) (chan []byte, error) {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
-	lastConnection := m.connectionTracker[clientID]
-	oldChan, existed := m.clients[clientID]
-
-	isQuickReconnect := !lastConnection.IsZero() && time.Since(lastConnection) < 2*time.Minute
-
-	if existed && oldChan != nil {
-		close(oldChan)
-		log.Printf("Closed old channel for reconnecting client %s", clientID)
-	}
+	connectionID := fmt.Sprintf("%s-%d", clientID, time.Now().UnixNano())
 
 	clientChan := make(chan []byte, 200)
-	m.clients[clientID] = clientChan
-	m.connectionTracker[clientID] = time.Now()
 
-	m.mutex.Unlock()
-
-	go func() {
-		<-ctx.Done()
-		m.Unsubscribe(clientID)
-	}()
-
-	if isQuickReconnect {
-		log.Printf("Quick reconnect detected for client %s (last seen: %v ago)", clientID, time.Since(lastConnection))
+	newConn := &connectionInfo{
+		channel:      clientChan,
+		createdAt:    time.Now(),
+		ctx:          ctx,
+		connectionID: connectionID,
 	}
 
-	log.Printf("Client %s subscribed (total clients: %d)", clientID, len(m.clients))
+	m.clients[clientID] = append(m.clients[clientID], newConn)
+
+	go m.monitorConnection(ctx, clientID, connectionID, clientChan)
+
+	log.Printf("Client %s subscribed with connection %s (total connections for user: %d, all clients: %d)",
+		clientID, connectionID, len(m.clients[clientID]), m.getTotalConnections())
 
 	return clientChan, nil
 }
 
+func (m *notificationManagerImpl) getTotalConnections() int {
+	total := 0
+	for _, conns := range m.clients {
+		total += len(conns)
+	}
+	return total
+}
+
+func (m *notificationManagerImpl) monitorConnection(ctx context.Context, clientID string, connectionID string, clientChan chan []byte) {
+	<-ctx.Done()
+
+	m.mutex.Lock()
+	connections := m.clients[clientID]
+	newConnections := make([]*connectionInfo, 0, len(connections))
+
+	for _, conn := range connections {
+		if conn.connectionID != connectionID {
+			newConnections = append(newConnections, conn)
+		}
+	}
+
+	if len(newConnections) == 0 {
+		delete(m.clients, clientID)
+		m.connectionTracker[clientID] = time.Now()
+	} else {
+		m.clients[clientID] = newConnections
+	}
+
+	remainingConns := len(newConnections)
+	m.mutex.Unlock()
+
+	log.Printf("Connection %s for client %s ended (remaining connections: %d)",
+		connectionID, clientID, remainingConns)
+}
+
+func (m *notificationManagerImpl) Unsubscribe(clientID string) {
+	m.mutex.Lock()
+	connections, existed := m.clients[clientID]
+	if existed {
+		delete(m.clients, clientID)
+		for _, conn := range connections {
+			if conn.channel != nil {
+				close(conn.channel)
+			}
+		}
+	}
+	m.connectionTracker[clientID] = time.Now()
+	m.mutex.Unlock()
+
+	if existed {
+		log.Printf("Client %s unsubscribed (%d connections closed)", clientID, len(connections))
+	}
+}
+
 func (m *notificationManagerImpl) Push(dto dto.NotificationDTO) error {
 	m.mutex.RLock()
-	clientChan, exists := m.clients[dto.Receiver.ID]
-	clientCount := len(m.clients)
+	connections := m.clients[dto.Receiver.ID]
+	clientCount := len(connections)
 	m.mutex.RUnlock()
 
 	data := dto.JSON()
-	log.Printf("Client %s, exists: %t, total clients: %d, buffering: %t",
-		dto.Receiver.ID, exists, clientCount, m.bufferingEnabled)
 
-	if !m.isClientActivelyConnected(dto.Receiver.ID) {
+	if clientCount == 0 {
+		log.Printf("Client %s has no active connections, buffering notification", dto.Receiver.ID)
 		m.bufferIfEnabled(dto)
 		return nil
 	}
 
-	select {
-	case clientChan <- data:
-		log.Printf("Notification sent to client %s", dto.Receiver.ID)
-		return nil
-	default:
-		m.bufferIfEnabled(dto)
-		log.Printf("Channel full for client %s", dto.Receiver.ID)
-		return fmt.Errorf("client %s channel full", dto.Receiver.ID)
+	log.Printf("Pushing notification to client %s (%d active connections)",
+		dto.Receiver.ID, clientCount)
+
+	successCount := 0
+	for _, conn := range connections {
+		select {
+		case conn.channel <- data:
+			successCount++
+		default:
+			log.Printf("Channel full for connection %s", conn.connectionID)
+		}
 	}
+
+	if successCount > 0 {
+		log.Printf("Notification sent to %d/%d connections for client %s",
+			successCount, clientCount, dto.Receiver.ID)
+		return nil
+	}
+
+	m.bufferIfEnabled(dto)
+	return fmt.Errorf("all channels full for client %s", dto.Receiver.ID)
 }
 
 func (m *notificationManagerImpl) bufferIfEnabled(dto dto.NotificationDTO) {
@@ -108,23 +172,8 @@ func (m *notificationManagerImpl) bufferIfEnabled(dto dto.NotificationDTO) {
 func (m *notificationManagerImpl) IsClientConnected(clientID string) bool {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	return m.isClientActivelyConnected(clientID)
-}
-
-func (m *notificationManagerImpl) isClientActivelyConnected(clientID string) bool {
-	ch, exists := m.clients[clientID]
-	return exists && ch != nil
-}
-
-func (m *notificationManagerImpl) Unsubscribe(clientID string) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	if ch, exists := m.clients[clientID]; exists {
-		close(ch)
-		delete(m.clients, clientID)
-		log.Printf("Client %s unsubscribed (total clients: %d)", clientID, len(m.clients))
-	}
+	connections := m.clients[clientID]
+	return len(connections) > 0
 }
 
 func (m *notificationManagerImpl) GetBufferedNotifications(clientID string) []*buffer.BufferedNotification {

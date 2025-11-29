@@ -37,6 +37,7 @@ type NotificationStreamConnection struct {
 	ConnectionTime    time.Time
 	lastActivity      time.Time
 	isHealthy         bool
+	cleanupDone       bool
 }
 
 func (conn *NotificationStreamConnection) GetChannel() chan []byte {
@@ -60,6 +61,7 @@ func NewNotificationStreamConnection(config NotificationStreamConnectionConfig) 
 		ConnectionTime:  now,
 		lastActivity:    now,
 		isHealthy:       true,
+		cleanupDone:     false,
 	}
 }
 
@@ -73,44 +75,46 @@ func (conn *NotificationStreamConnection) HandleEvents() {
 	connectionTimeout := time.NewTimer(5 * time.Minute)
 	defer connectionTimeout.Stop()
 
+	log.Printf("Client %s - HandleEvents started, waiting for events...", conn.ClientID)
+
 	for {
 		select {
 		case <-conn.Context.Done():
-			log.Printf("SSE connection closed for client: %s (context done) - Stats: %d notifications, %d heartbeats, duration: %v",
-				conn.ClientID, conn.NotificationsSent, conn.HeartbeatsSent, time.Since(conn.ConnectionTime))
+			// log.Printf("Client %s - Context.Done() - Reason: %v - Stats: %d notifications, %d heartbeats, duration: %v",
+			// conn.ClientID, conn.Context.Err(), conn.NotificationsSent, conn.HeartbeatsSent, time.Since(conn.ConnectionTime))
 			return
 
 		case notification, ok := <-conn.Channel:
 			if !ok {
-				log.Printf("Notification channel closed for client: %s", conn.ClientID)
+				log.Printf("Client %s - Channel closed externally", conn.ClientID)
 				return
 			}
 
 			if err := conn.SendSSEEvent("notification", notification); err != nil {
-				log.Printf("Failed to send notification to client %s: %v", conn.ClientID, err)
+				log.Printf("Client %s - Failed to send notification: %v", conn.ClientID, err)
 				return
 			}
 
-			log.Printf("Sent notification to client %s (total: %d)",
+			log.Printf("Client %s - Sent notification (total: %d)",
 				conn.ClientID, conn.NotificationsSent)
 
 			connectionTimeout.Reset(5 * time.Minute)
 
 		case <-conn.HeartbeatTicker.C:
 			if !conn.checkConnectionHealth() {
-				log.Printf("Connection health check failed for client %s", conn.ClientID)
+				log.Printf("Client %s - Health check failed", conn.ClientID)
 				return
 			}
 
 			if err := conn.sendHeartbeat(); err != nil {
-				log.Printf("Failed to send heartbeat to client %s: %v", conn.ClientID, err)
+				log.Printf("Client %s - Failed to send heartbeat: %v", conn.ClientID, err)
 				return
 			}
 
 			connectionTimeout.Reset(5 * time.Minute)
 
 		case <-connectionTimeout.C:
-			log.Printf("Connection timeout for client %s (no activity for 5 minutes)", conn.ClientID)
+			log.Printf("Client %s - Connection timeout no activity", conn.ClientID)
 			return
 		}
 	}
@@ -176,12 +180,16 @@ func (conn *NotificationStreamConnection) SendRetry(retryAfter int) error {
 }
 
 func (conn *NotificationStreamConnection) Cleanup() {
+	if conn.cleanupDone {
+		return
+	}
+	conn.cleanupDone = true
+
 	if conn.HeartbeatTicker != nil {
 		conn.HeartbeatTicker.Stop()
 	}
 
 	conn.Manager.Unsubscribe(conn.ClientID)
-	log.Printf("Immediate unsubscribe for client: %s", conn.ClientID)
 
 	stats := conn.GetStats()
 	log.Printf("SSE connection cleaned up for client: %s - Final stats: %+v", conn.ClientID, stats)

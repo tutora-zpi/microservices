@@ -24,14 +24,11 @@ func findToken(r *http.Request) (string, error) {
 		token = cookie.Value
 		return token, nil
 	}
-	log.Println("Not found token in cookie going to find in query")
 
 	token = r.URL.Query().Get(Token)
 	if token != "" {
 		return token, nil
 	}
-
-	log.Println("Not found token in query going to find in header")
 
 	auth := r.Header.Get(Auth)
 	if !strings.HasPrefix(auth, BearerPrefix) {

@@ -11,9 +11,8 @@ type EndMeetingDTO struct {
 	// Class id - where meeting will be started (UUIDv4)
 	// required: true
 	ClassID string `json:"classId" validate:"required,uuid4"`
-	// Members participating in the meeting (minimum 2)
-	// required: true
-	Members []UserDTO `json:"members" validate:"required,min=2,dive"`
+
+	Members []UserDTO
 }
 
 func (e *EndMeetingDTO) IsValid() error {

@@ -42,9 +42,9 @@ func NewServer(router *mux.Router) *Server {
 	s := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
 		Handler:      handler,
-		IdleTimeout:  time.Minute,
+		IdleTimeout:  2 * time.Minute,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 0,
 	}
 
 	return &Server{s: s, host: host}

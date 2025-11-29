@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"maps"
 	"net/http"
 	"notification-serivce/internal/app/interfaces"
 	"notification-serivce/internal/config"
@@ -48,12 +49,25 @@ func NewSSEHandler(manager interfaces.NotificationManager, cfg *sse.SSEConfig) *
 // @Produce text/event-stream
 // @Param token query string true "JWT token for auth"
 // @Router /api/v1/notification/stream [get]
+// Dodaj to w prepareSSEConnection lub StreamNotifications:
+
 func (h *SSEHandler) StreamNotifications(w http.ResponseWriter, r *http.Request) {
 	h.configureSSEHeaders(w)
 
+	clientID, err := ExtractClientID(r)
+	if err != nil {
+		log.Printf("Failed to extract client ID: %v", err)
+		h.handleError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if h.manager.IsClientConnected(clientID) {
+		log.Printf("Client %s already connected, will replace connection", clientID)
+	}
+
 	conn, err := h.prepareSSEConnection(w, r)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Failed to prepare SSE connection for client %s: %v", clientID, err)
 		h.handleError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -110,7 +124,9 @@ func (h *SSEHandler) configureSSEHeaders(w http.ResponseWriter) {
 		origin = h.config.FrontendURL
 	}
 
-	headers := HEADERS
+	headers := make(map[string]string, len(HEADERS))
+	maps.Copy(headers, HEADERS)
+
 	headers["Access-Control-Allow-Origin"] = origin
 
 	for key, value := range headers {

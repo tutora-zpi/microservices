@@ -9,7 +9,6 @@ import (
 	"ws-gateway/internal/app/interfaces"
 	"ws-gateway/internal/domain/event"
 	wsevent "ws-gateway/internal/domain/ws_event"
-	"ws-gateway/internal/domain/ws_event/general"
 	recorderDomain "ws-gateway/internal/domain/ws_event/recorder"
 )
 
@@ -59,20 +58,9 @@ func (e *endMeetingHandler) Handle(ctx context.Context, body []byte, client inte
 
 	for _, user := range event.Members {
 		go func() {
-			autoDisconnect := general.AutoDisconnect{
-				UserID: user.ID,
-				RoomID: event.MeetingID,
-			}
-
-			var payload []byte
-			payload, _ = wsevent.EncodeSocketEventWrapper(&autoDisconnect)
-
 			log.Printf("Emitting auto disconnection for %s", user.ID)
 
-			e.hubManager.Emit(event.MeetingID, payload, func(id string) bool { return true })
-
 			e.hubManager.RemoveRoomMemberByID(event.MeetingID, user.ID)
-
 		}()
 	}
 
