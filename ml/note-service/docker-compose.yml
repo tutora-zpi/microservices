@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  # Usługa 1: Dedykowany broker wiadomości dla testów
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: notes_rabbitmq_test
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # Port dla Celery
+      - "15672:15672" # Port dla panelu webowego
+    networks:
+      - note_service_net
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running", "-q" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Usługa 2: Serwis API (FastAPI)
+  api:
+    build: .  # Buduje obraz z Dockerfile w bieżącym katalogu
+    container_name: notes_api_test
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./app:/app/app # Montuje kod aplikacji dla "live reload"
+      - models_cache:/root/.cache/huggingface # Cache dla modelu WHISPER
+    ports:
+      - "8005:8000" # Wystawiamy API na porcie 8005 na zewnątrz
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - note_service_net
+
+  # Usługa 3: Worker Celery
+  worker:
+    build: . # Używa tego samego obrazu co API
+    container_name: notes_worker_test
+    command: celery -A app.tasks.celery_app worker --loglevel=INFO --concurrency=1
+    volumes:
+      - ./app:/app/app # Dostęp do tego samego kodu
+      - models_cache:/root/.cache/huggingface # Cache dla modelu WHISPER
+      - ./local_storage:/app/local_storage
+      # Poniższa linia została usunięta, ponieważ lokalny model ONNX nie jest już potrzebny
+      # - ./models:/app/models
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - note_service_net
+
+volumes:
+  models_cache:
+    driver: local
+
+networks:
+  note_service_net:
+    driver: bridge

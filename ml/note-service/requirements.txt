@@ -1,0 +1,14 @@
+fastapi
+google-generativeai
+uvicorn[standard]
+celery
+kombu
+pika
+pydantic
+pydantic-settings
+boto3
+transformers==4.44.2
+httpx
+pyjwt[crypto]
+scipy
+accelerate
