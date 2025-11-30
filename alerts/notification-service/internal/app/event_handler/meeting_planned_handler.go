@@ -35,10 +35,6 @@ func (c *MeetingPlannedHandler) Handle(ctx context.Context, body []byte) error {
 		return err
 	}
 
-	if len(results) != 2 {
-		return fmt.Errorf("expected 2 results, got %d", len(results))
-	}
-
 	ids := []string{}
 	for _, result := range results {
 		if err := c.publisher.Push(*result); err != nil {
