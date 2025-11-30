@@ -141,10 +141,6 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 				continue
 			}
 
-			log.Printf("Before gorutine")
-			log.Printf("CONSUME: msg obj: %v", msg)
-			log.Printf("After gorutine")
-
 			go func(msg amqp.Delivery) {
 				var wrapper event.EventWrapper
 				pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
