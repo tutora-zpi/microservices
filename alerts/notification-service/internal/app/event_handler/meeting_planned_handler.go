@@ -21,8 +21,7 @@ func NewMeetingPlannedHandler(publisher interfaces.NotificationManager,
 }
 
 func (c *MeetingPlannedHandler) Handle(ctx context.Context, body []byte) error {
-	newEvent := meetinginvitation.PlannedMeetingEvent{}
-	log.Printf("[%s] received\n", newEvent.Name())
+	var newEvent meetinginvitation.PlannedMeetingEvent
 
 	if err := json.Unmarshal(body, &newEvent); err != nil {
 		log.Printf("Failed to unmarshal: %s\n", err.Error())
@@ -31,15 +30,16 @@ func (c *MeetingPlannedHandler) Handle(ctx context.Context, body []byte) error {
 
 	results, err := c.repo.Save(ctx, newEvent.Notifications()...)
 
-	if err != nil || len(results) != 2 {
-		log.Printf("An error occured during saving notification: %s\n", err.Error())
+	if err != nil {
+		log.Printf("Failed to save notification: %v", err)
 		return err
 	}
 
 	ids := []string{}
 	for _, result := range results {
 		if err := c.publisher.Push(*result); err != nil {
-			return err
+			log.Printf("Failed to push notification to user: %v", err)
+			continue
 		}
 
 		ids = append(ids, result.ID)

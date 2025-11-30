@@ -145,11 +145,13 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 				var wrapper event.EventWrapper
 				pattern, data, err := wrapper.DecodedEventWrapper(msg.Body)
 				if err != nil {
+					log.Printf("Failed to decode event")
 					msg.Nack(false, false)
 					return
 				}
 
 				if err := r.dispatcher.HandleEvent(context.Background(), pattern, data); err != nil {
+					log.Printf("Failed to handle event: %v", err)
 					msg.Nack(false, true)
 					return
 				}
