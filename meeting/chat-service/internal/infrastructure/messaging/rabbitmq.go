@@ -130,7 +130,7 @@ func (r *RabbitMQBroker) Consume(ctx context.Context, exchange string) error {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		exchange,
+		r.config.ChatQueue,
 		false,
 		false,
 		false,
