@@ -3,6 +3,7 @@ package metadata
 import (
 	"chat-service/internal/domain/event"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"strings"
 	"time"
@@ -42,11 +43,14 @@ func (f *FileMetadata) GenerateUniqueFileName() string {
 
 func (f *FileMetadata) IsValidContentType() bool {
 	if f.ContentType == "" {
+		log.Printf("No content file")
 		return false
 	}
 
+	log.Printf("Content type: %s", f.ContentType)
+
 	for _, st := range SUPPORTED_FILE_TYPES {
-		if strings.HasPrefix(st, f.ContentType) {
+		if strings.HasPrefix(f.ContentType, st) {
 			return true
 		}
 	}

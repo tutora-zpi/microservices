@@ -90,9 +90,9 @@ func (h *handlers) IsAuth(next http.Handler) http.Handler {
 func ValidateFileFormData(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		err := r.ParseMultipartForm(http.DefaultMaxHeaderBytes)
+		err := r.ParseMultipartForm(10 << 20)
 		if err != nil {
-			server.NewResponse(w, pkg.Ptr("File is too big, max size is 1MB"), http.StatusRequestEntityTooLarge, nil)
+			server.NewResponse(w, pkg.Ptr("File is too big, max size is 10MiB"), http.StatusRequestEntityTooLarge, nil)
 			return
 		}
 
@@ -107,7 +107,13 @@ func ValidateFileFormData(next http.Handler) http.Handler {
 
 		chatID := mux.Vars(r)["id"]
 		content := r.FormValue("content")
-		senderID := r.FormValue("senderId")
+
+		senderID, ok := r.Context().Value(ID).(string)
+		if !ok {
+			server.NewResponse(w, pkg.Ptr("No user id in context"), http.StatusUnauthorized, nil)
+			return
+		}
+
 		sentAt := r.FormValue("sentAt")
 
 		req, err := requests.NewSaveFileMessage(content, senderID, chatID, sentAt)
@@ -127,7 +133,7 @@ func ValidateFileFormData(next http.Handler) http.Handler {
 			SenderID:    req.SenderID,
 		}
 
-		if fileMetadata.IsValidContentType() {
+		if !fileMetadata.IsValidContentType() {
 			server.NewResponse(w, pkg.Ptr(fmt.Sprintf("You have %s and supported file types are: %s", fileMetadata.ContentType, strings.Join(metadata.SUPPORTED_FILE_TYPES, ", "))), http.StatusUnsupportedMediaType, nil)
 			return
 		}

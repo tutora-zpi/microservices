@@ -99,7 +99,7 @@ func (r *RabbitMQBroker) Publish(ctx context.Context, ev event.Event, dest broke
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
-	log.Printf("Published event [%s] to %s:%s", wrapper.Pattern, exchange, routingKey)
+	log.Printf("Published event [%s] to %s %s", wrapper.Pattern, exchange, routingKey)
 	return nil
 }
 
