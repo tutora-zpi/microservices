@@ -50,7 +50,7 @@ func (f *FileMetadata) IsValidContentType() bool {
 	log.Printf("Content type: %s", f.ContentType)
 
 	for _, st := range SUPPORTED_FILE_TYPES {
-		if st == f.ContentType || strings.HasPrefix(f.ContentType, st) {
+		if strings.HasPrefix(f.ContentType, st) {
 			return true
 		}
 	}
