@@ -33,15 +33,8 @@ class EventConsumer(bootsteps.ConsumerStep):
                          accept=['json'])]
 
     def handle_message(self, body, message):
-        """
-        body: zdeserializowany JSON, np.:
-        {
-            "name": "RecordingsUploaded",
-            "payload": { "merged": "...", "voices": [...] }
-        }
-        """
-        event_name = body.get('name')
-        payload = body.get('payload')
+        event_name = body.get('pattern')
+        payload = body.get('data')
 
         logging.info(f"Otrzymano event: {event_name}")
 

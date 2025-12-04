@@ -1,4 +1,3 @@
-# app/services/storage_s3.py
 import os
 import logging
 import boto3
@@ -112,10 +111,6 @@ class StorageS3:
             logger.warning(f"Nie udało się usunąć pliku audio {object_key}: {e}")
 
     def list_files(self, prefix: str) -> List[Dict[str, Any]]:
-        """
-        Listuje pliki w buckecie NOTES zaczynające się od danego prefiksu (np. 'student_notes/').
-        Zwraca listę słowników z kluczami, datami i rozmiarem.
-        """
         try:
             if not prefix.endswith('/'):
                 prefix += '/'

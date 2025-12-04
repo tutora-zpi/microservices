@@ -30,10 +30,6 @@ def get_download_service(storage_service: StorageS3 = Depends(get_storage_servic
 
 
 async def _get_public_key(kid: str, settings: Settings) -> Any:
-    """
-    Pobiera klucz publiczny dla danego Key ID (kid).
-    Najpierw sprawdza cache, potem woła endpoint JWKS.
-    """
     if kid in jwks_cache:
         return jwks_cache[kid]
 
@@ -69,9 +65,6 @@ async def verify_token(
         token: Annotated[HTTPAuthorizationCredentials, Depends(security)],
         settings: Settings = Depends(get_settings)
 ) -> Dict[str, Any]:
-    """
-    Weryfikuje token JWT używając dynamicznie pobieranego JWKS.
-    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

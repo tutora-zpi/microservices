@@ -93,7 +93,6 @@ def _perform_transcription(s3_key: str) -> str:
 
 
 def _perform_summarization(transcript: str, class_id: str, meeting_id: str) -> None:
-    """Uruchamia logikę generowania notatek."""
     logger.info("Generowanie podsumowania...")
 
     _summarization_service.generate_and_save_outputs(
