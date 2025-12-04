@@ -106,6 +106,10 @@ func main() {
 		&meetinginvitation.MeetingEndedEvent{},
 		eventhandler.NewMeetingEndedHandler(manager, repo),
 	)
+	dispatcher.Register(
+		&classinvitation.ClassInvitationAcceptedEvent{},
+		eventhandler.NewMeetingEndedHandler(manager, repo),
+	)
 
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 
