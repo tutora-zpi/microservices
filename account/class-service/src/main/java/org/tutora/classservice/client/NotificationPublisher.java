@@ -1,11 +1,11 @@
 package org.tutora.classservice.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.tutora.classservice.event.ClassInvitationAcceptedEvent;
 import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.event.EventWrapper;
 
@@ -28,7 +28,20 @@ public class NotificationPublisher {
         );
 
         rabbitTemplate.convertAndSend(exchange, pattern, event);
-        log.info("Event published to exchange='{}', pattern='{}', payload={}",
+        log.info("Event invitation created published to exchange='{}', pattern='{}', payload={}",
+                exchange, pattern, event);
+    }
+
+    public void sendClassInvitationAccepted(ClassInvitationAcceptedEvent invitationAccepted) {
+        String pattern = invitationAccepted.name();
+
+        EventWrapper<ClassInvitationAcceptedEvent> event = new EventWrapper<>(
+                pattern,
+                invitationAccepted
+        );
+
+        rabbitTemplate.convertAndSend(exchange, pattern, event);
+        log.info("Event invitation accepted published to exchange='{}', pattern='{}', payload={}",
                 exchange, pattern, event);
     }
 }

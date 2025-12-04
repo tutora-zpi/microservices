@@ -62,6 +62,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(exception, webRequest, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDetailsDto> handleIllegalArgumentException(
+            UnauthorizedActionException exception,
+            WebRequest webRequest) {
+        return buildErrorResponse(exception, webRequest, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetailsDto> handleGlobalException(
             Exception exception,

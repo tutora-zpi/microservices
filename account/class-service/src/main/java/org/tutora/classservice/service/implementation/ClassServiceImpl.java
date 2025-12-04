@@ -41,6 +41,10 @@ public class ClassServiceImpl implements ClassService {
     @Override
     @Transactional
     public Classroom createClass(UUID userId, Classroom newClassroom) {
+        if (newClassroom.getName().isEmpty() || newClassroom.getName().length() < 100) {
+            throw new IllegalArgumentException("Classroom name cannot be empty or longer than 100 characters.");
+        }
+
         newClassroom.setId(null);
         Member member = createUserClass(userId, RoleName.HOST);
         newClassroom.addUserClass(member);
@@ -66,6 +70,14 @@ public class ClassServiceImpl implements ClassService {
         } else {
             throw new UnauthorizedActionException("class", classId, "delete");
         }
+    }
+
+    @Override
+    public Member getClassHost(UUID classId) {
+        return getClassById(classId).getMembers().stream()
+                .filter(member -> member.getRole().getName() == RoleName.HOST)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Host for class", "id", classId.toString()));
     }
 
     private Role getRoleByName(RoleName name) {

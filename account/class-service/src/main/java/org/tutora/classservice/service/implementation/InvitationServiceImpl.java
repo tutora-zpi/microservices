@@ -5,9 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tutora.classservice.client.NotificationPublisher;
 import org.tutora.classservice.dto.UserDto;
+import org.tutora.classservice.event.ClassInvitationAcceptedEvent;
 import org.tutora.classservice.event.ClassInvitationCreatedEvent;
 import org.tutora.classservice.entity.*;
 import org.tutora.classservice.exception.*;
+import org.tutora.classservice.mapper.ClassMapper;
 import org.tutora.classservice.repository.InvitationRepository;
 import org.tutora.classservice.repository.InvitationStatusRepository;
 import org.tutora.classservice.repository.MemberRepository;
@@ -30,6 +32,7 @@ public class InvitationServiceImpl implements InvitationService {
 
     private final ClassService classService;
     private final MemberRepository memberRepository;
+    private final ClassMapper classMapper;
 
     @Override
     public Invitation inviteUser(UserDto sender, UUID classId, UserDto receiver) {
@@ -85,6 +88,15 @@ public class InvitationServiceImpl implements InvitationService {
         invitationRepository.save(inv);
 
         classService.addUserToClass(classId, userId, RoleName.GUEST);
+
+        Classroom classroom = classService.getClassById(classId);
+
+        notificationPublisher.sendClassInvitationAccepted(new ClassInvitationAcceptedEvent(
+                classId,
+                classroom.getName(),
+                classService.getClassHost(classId).getUserId(),
+                userId
+        ));
     }
 
     @Override
