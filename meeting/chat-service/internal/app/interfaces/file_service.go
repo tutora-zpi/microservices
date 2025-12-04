@@ -6,5 +6,5 @@ import (
 )
 
 type FileService interface {
-	Save(ctx context.Context, file *metadata.FileMetadata) (string, error)
+	Save(ctx context.Context, file *metadata.FileMetadata) (string, string, error)
 }

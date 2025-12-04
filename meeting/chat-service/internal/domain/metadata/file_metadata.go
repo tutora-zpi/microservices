@@ -27,6 +27,7 @@ var SUPPORTED_FILE_TYPES = []string{
 type FileMetadata struct {
 	Extension   string
 	File        multipart.File
+	FileName    string
 	ContentType string
 
 	SentAt   int64
@@ -58,13 +59,14 @@ func (f *FileMetadata) IsValidContentType() bool {
 	return false
 }
 
-func (f *FileMetadata) NewFileMessage(urlToLink string) *event.SendMessageEvent {
+func (f *FileMetadata) NewFileMessage(urlToLink, filename string) *event.SendMessageEvent {
 	return &event.SendMessageEvent{
 		MessageID: bson.NewObjectID().Hex(),
 		Content:   f.Content,
 		SenderID:  f.SenderID,
 		SentAt:    f.SentAt,
 		FileLink:  urlToLink,
+		FileName:  filename,
 		ChatID:    f.ChatID,
 	}
 }

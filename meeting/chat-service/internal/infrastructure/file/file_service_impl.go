@@ -16,15 +16,15 @@ type localFileService struct {
 }
 
 // Save implements interfaces.FileService.
-func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata) (string, error) {
+func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata) (string, string, error) {
 	select {
 	case <-ctx.Done():
-		return "", fmt.Errorf("save canceled")
+		return "", "", fmt.Errorf("save canceled")
 	default:
 		generalError := fmt.Errorf("failed to save file")
 		if err := os.MkdirAll("./media", os.ModePerm); err != nil {
 			log.Printf("Failed to create dir: %v", err)
-			return "", generalError
+			return "", "", generalError
 		}
 
 		name := file.GenerateUniqueFileName()
@@ -34,7 +34,7 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 		osFile, err := os.Create(p)
 		if err != nil {
 			log.Printf("Failed to create file with name %s", name)
-			return "", generalError
+			return "", "", generalError
 		}
 
 		defer osFile.Close()
@@ -42,13 +42,13 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 		bytes, err := io.ReadAll(file.File)
 		if err != nil {
 			log.Printf("Failed to read file: %v", err)
-			return "", generalError
+			return "", "", generalError
 		}
 
 		writtenBytes, err := osFile.Write(bytes)
 		if err != nil {
 			log.Printf("Failed to write bytes: %v", err)
-			return "", generalError
+			return "", "", generalError
 		}
 
 		log.Printf("Successfully saved new file: %s, written bytes %d", name, writtenBytes)
@@ -56,7 +56,7 @@ func (l *localFileService) Save(ctx context.Context, file *metadata.FileMetadata
 		url := path.Join(l.serverPrefixPath, name)
 		log.Printf("Saved under: %s", url)
 
-		return url, nil
+		return url, file.FileName, nil
 	}
 }
 

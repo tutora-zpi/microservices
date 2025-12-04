@@ -22,6 +22,8 @@ func (s *sendFileMessageHandler) Handle(ctx context.Context, body []byte, client
 		return fmt.Errorf("failed to decode %s payload", event.Name())
 	}
 
+	log.Printf("New file: %s", event.FileName)
+
 	wrapper := wsevent.SocketEventWrapper{
 		Name:    event.Name(),
 		Payload: body,

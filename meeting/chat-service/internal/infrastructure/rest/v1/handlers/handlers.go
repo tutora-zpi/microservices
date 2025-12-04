@@ -89,14 +89,14 @@ func (h *handlers) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlToFile, err := h.fileService.Save(ctx, &fileMetadata)
-	log.Print(urlToFile)
+	urlToFile, filename, err := h.fileService.Save(ctx, &fileMetadata)
+	log.Printf("Saved new file: %s in %s", filename, urlToFile)
 	if err != nil {
 		server.NewResponse(w, pkg.Ptr("Failed to save data"), http.StatusInternalServerError, nil)
 		return
 	}
 
-	message := *fileMetadata.NewFileMessage(urlToFile)
+	message := *fileMetadata.NewFileMessage(urlToFile, filename)
 
 	result, err := h.messageService.SaveFileMessage(ctx, message)
 	if err != nil {

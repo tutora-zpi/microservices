@@ -9,6 +9,7 @@ type SendMessageEvent struct {
 	ChatID    string `json:"chatId"`
 	SentAt    int64  `json:"sentAt"`
 	FileLink  string `json:"fileLink,omitempty"`
+	FileName  string `json:"fileName,omitempty"`
 }
 
 func (s *SendMessageEvent) Name() string {
