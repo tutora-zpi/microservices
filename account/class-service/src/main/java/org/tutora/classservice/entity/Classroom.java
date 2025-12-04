@@ -1,7 +1,10 @@
 package org.tutora.classservice.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,10 +26,13 @@ public class Classroom {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
+    @NotBlank(message = "Nazwa nie może być pusta")
+    @Size(max = 100, message = "Nazwa sali nie może przekraczać 100 znaków")
     private String name;
 
-    @Column
+    @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)

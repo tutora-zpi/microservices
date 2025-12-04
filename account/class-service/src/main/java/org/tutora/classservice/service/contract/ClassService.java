@@ -1,6 +1,7 @@
 package org.tutora.classservice.service.contract;
 
 import org.tutora.classservice.entity.Classroom;
+import org.tutora.classservice.entity.Member;
 import org.tutora.classservice.entity.RoleName;
 
 import java.util.List;
@@ -12,4 +13,5 @@ public interface ClassService {
     Classroom createClass(UUID userId, Classroom newClassroom);
     void addUserToClass(UUID classId, UUID userId, RoleName role);
     void deleteClass(UUID classId, UUID userID);
+    Member getClassHost(UUID classId);
 }
