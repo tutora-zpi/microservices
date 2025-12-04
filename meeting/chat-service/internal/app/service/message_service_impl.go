@@ -26,6 +26,8 @@ func (m *messageServiceImpl) SaveFileMessage(ctx context.Context, evt event.Send
 	var result chan *dto.MessageDTO = make(chan *dto.MessageDTO, 1)
 	var errCh chan error = make(chan error, 2)
 
+	log.Printf("ev filename: %s", evt.FileName)
+
 	wg.Go(func() {
 		dto, err := m.repo.Save(ctx, evt)
 		if err != nil {

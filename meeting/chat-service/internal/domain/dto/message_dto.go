@@ -37,6 +37,10 @@ type MessageDTO struct {
 	// Optional link to file
 	// required: false
 	FileLink *string `json:"fileLink,omitempty"`
+
+	// Optional file name
+	// required: false
+	FileName *string `json:"fileName,omitempty"`
 }
 
 func NewMessageDTO(message models.Message, replyTo *models.Message, reactions []models.Reaction) *MessageDTO {
@@ -62,5 +66,6 @@ func NewMessageDTO(message models.Message, replyTo *models.Message, reactions []
 		Reply:     replyDTO,
 		Reactions: reactionDTOs,
 		FileLink:  message.FileLink,
+		FileName:  message.FileName,
 	}
 }

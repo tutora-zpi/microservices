@@ -131,6 +131,7 @@ func ValidateFileFormData(next http.Handler) http.Handler {
 			Content:     req.Content,
 			ChatID:      req.ChatID,
 			SenderID:    req.SenderID,
+			FileName:    pkg.GetFileNameFromHeader(fileHeader.Header),
 		}
 
 		if !fileMetadata.IsValidContentType() {

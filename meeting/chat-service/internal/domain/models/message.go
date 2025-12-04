@@ -20,9 +20,10 @@ type Message struct {
 	Content string `bson:"content"`
 
 	FileLink *string `bson:"fileLink,omitempty"`
+	FileName *string `bson:"fileName,omitempty"`
 }
 
-func NewMessage(chatID, senderID, content, messageID string, sentAt int64, fileLink string) *Message {
+func NewMessage(chatID, senderID, content, messageID string, sentAt int64, fileLink, fileName string) *Message {
 	msgID, err := bson.ObjectIDFromHex(messageID)
 	if err != nil {
 		log.Printf("Failed to cast message id to object id: %v", err)
@@ -40,6 +41,10 @@ func NewMessage(chatID, senderID, content, messageID string, sentAt int64, fileL
 
 	if fileLink != "" {
 		msg.FileLink = &fileLink
+	}
+
+	if fileName != "" {
+		msg.FileName = &fileName
 	}
 
 	return msg
