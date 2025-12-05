@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorDetailsDto> handleIllegalArgumentException(
-            UnauthorizedActionException exception,
+            IllegalArgumentException exception,
             WebRequest webRequest) {
         return buildErrorResponse(exception, webRequest, HttpStatus.BAD_REQUEST);
     }
