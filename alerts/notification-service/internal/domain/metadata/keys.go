@@ -3,7 +3,8 @@ package metadata
 type Key string
 
 const (
-	CLASS_NAME Key = "className"
-	CLASS_ID   Key = "classId"
-	MEETING_ID Key = "meetingId"
+	CLASS_NAME    Key = "className"
+	CLASS_ID      Key = "classId"
+	MEETING_ID    Key = "meetingId"
+	AUTO_REDIRECT Key = "autoRedirect"
 )

@@ -34,7 +34,7 @@ func (c *ClassInvitationAcceptedEvent) NotificationForSender() *models.Notificat
 }
 
 func (c *ClassInvitationAcceptedEvent) NotificationForReceiver() *models.Notification {
-	title := fmt.Sprintf("%s, successfully accepted", c.Receiver.FirstName)
+	title := "Successfully accepted invitation"
 	body := fmt.Sprintf("Accepted invitation to %s from %s", c.ClassName, c.Sender.FirstName)
 
 	base := models.BaseNotification()
