@@ -9,8 +9,8 @@ import (
 type ClassInvitationAcceptedEvent struct {
 	ClassID   string `json:"classId"`
 	ClassName string `json:"className"`
-	Receiver  string `json:"accepter"`
-	Sender    string `json:"roomHost"`
+	Receiver  string `json:"accepterId"`
+	Sender    string `json:"roomHostId"`
 }
 
 func (c *ClassInvitationAcceptedEvent) Name() string {
