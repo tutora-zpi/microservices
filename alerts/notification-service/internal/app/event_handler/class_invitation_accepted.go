@@ -41,6 +41,7 @@ func (c *ClassInvitationAcceptedHandler) Handle(ctx context.Context, body []byte
 
 	ids := []string{}
 	for _, result := range results {
+		log.Printf("Notfi: %v", *result)
 		if err := c.publisher.Push(*result); err != nil {
 			log.Printf("Failed to push notification to user: %v", err)
 			continue
