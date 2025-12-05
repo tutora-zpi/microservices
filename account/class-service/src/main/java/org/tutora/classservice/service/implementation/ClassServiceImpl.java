@@ -41,7 +41,7 @@ public class ClassServiceImpl implements ClassService {
     @Override
     @Transactional
     public Classroom createClass(UUID userId, Classroom newClassroom) {
-        if (newClassroom.getName().isEmpty() || newClassroom.getName().length() < 100) {
+        if (newClassroom.getName().isEmpty() || newClassroom.getName().length() > 100) {
             throw new IllegalArgumentException("Classroom name cannot be empty or longer than 100 characters.");
         }
 

@@ -2,16 +2,15 @@ package classinvitation
 
 import (
 	"fmt"
-	"notification-serivce/internal/domain/dto"
 	"notification-serivce/internal/domain/models"
 	"reflect"
 )
 
 type ClassInvitationAcceptedEvent struct {
-	ClassID   string      `json:"classId"`
-	ClassName string      `json:"className"`
-	Receiver  dto.UserDTO `json:"accepter"`
-	Sender    dto.UserDTO `json:"roomHost"`
+	ClassID   string `json:"classId"`
+	ClassName string `json:"className"`
+	Receiver  string `json:"accepter"`
+	Sender    string `json:"roomHost"`
 }
 
 func (c *ClassInvitationAcceptedEvent) Name() string {
@@ -19,8 +18,8 @@ func (c *ClassInvitationAcceptedEvent) Name() string {
 }
 
 func (c *ClassInvitationAcceptedEvent) NotificationForSender() *models.Notification {
-	title := fmt.Sprintf("%s, your invitation has been accepted by %s", c.Sender.FirstName, c.Receiver.FirstName)
-	body := fmt.Sprintf("%s accepted your invitation to %s", c.Receiver.FirstName, c.ClassName)
+	title := "Your invitation has been accepted"
+	body := fmt.Sprintf("Accepted your invitation to %s", c.ClassName)
 
 	base := models.BaseNotification()
 
@@ -28,14 +27,14 @@ func (c *ClassInvitationAcceptedEvent) NotificationForSender() *models.Notificat
 	base.Body = body
 	base.RedirectionLink = c.buildLink()
 
-	base.Receiver = models.NewUser(c.Sender.ID, c.Sender.FirstName, c.Sender.LastName)
+	base.Receiver = models.NewUser(c.Sender, "", "")
 
 	return base
 }
 
 func (c *ClassInvitationAcceptedEvent) NotificationForReceiver() *models.Notification {
 	title := "Successfully accepted invitation"
-	body := fmt.Sprintf("Accepted invitation to %s from %s", c.ClassName, c.Sender.FirstName)
+	body := fmt.Sprintf("Accepted invitation from %s", c.ClassName)
 
 	base := models.BaseNotification()
 
@@ -43,7 +42,7 @@ func (c *ClassInvitationAcceptedEvent) NotificationForReceiver() *models.Notific
 	base.Body = body
 	base.RedirectionLink = c.buildLink()
 
-	base.Receiver = models.NewUser(c.Receiver.ID, c.Receiver.FirstName, c.Receiver.LastName)
+	base.Receiver = models.NewUser(c.Receiver, "", "")
 
 	return base
 }

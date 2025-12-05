@@ -15,14 +15,12 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorDetailsDto> buildErrorResponse(
             Exception exception,
             WebRequest webRequest,
-            HttpStatus status
-    ) {
+            HttpStatus status) {
         ErrorDetailsDto errorDetails = new ErrorDetailsDto(
                 LocalDateTime.now(),
                 exception.getMessage(),
                 webRequest.getDescription(false).replace("uri=", ""),
-                status.value()
-        );
+                status.value());
 
         return new ResponseEntity<>(errorDetails, status);
     }
@@ -64,7 +62,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorDetailsDto> handleIllegalArgumentException(
-            UnauthorizedActionException exception,
+            IllegalArgumentException exception,
             WebRequest webRequest) {
         return buildErrorResponse(exception, webRequest, HttpStatus.BAD_REQUEST);
     }
@@ -76,7 +74,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 new Exception("An unexpected internal server error occurred: " + exception.getMessage()),
                 webRequest,
-                HttpStatus.INTERNAL_SERVER_ERROR
-        );
+                HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
