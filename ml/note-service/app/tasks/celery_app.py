@@ -14,7 +14,7 @@ celery_app = Celery(
     include=['app.tasks.meeting_processor']
 )
 
-meeting_exchange = Exchange('meeting', type='fanout')
+meeting_exchange = Exchange(settings.MEETING_EXCHANGE_NAME, type='fanout')
 
 meeting_queue = Queue(
     name='celery-meeting-listener',
@@ -36,8 +36,8 @@ class EventConsumer(bootsteps.ConsumerStep):
         """
         body: zdeserializowany JSON, np.:
         {
-            "name": "RecordingsUploaded",
-            "payload": { "merged": "...", "voices": [...] }
+            "pattern": "RecordingsUploaded",
+            "data": { "merged": "...", "voices": [...] }
         }
         """
         logging.info(f"Body: {body}")
