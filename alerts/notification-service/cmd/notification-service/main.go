@@ -110,6 +110,10 @@ func main() {
 		&classinvitation.ClassInvitationAcceptedEvent{},
 		eventhandler.NewClassInvitationAcceptedHandler(manager, repo),
 	)
+	dispatcher.Register(
+		&meetinginvitation.CancelledMeetingEvent{},
+		eventhandler.NewCancelledMeetingHandler(manager, repo),
+	)
 
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))
 

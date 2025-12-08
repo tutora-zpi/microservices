@@ -24,8 +24,21 @@ type ManageMeetingImlp struct {
 // CancelPlannedMeeting implements interfaces.ManageMeeting.
 func (m *ManageMeetingImlp) CancelPlannedMeeting(ctx context.Context, id int) error {
 	log.Printf("Cancelling planned meeting with: %d", id)
-	if err := m.plannedMeetingsRepository.CancelMeeting(ctx, id); err != nil {
+	deleted, err := m.plannedMeetingsRepository.CancelMeeting(ctx, id)
+
+	if err != nil {
 		return err
+	}
+
+	cancelledMeetingEvent := event.CancelledMeetingEvent{
+		Title:       deleted.Title,
+		StartedDate: deleted.StartDate,
+		Receivers:   deleted.Members,
+	}
+
+	dest := broker.NewExchangeDestination(&cancelledMeetingEvent, m.meetingExchange)
+	if err := m.broker.Publish(ctx, &cancelledMeetingEvent, dest); err != nil {
+		log.Printf("Failed to publish notification: %v\n", err)
 	}
 
 	return nil
