@@ -6,8 +6,13 @@ from enum import Enum
 class RecordingsPayload(BaseModel):
     class_id: str = Field(..., alias="classId", description="ID klasy/przedmiotu")
     meeting_id: str = Field(..., alias="meetingId", description="ID spotkania/pokoju")
-    merged: str = Field(..., description="Ścieżka S3 do pliku merged (np. classId/meetingId.ogg)")
-    voices: List[str] = Field(..., description="Lista ścieżek S3 do poszczególnych głosów")
+    merged: str = Field(
+        ..., description="Ścieżka S3 do pliku merged (np. classId/meetingId.ogg)"
+    )
+    voices: List[str] = Field(
+        ..., description="Lista ścieżek S3 do poszczególnych głosów"
+    )
+    member_ids: List[str] = Field(..., description="Id uczesnikow")
 
     class Config:
         populate_by_name = True
@@ -26,6 +31,7 @@ class ResourcesGeneratedData(BaseModel):
     class_id: str = Field(..., alias="classId", description="ID klasy")
     meeting_id: str = Field(..., alias="meetingId", description="ID spotkania")
     status: ProcessingStatus = Field(..., description="Status przetwarzania")
+    member_ids: List[str] = Field(..., description="Id uczesnikow")
 
     class Config:
         populate_by_name = True

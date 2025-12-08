@@ -1,3 +1,4 @@
+from typing import List
 from celery.utils.log import get_task_logger
 from celery.signals import worker_process_init
 from .celery_app import celery_app
@@ -30,12 +31,10 @@ def on_worker_init(**kwargs):
         _notification_publisher = NotificationPublisher()
 
         _transcription_service = TranscriptionService(
-            storage_service=storage,
-            ai_processor=ai_processor
+            storage_service=storage, ai_processor=ai_processor
         )
         _summarization_service = SummarizationService(
-            storage_service=storage,
-            ai_processor=ai_processor
+            storage_service=storage, ai_processor=ai_processor
         )
         logger.info("Serwisy zainicjalizowane pomyślnie.")
 
@@ -57,7 +56,9 @@ def process_audio_file_task(event_data: dict):
 
         _trigger_cleanup(event)
 
-        _send_notification(event.class_id, event.meeting_id, ProcessingStatus.SUCCESS)
+        _send_notification(
+            event.class_id, event.meeting_id, event.member_ids, ProcessingStatus.SUCCESS
+        )
 
         logger.info(f"Proces zakończony sukcesem dla: {event.merged}")
         return {"status": "success", "file": event.merged}
@@ -69,7 +70,9 @@ def process_audio_file_task(event_data: dict):
     except Exception as e:
         logger.error(f"Błąd przetwarzania taska: {e}", exc_info=True)
         if event:
-            _send_notification(event.class_id, event.meeting_id, ProcessingStatus.SUCCESS)
+            _send_notification(
+                event.class_id, event.meeting_id, ProcessingStatus.SUCCESS
+            )
         raise e
 
 
@@ -90,7 +93,9 @@ def _parse_event_data(raw_data: dict) -> RecordingsPayload:
 def _perform_transcription(s3_key: str) -> str:
     logger.info(f"Rozpoczynam transkrypcję pliku: {s3_key}")
 
-    text = _transcription_service.process_recording(key=s3_key, bucket=settings.S3_RECORDINGS_BUCKET_NAME)
+    text = _transcription_service.process_recording(
+        key=s3_key, bucket=settings.S3_RECORDINGS_BUCKET_NAME
+    )
 
     if not text:
         raise RuntimeError("Transkrypcja zwróciła pusty wynik.")
@@ -103,9 +108,7 @@ def _perform_summarization(transcript: str, class_id: str, meeting_id: str) -> N
     logger.info("Generowanie podsumowania...")
 
     _summarization_service.generate_and_save_outputs(
-        transcript=transcript,
-        class_id=class_id,
-        meeting_id=meeting_id
+        transcript=transcript, class_id=class_id, meeting_id=meeting_id
     )
     logger.info("Podsumowanie wygenerowane i zapisane w S3.")
 
@@ -117,6 +120,10 @@ def _trigger_cleanup(event: RecordingsPayload) -> None:
     delete_audio_files_task.delay({"file_paths": files})
 
 
-def _send_notification(class_id: str, meeting_id: str, status: ProcessingStatus) -> None:
+def _send_notification(
+    class_id: str, meeting_id: str, member_ids: List[str], status: ProcessingStatus
+) -> None:
     logger.info(f"Wysyłanie powiadomienia: {status}")
-    _notification_publisher.publish_resources_generated(class_id, meeting_id, status)
+    _notification_publisher.publish_resources_generated(
+        class_id, meeting_id, member_ids, status
+    )
