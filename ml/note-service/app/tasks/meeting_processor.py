@@ -2,11 +2,12 @@ from celery.utils.log import get_task_logger
 from celery.signals import worker_process_init
 from .celery_app import celery_app
 
-from app.schemas.events import RecordingsPayload
+from app.schemas.events import RecordingsPayload, ProcessingStatus
 from app.services.storage_s3 import StorageS3
 from app.services.ai_processor import AIProcessor
 from app.services.transcription import TranscriptionService
 from app.services.summarization import SummarizationService
+from app.services.notification_publisher import NotificationPublisher
 from app.tasks.file_cleaner import delete_audio_files_task
 from app.core.config import settings
 
@@ -14,17 +15,19 @@ logger = get_task_logger(__name__)
 
 _transcription_service: TranscriptionService = None
 _summarization_service: SummarizationService = None
+_notification_publisher: NotificationPublisher = None
 
 
 @worker_process_init.connect
 def on_worker_init(**kwargs):
-    global _transcription_service, _summarization_service
+    global _transcription_service, _summarization_service, _notification_publisher
 
     logger.info("Inicjalizacja serwisów AI i Storage...")
 
     try:
         storage = StorageS3()
         ai_processor = AIProcessor()
+        _notification_publisher = NotificationPublisher()
 
         _transcription_service = TranscriptionService(
             storage_service=storage,
@@ -54,6 +57,8 @@ def process_audio_file_task(event_data: dict):
 
         _trigger_cleanup(event)
 
+        _send_notification(event.class_id, event.meeting_id, ProcessingStatus.SUCCESS)
+
         logger.info(f"Proces zakończony sukcesem dla: {event.merged}")
         return {"status": "success", "file": event.merged}
 
@@ -63,6 +68,8 @@ def process_audio_file_task(event_data: dict):
 
     except Exception as e:
         logger.error(f"Błąd przetwarzania taska: {e}", exc_info=True)
+        if event:
+            _send_notification(event.class_id, event.meeting_id, ProcessingStatus.SUCCESS)
         raise e
 
 
@@ -93,7 +100,6 @@ def _perform_transcription(s3_key: str) -> str:
 
 
 def _perform_summarization(transcript: str, class_id: str, meeting_id: str) -> None:
-    """Uruchamia logikę generowania notatek."""
     logger.info("Generowanie podsumowania...")
 
     _summarization_service.generate_and_save_outputs(
@@ -109,3 +115,8 @@ def _trigger_cleanup(event: RecordingsPayload) -> None:
     logger.info(f"Zlecanie usunięcia {len(files)} plików.")
 
     delete_audio_files_task.delay({"file_paths": files})
+
+
+def _send_notification(class_id: str, meeting_id: str, status: ProcessingStatus) -> None:
+    logger.info(f"Wysyłanie powiadomienia: {status}")
+    _notification_publisher.publish_resources_generated(class_id, meeting_id, status)

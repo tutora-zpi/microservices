@@ -6,6 +6,8 @@ from pydantic import AnyHttpUrl, field_validator
 class Settings(BaseSettings):
     # --- RABBIT ---
     RABBITMQ_BROKER_URL: str
+    MEETING_EXCHANGE_NAME: str = "meeting"
+    RESOURCES_EXCHANGE_NAME: str = "resource"
 
     # --- AWS / S3 ---
     AWS_ACCESS_KEY_ID: str
