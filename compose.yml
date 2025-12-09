@@ -319,8 +319,8 @@ services:
 
   recording_service:
     build:
-        context: ./meeting/recorder-service
-        dockerfile: Dockerfile
+      context: ./meeting/recorder-service
+      dockerfile: Dockerfile
     container_name: recording_service
     env_file:
       - ./meeting/recorder-service/.env
@@ -339,7 +339,7 @@ services:
         condition: service_started
     networks:
       - tutora_net
-  
+
   recording_service_db:
     image: mongo:latest
     container_name: recording_db
@@ -355,7 +355,6 @@ services:
       retries: 5
     networks:
       - tutora_net
-
 
 volumes:
   pgdata:

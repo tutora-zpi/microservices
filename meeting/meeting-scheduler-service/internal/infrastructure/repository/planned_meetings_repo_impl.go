@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type plannedMeetingsRepoImpl struct {
@@ -17,21 +18,24 @@ type plannedMeetingsRepoImpl struct {
 }
 
 // CancelMeeting implements repository.PlannedMeetingsRepository.
-func (p *plannedMeetingsRepoImpl) CancelMeeting(ctx context.Context, id int) error {
+func (p *plannedMeetingsRepoImpl) CancelMeeting(ctx context.Context, id int) (*dto.PlanMeetingDTO, error) {
+	var deleted models.PlannedMeeting
+
 	tx := p.db.WithContext(ctx).
+		Clauses(clause.Returning{}).
 		Where("id = ?", id).
-		Delete(&models.PlannedMeeting{})
+		Delete(&deleted)
 
 	if tx.Error != nil {
 		log.Printf("Error during cancellation: %v\n", tx.Error)
-		return fmt.Errorf("failed to cancel meeting")
+		return nil, fmt.Errorf("failed to cancel meeting")
 	}
 
 	if tx.RowsAffected == 0 {
-		return fmt.Errorf("no unprocessed meeting found with id=%d", id)
+		return nil, fmt.Errorf("no unprocessed meeting found with id=%d", id)
 	}
 
-	return nil
+	return deleted.ToPlanMeetingDTO()
 }
 
 // GetPlannedMeetings implements repository.PlannedMeetingsRepository.

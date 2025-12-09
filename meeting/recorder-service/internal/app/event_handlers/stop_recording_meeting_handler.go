@@ -64,7 +64,7 @@ func (s *stopRecordingMeetingHandler) Handle(ctx context.Context, body []byte) e
 		return fmt.Errorf("failed to update audio name: %w", err)
 	}
 
-	uploadEvent := event.NewRecordingsUploaded(keys, updated.ClassID, updated.MeetingID)
+	uploadEvent := event.NewRecordingsUploaded(keys, updated.ClassID, updated.MeetingID, updated.MemberIDs)
 	log.Printf("RecordingsUploaded body: %v", *uploadEvent)
 
 	dest := broker.NewExchangeDestination(uploadEvent, s.exchange)
