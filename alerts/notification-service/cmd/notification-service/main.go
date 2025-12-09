@@ -15,6 +15,7 @@ import (
 	"notification-serivce/internal/config"
 	classinvitation "notification-serivce/internal/domain/event/class_invitation"
 	meetinginvitation "notification-serivce/internal/domain/event/meeting_invitation"
+	"notification-serivce/internal/domain/event/notes"
 	"notification-serivce/internal/infrastructure/bus"
 	"notification-serivce/internal/infrastructure/messaging"
 	"notification-serivce/internal/infrastructure/mongo"
@@ -113,6 +114,10 @@ func main() {
 	dispatcher.Register(
 		&meetinginvitation.CancelledMeetingEvent{},
 		eventhandler.NewCancelledMeetingHandler(manager, repo),
+	)
+	dispatcher.Register(
+		&notes.ResourcesGeneratedEvent{},
+		eventhandler.NewResourceGeneratedHandler(manager, repo),
 	)
 
 	httpServer := server.NewServer(handlers.NewRouter(manager, service))

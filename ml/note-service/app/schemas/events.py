@@ -12,7 +12,7 @@ class RecordingsPayload(BaseModel):
     voices: List[str] = Field(
         ..., description="Lista ścieżek S3 do poszczególnych głosów"
     )
-    member_ids: List[str] = Field(..., description="Id uczesnikow")
+    member_ids: List[str] = Field(..., alias="memberIds", description="Id uczesnikow")
 
     class Config:
         populate_by_name = True
